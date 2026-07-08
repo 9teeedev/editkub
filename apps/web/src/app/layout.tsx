@@ -3,7 +3,6 @@ import type { Viewport } from "next";
 
 import "./globals.css";
 import { baseMetaData } from "./metadata";
-import { BotIdClient } from "botid/client";
 import { Inter, Figtree, Geist_Mono } from "next/font/google";
 import {
 	initServerI18n,
@@ -23,13 +22,6 @@ export const viewport: Viewport = {
 
 initServerI18n(i18nConfig);
 
-const protectedRoutes = [
-	{
-		path: "/none",
-		method: "GET",
-	},
-];
-
 export default async function RootLayout({
 	children,
 }: Readonly<{
@@ -44,7 +36,6 @@ export default async function RootLayout({
 			className={`${inter.variable} ${figtree.variable} ${geistMono.variable}`}
 		>
 			<head>
-				<BotIdClient protect={protectedRoutes} />
 				<Script
 					src="https://app.tianji.dev/tracker.js"
 					data-website-id="cmm637ekbb51pbiglgy2s7n6k"
