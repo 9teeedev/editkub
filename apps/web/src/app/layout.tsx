@@ -4,14 +4,16 @@ import type { Viewport } from "next";
 import "./globals.css";
 import { baseMetaData } from "./metadata";
 import { BotIdClient } from "botid/client";
-import { Inter } from "next/font/google";
+import { Inter, Figtree, Geist_Mono } from "next/font/google";
 import {
 	initServerI18n,
 	getLocale,
 } from "@i18next-toolkit/nextjs-approuter/server";
 import { i18nConfig } from "../i18n.config";
 
-const siteFont = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata = baseMetaData;
 
@@ -36,7 +38,11 @@ export default async function RootLayout({
 	const locale = await getLocale();
 
 	return (
-		<html lang={locale} suppressHydrationWarning>
+		<html
+			lang={locale}
+			suppressHydrationWarning
+			className={`${inter.variable} ${figtree.variable} ${geistMono.variable}`}
+		>
 			<head>
 				<BotIdClient protect={protectedRoutes} />
 				<Script
@@ -44,7 +50,7 @@ export default async function RootLayout({
 					data-website-id="cmm637ekbb51pbiglgy2s7n6k"
 				/>
 			</head>
-			<body className={`${siteFont.className} font-sans antialiased`}>
+			<body className="font-sans antialiased">
 				{children}
 			</body>
 		</html>
