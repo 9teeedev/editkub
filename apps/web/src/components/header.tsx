@@ -28,6 +28,10 @@ export function Header() {
 			label: t("Why not CapCut?"),
 			href: "/why-not-capcut",
 		},
+		{
+			label: t("Roadmap"),
+			href: "/roadmap",
+		},
 	];
 
 	return (
