@@ -25,6 +25,7 @@ import {
 import { KeyframeRow } from "./keyframe-row";
 import { useAnimatedProperty } from "./use-animated-property";
 import { useAnimatedValueWriter } from "./use-animated-value-writer";
+import { TextAnimationRow } from "./text-animation-row";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { uppercase } from "@/utils/string";
 import { clamp } from "@/utils/math";
@@ -1670,6 +1671,15 @@ export function TextProperties({
 									</PropertyItem>
 								</div>
 							</PropertyGroup>
+							<TextAnimationRow
+								animation={element.textAnimation}
+								onChange={(textAnimation) =>
+									editor.timeline.updateElements({
+										updates: buildBatchUpdates({ textAnimation }),
+										pushHistory: true,
+									})
+								}
+							/>
 					</PanelBaseView>
 				</TabsContent>
 				<TabsContent value="speech" className="mt-0 flex-1 overflow-auto">

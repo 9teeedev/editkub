@@ -332,7 +332,7 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Advanced Text Animations",
 				description:
 					"Typewriter, glitch, bounce, slide-in, karaoke-style highlight. Animated text presets library. Per-word timing.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Drawing & Annotation",

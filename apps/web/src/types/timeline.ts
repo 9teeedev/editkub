@@ -94,6 +94,39 @@ export interface Keyframe {
  */
 export type ElementKeyframes = Partial<Record<KeyframeProperty, Keyframe[]>>;
 
+// ---- Text Animation ----
+
+/**
+ * Built-in text entrance/exit/loop animation presets. These animate
+ * properties of the text rendering (visibility, opacity, offset, scale)
+ * that are orthogonal to keyframe-driven transform/opacity animation.
+ */
+export type TextAnimationType =
+	| "none"
+	| "typewriter"
+	| "glitch"
+	| "bounce"
+	| "slide-in"
+	| "slide-out"
+	| "fade-in"
+	| "fade-out"
+	| "scale-in"
+	| "karaoke";
+
+/**
+ * Per-element text animation config. `duration` is how long (seconds) the
+ * animation takes from the element's start; `0` means it runs across the
+ * element's whole lifetime. `intensity` (0–1) scales visual jitter for
+ * effects like glitch/bounce.
+ */
+export interface TextAnimation {
+	type: TextAnimationType;
+	/** Seconds from element start over which the animation runs. 0 = full element. */
+	duration: number;
+	/** 0–1 multiplier on effect strength (glitch jitter, bounce height). */
+	intensity?: number;
+}
+
 // ---- Transitions ----
 
 export type TransitionType =
@@ -224,6 +257,7 @@ export interface TextElement extends BaseTimelineElement {
 	backgroundOpacity?: number;
 	backgroundPaddingX?: number;
 	backgroundPaddingY?: number;
+	textAnimation?: TextAnimation;
 }
 
 export interface StickerElement extends BaseTimelineElement {
