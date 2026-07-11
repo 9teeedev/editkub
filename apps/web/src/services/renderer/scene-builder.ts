@@ -276,6 +276,9 @@ function computeFilterString(
 					} else if (func === "sepia" || func === "grayscale") {
 						// amount-based: neutral at 0
 						scaled = round(num * filter.intensity);
+					} else if (func === "blur") {
+						// blur radius: neutral at 0
+						scaled = round(num * filter.intensity);
 					} else {
 						// saturate, contrast, brightness — neutral at 1
 						scaled = round(1 + (num - 1) * filter.intensity);
