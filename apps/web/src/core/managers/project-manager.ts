@@ -6,6 +6,7 @@ import type {
 	TProjectSortOption,
 	TProjectSettings,
 	TTimelineViewState,
+	TEditorLayoutMode,
 } from "@/types/project";
 import type { ExportOptions, ExportResult } from "@/types/export";
 import { useAgentStore } from "@/stores/agent-store";
@@ -94,6 +95,7 @@ export class ProjectManager {
 				},
 			},
 			version: CURRENT_PROJECT_VERSION,
+			layoutMode: "landscape",
 		};
 
 		this.active = newProject;
@@ -545,6 +547,16 @@ export class ProjectManager {
 			...this.active,
 			timelineViewState: viewState ?? undefined,
 		};
+		this.editor.save.markDirty();
+	}
+
+	getLayoutMode(): TEditorLayoutMode {
+		return this.active?.layoutMode ?? "landscape";
+	}
+
+	setLayoutMode({ mode }: { mode: TEditorLayoutMode }): void {
+		if (!this.active) return;
+		this.active = { ...this.active, layoutMode: mode };
 		this.editor.save.markDirty();
 	}
 

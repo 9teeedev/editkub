@@ -23,6 +23,9 @@ import {
 	BubbleChatIcon,
 	CommandIcon,
 	SparklesIcon,
+	PencilIcon,
+	OrientationLandscapeToPotraitIcon,
+	OrientationPotraitToLandscapeIcon,
 } from "@hugeicons/core-free-icons";
 import { FeedbackTrigger } from "@/components/feedback/feedback-trigger";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -31,6 +34,10 @@ import Image from "next/image";
 import { cn } from "@/utils/ui";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { useAgentStore } from "@/stores/agent-store";
+import {
+	VERTICAL_CANVAS_SIZE,
+	LANDSCAPE_CANVAS_SIZE,
+} from "@/constants/project-constants";
 
 export function EditorHeader() {
 	const { t } = useTranslation();
@@ -54,6 +61,7 @@ export function EditorHeader() {
 				</FeedbackTrigger>
 				<LanguageToggle />
 				<ThemeToggle />
+				<LayoutToggle />
 				<AgentToggle />
 				<ExportButton />
 			</nav>
@@ -271,6 +279,61 @@ function AgentToggle() {
 			className="size-8"
 		>
 			<HugeiconsIcon icon={SparklesIcon} className="size-4" />
+		</Button>
+	);
+}
+
+function LayoutToggle() {
+	const { t } = useTranslation();
+	const editor = useEditor();
+	const layoutMode = editor.project.getLayoutMode();
+	const isVertical = layoutMode === "vertical";
+
+	const handleToggle = () => {
+		const newMode = isVertical ? "landscape" : "vertical";
+		const current = editor.project.getActive().settings;
+
+		if (newMode === "vertical") {
+			editor.project.updateSettings({
+				settings: {
+					canvasSize: VERTICAL_CANVAS_SIZE,
+					originalCanvasSize:
+						current.originalCanvasSize ?? current.canvasSize,
+				},
+			});
+		} else {
+			editor.project.updateSettings({
+				settings: {
+					canvasSize: current.originalCanvasSize ?? LANDSCAPE_CANVAS_SIZE,
+					originalCanvasSize: null,
+				},
+			});
+		}
+
+		editor.project.setLayoutMode({ mode: newMode });
+	};
+
+	return (
+		<Button
+			variant={isVertical ? "secondary" : "ghost"}
+			size="icon"
+			onClick={handleToggle}
+			title={
+				isVertical ? t("Switch to landscape") : t("Switch to vertical")
+			}
+			aria-label={
+				isVertical ? t("Switch to landscape") : t("Switch to vertical")
+			}
+			className="size-8"
+		>
+			<HugeiconsIcon
+				icon={
+					isVertical
+						? OrientationPotraitToLandscapeIcon
+						: OrientationLandscapeToPotraitIcon
+				}
+				className="size-4"
+			/>
 		</Button>
 	);
 }

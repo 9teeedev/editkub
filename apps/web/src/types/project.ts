@@ -38,6 +38,8 @@ export interface TTimelineViewState {
 	playheadTime: number;
 }
 
+export type TEditorLayoutMode = "landscape" | "vertical";
+
 export interface TProject {
 	metadata: TProjectMetadata;
 	scenes: TScene[];
@@ -45,6 +47,7 @@ export interface TProject {
 	settings: TProjectSettings;
 	version: number;
 	timelineViewState?: TTimelineViewState;
+	layoutMode?: TEditorLayoutMode;
 	agentMessages?: AgentMessage[];
 }
 
