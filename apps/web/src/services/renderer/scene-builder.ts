@@ -14,6 +14,7 @@ import { TextNode } from "./nodes/text-node";
 import { StickerNode } from "./nodes/sticker-node";
 import { ColorNode } from "./nodes/color-node";
 import { BlurBackgroundNode } from "./nodes/blur-background-node";
+import { BlurEffectNode } from "./nodes/blur-effect-node";
 import { TransitionNode } from "./nodes/transition-node";
 import type { BaseNode } from "./nodes/base-node";
 import type { TBackground, TCanvasSize } from "@/types/project";
@@ -213,6 +214,21 @@ export function buildScene(params: BuildSceneParams) {
 						transform: element.transform,
 						opacity: element.opacity,
 						color: element.color,
+						keyframes: element.keyframes,
+					}),
+				);
+			}
+
+			if (element.type === "blur-effect") {
+				contentNodes.push(
+					new BlurEffectNode({
+						blurIntensity: element.blurIntensity,
+						duration: element.duration,
+						timeOffset: element.startTime,
+						trimStart: element.trimStart,
+						trimEnd: element.trimEnd,
+						transform: element.transform,
+						opacity: element.opacity,
 						keyframes: element.keyframes,
 					}),
 				);

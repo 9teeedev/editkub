@@ -38,8 +38,7 @@ export function getElementHalfSize({
 		const elementScale = element.transform.scale;
 
 		const elementBoxWidth = element.boxWidth;
-		const hasBoxWidth =
-			elementBoxWidth !== undefined && elementBoxWidth > 0;
+		const hasBoxWidth = elementBoxWidth !== undefined && elementBoxWidth > 0;
 
 		if (hasBoxWidth) {
 			const scaledBoxWidth = elementBoxWidth * scaleFactor;
@@ -54,14 +53,14 @@ export function getElementHalfSize({
 			);
 			return {
 				halfWidth: (scaledBoxWidth * elementScale) / 2,
-				halfHeight: ((lineCount * lineHeight) * elementScale) / 2,
+				halfHeight: (lineCount * lineHeight * elementScale) / 2,
 			};
 		}
 
 		return {
 			halfWidth:
 				(element.content.length * scaledFontSize * 0.6 * elementScale) / 2,
-			halfHeight: ((scaledFontSize * 1.4) * elementScale) / 2,
+			halfHeight: (scaledFontSize * 1.4 * elementScale) / 2,
 		};
 	}
 
@@ -73,6 +72,15 @@ export function getElementHalfSize({
 		);
 		const half = (stickerSource * containScale * transform.scale) / 2;
 		return { halfWidth: half, halfHeight: half };
+	}
+
+	if (element.type === "blur-effect") {
+		// Blur effect region: scale relative to canvas size
+		// scale=1 → full canvas, scale=0.5 → half canvas
+		return {
+			halfWidth: (canvasWidth * transform.scale) / 2,
+			halfHeight: (canvasHeight * transform.scale) / 2,
+		};
 	}
 
 	return null;

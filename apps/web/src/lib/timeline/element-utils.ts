@@ -5,6 +5,7 @@ import type {
 	CreateVideoElement,
 	CreateImageElement,
 	CreateStickerElement,
+	CreateBlurEffectElement,
 	CreateUploadAudioElement,
 	CreateLibraryAudioElement,
 	TextElement,
@@ -160,6 +161,26 @@ export function buildStickerElement({
 		type: "sticker",
 		name: iconName.split(":")[1] || iconName,
 		iconName,
+		duration: TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION,
+		startTime,
+		trimStart: 0,
+		trimEnd: 0,
+		transform: { scale: 1, position: { x: 0, y: 0 }, rotate: 0 },
+		opacity: 1,
+	};
+}
+
+export function buildBlurEffectElement({
+	startTime,
+	blurIntensity = 50,
+}: {
+	startTime: number;
+	blurIntensity?: number;
+}): CreateBlurEffectElement {
+	return {
+		type: "blur-effect",
+		name: "Blur",
+		blurIntensity,
 		duration: TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION,
 		startTime,
 		trimStart: 0,

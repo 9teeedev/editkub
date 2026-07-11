@@ -178,7 +178,8 @@ export function usePreviewInteraction({
 						element.type === "video" ||
 						element.type === "image" ||
 						element.type === "text" ||
-						element.type === "sticker",
+						element.type === "sticker" ||
+						element.type === "blur-effect",
 				);
 
 				if (draggableElements.length === 0) return;
@@ -194,8 +195,7 @@ export function usePreviewInteraction({
 					elements: draggableElements.map(({ track, element }) => ({
 						trackId: track.id,
 						elementId: element.id,
-						initialTransform: (element as { transform: Transform })
-							.transform,
+						initialTransform: (element as { transform: Transform }).transform,
 					})),
 					snapContext: null,
 				};
@@ -323,17 +323,14 @@ export function usePreviewInteraction({
 				const rawDeltaX = currentPos.x - state.startX;
 				const initialWidthPx = state.initialBoxWidth * scaleFactor;
 
-				const directedDelta =
-					state.handle === "right" ? rawDeltaX : -rawDeltaX;
+				const directedDelta = state.handle === "right" ? rawDeltaX : -rawDeltaX;
 				const newWidthPx = Math.max(20, initialWidthPx + directedDelta);
 				const newBoxWidth = newWidthPx / scaleFactor;
 
 				const widthChangePx =
 					(newBoxWidth - state.initialBoxWidth) * scaleFactor;
 				const positionOffsetX =
-					state.handle === "right"
-						? widthChangePx / 2
-						: -widthChangePx / 2;
+					state.handle === "right" ? widthChangePx / 2 : -widthChangePx / 2;
 
 				const nextTransform: Transform = {
 					...state.initialTransform,
@@ -528,18 +525,13 @@ export function usePreviewInteraction({
 					const initialWidthPx = state.initialBoxWidth * scaleFactor;
 					const directedDelta =
 						state.handle === "right" ? rawDeltaX : -rawDeltaX;
-					const newWidthPx = Math.max(
-						20,
-						initialWidthPx + directedDelta,
-					);
+					const newWidthPx = Math.max(20, initialWidthPx + directedDelta);
 					const newBoxWidth = newWidthPx / scaleFactor;
 
 					const widthChangePx =
 						(newBoxWidth - state.initialBoxWidth) * scaleFactor;
 					const positionOffsetX =
-						state.handle === "right"
-							? widthChangePx / 2
-							: -widthChangePx / 2;
+						state.handle === "right" ? widthChangePx / 2 : -widthChangePx / 2;
 
 					editor.timeline.updateTracks(state.tracksSnapshot);
 					const nextTransform: Transform = {
@@ -591,9 +583,7 @@ export function usePreviewInteraction({
 				}
 
 				if (resizePointerIdRef.current !== null) {
-					overlayRef.current?.releasePointerCapture(
-						resizePointerIdRef.current,
-					);
+					overlayRef.current?.releasePointerCapture(resizePointerIdRef.current);
 					resizePointerIdRef.current = null;
 				}
 
@@ -666,9 +656,7 @@ export function usePreviewInteraction({
 				}
 
 				if (scalePointerIdRef.current !== null) {
-					overlayRef.current?.releasePointerCapture(
-						scalePointerIdRef.current,
-					);
+					overlayRef.current?.releasePointerCapture(scalePointerIdRef.current);
 					scalePointerIdRef.current = null;
 				}
 
@@ -688,8 +676,7 @@ export function usePreviewInteraction({
 			const deltaX = currentPos.x - dragStateRef.current.startX;
 			const deltaY = currentPos.y - dragStateRef.current.startY;
 
-			const hasMovement =
-				Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5;
+			const hasMovement = Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5;
 
 			if (!hasMovement) {
 				dragStateRef.current = null;
@@ -898,4 +885,5 @@ function getElementLocalTime({
 	if (!element) return undefined;
 	return playbackTime - element.startTime;
 }
+
 

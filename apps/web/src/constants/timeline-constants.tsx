@@ -4,6 +4,7 @@ import {
 	Happy01Icon,
 	MusicNote03Icon,
 	TextIcon,
+	BlurIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { OcVideoIcon } from "@editkub/ui/icons";
@@ -21,6 +22,9 @@ export const TRACK_COLORS: Record<TrackType, { background: string }> = {
 	sticker: {
 		background: "bg-amber-500",
 	},
+	effect: {
+		background: "bg-indigo-500",
+	},
 } as const;
 
 export const TRACK_HEIGHTS: Record<TrackType, number> = {
@@ -28,6 +32,7 @@ export const TRACK_HEIGHTS: Record<TrackType, number> = {
 	text: 25,
 	audio: 50,
 	sticker: 50,
+	effect: 50,
 } as const;
 
 export const TRACK_GAP = 4;
@@ -65,6 +70,12 @@ export const TRACK_ICONS: Record<TrackType, React.ReactNode> = {
 	sticker: (
 		<HugeiconsIcon
 			icon={Happy01Icon}
+			className="text-muted-foreground size-4 shrink-0"
+		/>
+	),
+	effect: (
+		<HugeiconsIcon
+			icon={BlurIcon}
 			className="text-muted-foreground size-4 shrink-0"
 		/>
 	),

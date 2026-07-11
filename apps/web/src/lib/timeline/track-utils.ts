@@ -6,6 +6,7 @@ import type {
 	AudioTrack,
 	StickerTrack,
 	TextTrack,
+	EffectTrack,
 	TimelineElement,
 } from "@/types/timeline";
 import {
@@ -23,7 +24,7 @@ export function canTracktHaveAudio(
 
 export function canTrackBeHidden(
 	track: TimelineTrack,
-): track is VideoTrack | TextTrack | StickerTrack {
+): track is VideoTrack | TextTrack | StickerTrack | EffectTrack {
 	return track.type !== "audio";
 }
 
@@ -85,9 +86,11 @@ export function buildEmptyTrack({
 				? "Text track"
 				: type === "audio"
 					? "Audio track"
-					: type === "sticker"
-						? "Sticker track"
-						: "Track");
+						: type === "sticker"
+							? "Sticker track"
+							: type === "effect"
+								? "Effect track"
+								: "Track");
 
 	switch (type) {
 		case "video":
@@ -113,6 +116,14 @@ export function buildEmptyTrack({
 				id,
 				name: trackName,
 				type: "sticker",
+				elements: [],
+				hidden: false,
+			};
+		case "effect":
+			return {
+				id,
+				name: trackName,
+				type: "effect",
 				elements: [],
 				hidden: false,
 			};
@@ -216,6 +227,7 @@ export function canElementGoOnTrack({
 	if (elementType === "text") return trackType === "text";
 	if (elementType === "audio") return trackType === "audio";
 	if (elementType === "sticker") return trackType === "sticker";
+	if (elementType === "blur-effect") return trackType === "effect";
 	if (elementType === "video" || elementType === "image") {
 		return trackType === "video";
 	}

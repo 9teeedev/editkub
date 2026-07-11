@@ -8,7 +8,7 @@ export interface TScene {
 	updatedAt: Date;
 }
 
-export type TrackType = "video" | "text" | "audio" | "sticker";
+export type TrackType = "video" | "text" | "audio" | "sticker" | "effect";
 
 interface BaseTrack {
 	id: string;
@@ -42,7 +42,18 @@ export interface StickerTrack extends BaseTrack {
 	hidden: boolean;
 }
 
-export type TimelineTrack = VideoTrack | TextTrack | AudioTrack | StickerTrack;
+export interface EffectTrack extends BaseTrack {
+	type: "effect";
+	elements: BlurEffectElement[];
+	hidden: boolean;
+}
+
+export type TimelineTrack =
+	| VideoTrack
+	| TextTrack
+	| AudioTrack
+	| StickerTrack
+	| EffectTrack;
 
 export interface Transform {
 	scale: number;
@@ -287,12 +298,24 @@ export interface StickerElement extends BaseTimelineElement {
 	keyframes?: ElementKeyframes;
 }
 
+export interface BlurEffectElement extends BaseTimelineElement {
+	type: "blur-effect";
+	/** Blur strength, 0–100. */
+	blurIntensity: number;
+	hidden?: boolean;
+	transform: Transform;
+	opacity: number;
+	keyframes?: ElementKeyframes;
+}
+
+
 export type TimelineElement =
 	| AudioElement
 	| VideoElement
 	| ImageElement
 	| TextElement
-	| StickerElement;
+	| StickerElement
+	| BlurEffectElement;
 
 export type ElementType = TimelineElement["type"];
 
@@ -305,12 +328,14 @@ export type CreateVideoElement = Omit<VideoElement, "id">;
 export type CreateImageElement = Omit<ImageElement, "id">;
 export type CreateTextElement = Omit<TextElement, "id">;
 export type CreateStickerElement = Omit<StickerElement, "id">;
+export type CreateBlurEffectElement = Omit<BlurEffectElement, "id">;
 export type CreateTimelineElement =
 	| CreateAudioElement
 	| CreateVideoElement
 	| CreateImageElement
 	| CreateTextElement
-	| CreateStickerElement;
+	| CreateStickerElement
+	| CreateBlurEffectElement;
 
 // ---- Drag State ----
 
