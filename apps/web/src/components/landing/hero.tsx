@@ -2,172 +2,64 @@
 
 import { Button } from "../ui/button";
 import { ArrowRight, Play } from "lucide-react";
-import Image from "next/image";
 import { Link } from "@/lib/navigation";
-import { DEFAULT_LOGO_URL, SOCIAL_LINKS } from "@/constants/site-constants";
-import { motion } from "motion/react";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
-
-const floatingParticles = Array.from({ length: 6 }, (_, i) => ({
-	id: i,
-	size: 2 + Math.random() * 3,
-	x: 10 + Math.random() * 80,
-	y: 10 + Math.random() * 80,
-	duration: 15 + Math.random() * 20,
-	delay: Math.random() * -20,
-}));
+import { Background } from "../ui/background";
 
 export function Hero() {
 	const { t } = useTranslation();
 
 	return (
-		<section className="relative flex min-h-[calc(100svh-4rem)] flex-col items-center justify-center overflow-hidden px-4">
-			<div className="pointer-events-none absolute inset-0 -z-10">
-				<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-muted/50 via-transparent to-transparent dark:from-muted/50" />
-				<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-primary/[0.06] via-transparent to-transparent dark:from-primary/[0.03]" />
-				<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-500/[0.04] via-transparent to-transparent dark:from-violet-500/[0.02]" />
+		<section className="relative w-full overflow-hidden">
+			<Background
+				className="absolute inset-0"
+				interactive={true}
+				pointerTrail={true}
+				resolution={0.06}
+				fieldOpacity={0.16}
+				strength={1.35}
+				reactivity={0.28}
+				speed={1}
+				characterPalette="detailed"
+			/>
+			<div className="relative z-10 flex flex-col items-start gap-4 md:gap-5 px-6 md:px-12 py-12 md:py-20 text-left max-w-5xl pointer-events-none">
+				<div className="flex flex-col gap-4">
+					<h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight max-w-3xl leading-[1.15] bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+						{t('Edit videos,')}{" "}
+						<span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+							{t('right in your browser')}
+						</span>
+					</h1>
+					<p className="text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
+						{t('An AI-native, open-source video editor and free alternative to CapCut. No uploads, no tracking — your media stays on your device.')}
+					</p>
+				</div>
 
-				{[600, 400, 200].map((size, index) => (
-					<motion.div
-						key={size}
-						className="absolute top-1/4 left-1/2 rounded-full border border-primary/10 dark:border-border/20"
-						style={{
-							width: size,
-							height: size,
-							x: "-50%",
-						}}
-						animate={{
-							scale: [1, 1.05, 1],
-							opacity: [0.2 + index * 0.1, 0.4 + index * 0.1, 0.2 + index * 0.1],
-						}}
-						transition={{
-							duration: 4 + index,
-							repeat: Number.POSITIVE_INFINITY,
-							ease: "easeInOut",
-							delay: index * 0.5,
-						}}
-					/>
-				))}
-
-				<motion.div
-					className="absolute top-1/6 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-primary/8 blur-[120px] dark:bg-primary/5"
-					animate={{
-						scale: [1, 1.2, 1],
-						opacity: [0.3, 0.6, 0.3],
-					}}
-					transition={{
-						duration: 8,
-						repeat: Number.POSITIVE_INFINITY,
-						ease: "easeInOut",
-					}}
-				/>
-
-				{floatingParticles.map((particle) => (
-					<motion.div
-						key={particle.id}
-						className="absolute rounded-full bg-primary/25 dark:bg-foreground/20"
-						style={{
-							width: particle.size,
-							height: particle.size,
-							left: `${particle.x}%`,
-							top: `${particle.y}%`,
-						}}
-						animate={{
-							y: [0, -30, 0],
-							opacity: [0, 0.6, 0],
-						}}
-						transition={{
-							duration: particle.duration,
-							repeat: Number.POSITIVE_INFINITY,
-							ease: "easeInOut",
-							delay: particle.delay,
-						}}
-					/>
-				))}
-			</div>
-
-			<div className="mx-auto flex max-w-4xl flex-col items-center text-center">
-				<motion.div
-					className="mb-8 flex items-center gap-3 rounded-full border border-primary/15 bg-primary/[0.06] px-4 py-2 shadow-sm dark:border-border/60 dark:bg-muted/30 dark:shadow-none"
-					initial={{ opacity: 0, y: 20, scale: 0.9 }}
-					animate={{ opacity: 1, y: 0, scale: 1 }}
-					transition={{ duration: 0.6, ease: "easeOut" }}
-				>
-					<Image
-						src={DEFAULT_LOGO_URL}
-						alt="Editkub"
-						width={20}
-						height={20}
-						className="dark:invert"
-					/>
-					<span className="text-muted-foreground text-sm font-medium">
-						{t('AI-native video editor')}
-					</span>
-				</motion.div>
-
-				<motion.h1
-					className="mb-6 text-5xl font-bold tracking-tight md:text-7xl lg:text-8xl"
-					initial={{ opacity: 0, y: 30 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
-				>
-					{t('Edit videos,')}
-					<br />
-					<motion.span
-						className="inline-block bg-gradient-to-r from-muted-foreground to-muted-foreground/70 bg-clip-text text-transparent dark:from-muted-foreground dark:to-muted-foreground"
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.7, delay: 0.35, ease: "easeOut" }}
-					>
-						{t('right in your browser')}
-					</motion.span>
-				</motion.h1>
-
-				<motion.p
-					className="text-muted-foreground mx-auto mb-10 max-w-2xl text-lg font-light leading-relaxed md:text-xl"
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
-				>
-					{t('An AI-native, open-source video editor and free alternative to CapCut. No uploads, no tracking — your media stays on your device.')}
-				</motion.p>
-
-				<motion.div
-					className="flex flex-col items-center gap-4 sm:flex-row"
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.6, delay: 0.65, ease: "easeOut" }}
-				>
+				<div className="flex items-center gap-3.5 flex-wrap pt-2 pointer-events-auto">
 					<Link href="/projects">
 						<Button
-							variant="foreground"
+							variant="default"
 							type="button"
 							size="lg"
-							className="h-12 gap-2 px-8 text-base"
+							className="h-11 px-6 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 gap-2 text-sm"
 						>
 							<Play className="size-4" />
 							{t('Start editing')}
 						</Button>
 					</Link>
-					<a
-						href={SOCIAL_LINKS.github}
-						target="_blank"
-						rel="noopener noreferrer"
-					>
+					<Link href="/why-not-capcut">
 						<Button
 							variant="outline"
 							type="button"
 							size="lg"
-							className="h-12 px-8 text-base"
+							className="h-11 px-6 font-medium border-border/50 hover:border-border hover:bg-muted/50 transition-all duration-200 gap-2 text-sm"
 						>
-							{t('View on GitHub')}
+							{t('Why not CapCut?')}
 							<ArrowRight className="size-4" />
 						</Button>
-					</a>
-				</motion.div>
+					</Link>
+				</div>
 			</div>
-
-			<div className="pointer-events-none absolute bottom-0 left-0 h-32 w-full bg-gradient-to-t from-background to-transparent" />
 		</section>
 	);
 }
