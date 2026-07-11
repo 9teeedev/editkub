@@ -353,6 +353,12 @@ const roadmapPhases: RoadmapPhase[] = [
 				status: { text: "Not started", type: "default" },
 			},
 			{
+				title: "Voiceover Recording",
+				description:
+					"In-browser microphone capture via `getUserMedia()`. Countdown overlay (3·2·1), real-time playback while recording, optional original-audio monitoring, auto-insert to timeline at playhead.",
+				status: { text: "Completed", type: "complete" },
+			},
+			{
 				title: "Project Sharing",
 				description:
 					"Export/import project bundles (.cutia) — self-contained JSON with embedded media. Share a file, open it anywhere, fully local.",

@@ -12,6 +12,7 @@ import type { RootNode } from "@/services/renderer/nodes/root-node";
 import { buildScene } from "@/services/renderer/scene-builder";
 import { formatTimeCode, getLastFrameTime } from "@/lib/time";
 import { PreviewInteractionOverlay } from "./preview-interaction-overlay";
+import { VoiceoverOverlay } from "./voiceover-overlay";
 import { EditableTimecode } from "@/components/editable-timecode";
 import { invokeAction } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -426,6 +427,7 @@ function PreviewCanvas() {
 					canvasRef={canvasRef}
 					displaySize={displaySize}
 				/>
+				<VoiceoverOverlay displaySize={displaySize} />
 			</div>
 		</div>
 	);
