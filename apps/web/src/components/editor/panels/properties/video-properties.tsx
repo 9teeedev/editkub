@@ -19,6 +19,8 @@ import { useEditor } from "@/hooks/use-editor";
 import type {
 	ChromaKeyConfig,
 	ImageElement,
+	MaskShape,
+	ShapeMaskConfig,
 	VideoEffectConfig,
 	VideoEffectId,
 	VideoElement,
@@ -35,6 +37,7 @@ import {
 	rgbToHex,
 } from "@/lib/renderer/chroma-key";
 import { VFX_PRESETS } from "@/lib/renderer/video-effects";
+import { MASK_DEFAULT, MASK_PRESETS } from "@/lib/renderer/shape-mask";
 import { BLEND_MODES } from "@/constants/blend-mode-constants";
 import { hasContentBelowElement } from "@/lib/timeline/track-utils";
 import { Info } from "lucide-react";
@@ -349,6 +352,40 @@ export function VideoProperties({
 						videoEffect: enabled
 							? { effect: "glitch", intensity: 0.5 }
 							: undefined,
+					},
+				},
+			],
+			pushHistory: true,
+		});
+	};
+
+	const mask: ShapeMaskConfig | undefined = element.shapeMask;
+
+	const updateMask = (
+		patch: Partial<ShapeMaskConfig>,
+		pushHistory: boolean,
+	) => {
+		const current = mask ?? { ...MASK_DEFAULT };
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { shapeMask: { ...current, ...patch } },
+				},
+			],
+			pushHistory,
+		});
+	};
+
+	const toggleMask = (enabled: boolean) => {
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: {
+						shapeMask: enabled ? { ...MASK_DEFAULT } : undefined,
 					},
 				},
 			],
@@ -1303,6 +1340,88 @@ export function VideoProperties({
 					</div>
 				</PropertyGroup>
 
+				<PropertyGroup title={t("Mask")} collapsible={false}>
+					<div className="space-y-4">
+						<PropertyItem>
+							<PropertyItemLabel>{t("Enable mask")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Switch checked={mask !== undefined} onCheckedChange={toggleMask} />
+							</PropertyItemValue>
+						</PropertyItem>
+						{mask && (
+							<>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Shape")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Select
+											value={mask.shape}
+											onValueChange={(shape) =>
+												updateMask({ shape: shape as MaskShape }, true)
+											}
+										>
+											<SelectTrigger className="w-full">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												{MASK_PRESETS.map((preset) => (
+													<SelectItem key={preset.id} value={preset.id}>
+														{maskPresetLabel(preset.id, t)}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</PropertyItemValue>
+								</PropertyItem>
+								{(
+									[
+										["Size", "size", 0.05, 1.5],
+										["Feather", "feather", 0, 50],
+										["Rotation", "rotation", -180, 180],
+									] as const
+								).map(([label, key, min, max]) => (
+									<PropertyItem key={key} direction="column">
+										<PropertyItemLabel>{t(label)}</PropertyItemLabel>
+										<PropertyItemValue>
+											<div className="flex items-center gap-2">
+												<Slider
+													value={[mask[key]]}
+													min={min}
+													max={max}
+													step={1}
+													onValueChange={([value]) =>
+														updateMask({ [key]: value }, false)
+													}
+													onValueCommit={([value]) =>
+														updateMask({ [key]: value }, true)
+													}
+													className="flex-1"
+												/>
+												<span className="text-muted-foreground w-10 text-right text-xs">
+													{mask[key].toFixed(key === "size" ? 2 : 0)}
+												</span>
+											</div>
+										</PropertyItemValue>
+									</PropertyItem>
+								))}
+								<PropertyItem>
+									<PropertyItemLabel>{t("Invert")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Switch
+											checked={mask.invert}
+											onCheckedChange={(value) => updateMask({ invert: value }, true)}
+										/>
+									</PropertyItemValue>
+								</PropertyItem>
+								<p className="text-muted-foreground text-xs">
+									{t(
+										"Clip to a shape (circle/rect/star/vignette) with feathered edges.",
+									)}
+								</p>
+							</>
+						)}
+					</div>
+				</PropertyGroup>
+
 				{isVideoElement && (
 <PropertyGroup title={t("Speed")} collapsible={false}>
 								<div className="space-y-6">
@@ -1426,5 +1545,18 @@ function vfxPresetLabel(id: VideoEffectId, t: (key: string) => string): string {
 			return t("RGB Split");
 		case "halftone":
 			return t("Halftone");
+	}
+}
+
+function maskPresetLabel(id: MaskShape, t: (key: string) => string): string {
+	switch (id) {
+		case "circle":
+			return t("Circle");
+		case "rect":
+			return t("Rectangle");
+		case "star":
+			return t("Star");
+		case "inverted-circle":
+			return t("Vignette");
 	}
 }

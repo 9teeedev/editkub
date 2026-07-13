@@ -220,6 +220,7 @@ export interface VideoElement extends BaseTimelineElement {
 	adjustments?: AdjustmentControls;
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
+	shapeMask?: ShapeMaskConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -236,6 +237,7 @@ export interface ImageElement extends BaseTimelineElement {
 	adjustments?: AdjustmentControls;
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
+	shapeMask?: ShapeMaskConfig;
 	keyframes?: ElementKeyframes;
 }
 
@@ -285,6 +287,27 @@ export type VideoEffectId =
 	| "pixelate"
 	| "rgb-split"
 	| "halftone";
+
+/** Shape mask types for visual elements. */
+export type MaskShape = "circle" | "rect" | "star" | "inverted-circle";
+
+/**
+ * Shape mask configuration. Clips the element to a geometric shape with
+ * feathered edges. Coordinates are normalized [0,1] relative to the frame.
+ */
+export interface ShapeMaskConfig {
+	shape: MaskShape;
+	centerX: number;
+	centerY: number;
+	/** Size relative to the shorter frame edge (0-1). */
+	size: number;
+	/** Rotation in degrees. */
+	rotation: number;
+	/** Edge feather in pixels. */
+	feather: number;
+	/** Cut a hole instead of keeping the shape. */
+	invert: boolean;
+}
 
 export interface AdjustmentControls {
 	brightness: number; // 0-2, default 1

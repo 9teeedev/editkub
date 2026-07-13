@@ -769,5 +769,15 @@
   "kbaaf6484": "Halftone",
   "kc423cee7": "Per-frame pixel effects: Glitch, VHS, Pixelate, RGB Split, Halftone.",
   "kd6e79281": "Pixelate",
-  "kfbdb95c4": "RGB Split"
+  "kfbdb95c4": "RGB Split",
+  "k1cf1d0dc": "Shape",
+  "k42c47d88": "Feather",
+  "k51a589f3": "Enable mask",
+  "k69e9f52a": "Star",
+  "kcee8783a": "Rectangle",
+  "kd31b604f": "Circle",
+  "kdf5d6c0e": "Mask",
+  "ke57efbb6": "Clip to a shape (circle/rect/star/vignette) with feathered edges.",
+  "kf23d3448": "Vignette",
+  "kf5be6bf1": "Invert"
 }

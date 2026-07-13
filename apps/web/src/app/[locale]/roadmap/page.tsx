@@ -271,8 +271,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Masking",
 				description:
-					"Shape masks (circle, rectangle, star, gradient, custom path) applied per clip. Invert option, feathered edges, animated mask position via keyframes. Enables advanced split-screen, spotlight, and reveal transitions.",
-				status: { text: "Not started", type: "default" },
+					"Shape masks for visual clips: circle, rectangle, star, and vignette, with size, rotation, feather, and invert controls. Runs per frame locally in the Canvas2D renderer.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Color Match",

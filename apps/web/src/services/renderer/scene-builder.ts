@@ -59,6 +59,7 @@ function buildVisualElementNode({
 			vignette: element.adjustments?.vignette ?? 0,
 			chromaKey: element.chromaKey,
 			videoEffect: element.videoEffect,
+			shapeMask: element.shapeMask,
 			keyframes: element.keyframes,
 			playbackRate: videoElement.playbackRate,
 			reversed: videoElement.reversed,
@@ -79,6 +80,7 @@ function buildVisualElementNode({
 			vignette: element.adjustments?.vignette ?? 0,
 			chromaKey: element.chromaKey,
 			videoEffect: element.videoEffect,
+			shapeMask: element.shapeMask,
 			keyframes: element.keyframes,
 		});
 	}

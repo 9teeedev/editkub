@@ -3,6 +3,7 @@ import { BaseNode } from "./base-node";
 import type {
 	ChromaKeyConfig,
 	ElementKeyframes,
+	ShapeMaskConfig,
 	Transform,
 	VideoEffectConfig,
 } from "@/types/timeline";
@@ -13,6 +14,7 @@ import {
 	type DrawableCanvas,
 } from "@/lib/renderer/chroma-key";
 import { applyVideoEffect } from "@/lib/renderer/video-effects";
+import { applyShapeMask } from "@/lib/renderer/shape-mask";
 
 const VISUAL_EPSILON = 1 / 1000;
 
@@ -28,6 +30,7 @@ export interface VisualNodeParams {
 	blendMode?: string;
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
+	shapeMask?: ShapeMaskConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -38,6 +41,7 @@ export abstract class VisualNode<
 > extends BaseNode<Params> {
 	private chromaTarget?: DrawableCanvas;
 	private vfxTarget?: DrawableCanvas;
+	private shapeMaskTarget?: DrawableCanvas;
 
 	protected getMaskedSource({
 		source,
@@ -88,6 +92,22 @@ export abstract class VisualNode<
 				target: this.vfxTarget,
 			});
 			currentSource = this.vfxTarget;
+		}
+
+		if (this.params.shapeMask) {
+			this.shapeMaskTarget = ensureChromaTarget({
+				existing: this.shapeMaskTarget,
+				width: sourceWidth,
+				height: sourceHeight,
+			});
+			applyShapeMask({
+				source: currentSource,
+				sourceWidth,
+				sourceHeight,
+				config: this.params.shapeMask,
+				target: this.shapeMaskTarget,
+			});
+			currentSource = this.shapeMaskTarget;
 		}
 
 		return { source: currentSource, sourceWidth, sourceHeight };
