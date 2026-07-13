@@ -722,5 +722,15 @@
   "kfe9d05e0": "編集を開始",
   "kff14c2cb": "{{num}} プロジェクトを削除しますか？",
   "kff396558": "キャラクター名",
-  "kff9b9bf4": "動画を編集する、"
+  "kff9b9bf4": "動画を編集する、",
+  "k115bc125": "Green",
+  "k1fa18494": "Chroma Key",
+  "k3e04658a": "Blue",
+  "k698ba835": "Threshold",
+  "k9ba4dc6": "Smoothness",
+  "kc22c196f": "Red",
+  "kc6ad88de": "Enable chroma key",
+  "kcb589315": "Keys out a color (green/blue screen). Per-frame, works with any clip.",
+  "kd1143809": "Spill suppression",
+  "kfced0891": "Key color"
 }

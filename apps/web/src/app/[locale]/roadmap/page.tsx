@@ -259,8 +259,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Chroma Key / Green Screen",
 				description:
-					"WebGL fragment-shader chroma keyer. Pick key color (green/blue/custom) with eyedropper, adjust similarity threshold and spill suppression edge softness. Real-time preview on canvas. Privacy-first — all GPU-local, no server.",
-				status: { text: "Not started", type: "default" },
+					"Per-frame chroma keyer on the CPU (Canvas2D ImageData pixel loop). Pick green, blue, or red, then adjust threshold, smoothness, and spill suppression. Privacy-first — runs locally in the browser.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Video Effects Library (VFX)",

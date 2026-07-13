@@ -16,10 +16,22 @@ import { useAnimatedProperty } from "./use-animated-property";
 import { useAnimatedValueWriter } from "./use-animated-value-writer";
 import { clamp } from "@/utils/math";
 import { useEditor } from "@/hooks/use-editor";
-import type { ImageElement, VideoElement, AdjustmentControls } from "@/types/timeline";
+import type {
+	ChromaKeyConfig,
+	ImageElement,
+	VideoElement,
+	AdjustmentControls,
+} from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
 import { invokeAction } from "@/lib/actions";
+import { ColorPicker } from "@/components/ui/color-picker";
+import {
+	CHROMA_DEFAULT,
+	CHROMA_PRESETS,
+	hexToRgb,
+	rgbToHex,
+} from "@/lib/renderer/chroma-key";
 import { BLEND_MODES } from "@/constants/blend-mode-constants";
 import { hasContentBelowElement } from "@/lib/timeline/track-utils";
 import { Info } from "lucide-react";
@@ -30,6 +42,7 @@ import {
 	SelectContent,
 	SelectItem,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 export function VideoProperties({
 	_element: element,
@@ -267,6 +280,40 @@ export function VideoProperties({
 				},
 			],
 			pushHistory,
+		});
+	};
+
+	const chroma: ChromaKeyConfig | undefined = element.chromaKey;
+
+	const updateChroma = (
+		patch: Partial<ChromaKeyConfig>,
+		pushHistory: boolean,
+	) => {
+		const current = chroma ?? { ...CHROMA_DEFAULT };
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { chromaKey: { ...current, ...patch } },
+				},
+			],
+			pushHistory,
+		});
+	};
+
+	const toggleChroma = (enabled: boolean) => {
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: {
+						chromaKey: enabled ? { ...CHROMA_DEFAULT } : undefined,
+					},
+				},
+			],
+			pushHistory: true,
 		});
 	};
 
@@ -1062,6 +1109,93 @@ export function VideoProperties({
 									</div>
 								)}
 						</PropertyItem>
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup title={t("Chroma Key")} collapsible={false}>
+					<div className="space-y-4">
+						<PropertyItem>
+							<PropertyItemLabel>{t("Enable chroma key")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Switch
+									checked={chroma !== undefined}
+									onCheckedChange={toggleChroma}
+								/>
+							</PropertyItemValue>
+						</PropertyItem>
+						{chroma && (
+							<>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Key color")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<ColorPicker
+												value={rgbToHex(chroma.keyColor)}
+												onChange={(hex) =>
+													updateChroma({ keyColor: hexToRgb(hex) }, false)
+												}
+												onChangeEnd={(hex) =>
+													updateChroma({ keyColor: hexToRgb(hex) }, true)
+												}
+											/>
+											<div className="flex flex-wrap gap-1">
+												{CHROMA_PRESETS.map((preset) => (
+													<button
+														key={preset.id}
+														type="button"
+														onClick={() =>
+															updateChroma(
+																{ keyColor: hexToRgb(preset.hex) },
+																true,
+															)
+														}
+														className="size-5 rounded-sm border"
+														style={{ backgroundColor: `#${preset.hex}` }}
+														title={t(preset.label)}
+													/>
+												))}
+											</div>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+								{(
+									[
+										["Threshold", "threshold", 0, 0.6],
+										["Smoothness", "smoothness", 0, 1],
+										["Spill suppression", "spillSuppression", 0, 1],
+									] as const
+								).map(([label, key, min, max]) => (
+									<PropertyItem key={key} direction="column">
+										<PropertyItemLabel>{t(label)}</PropertyItemLabel>
+										<PropertyItemValue>
+											<div className="flex items-center gap-2">
+												<Slider
+													value={[chroma[key]]}
+													min={min}
+													max={max}
+													step={0.01}
+													onValueChange={([value]) =>
+														updateChroma({ [key]: value }, false)
+													}
+													onValueCommit={([value]) =>
+														updateChroma({ [key]: value }, true)
+													}
+													className="flex-1"
+												/>
+												<span className="text-muted-foreground w-10 text-right text-xs">
+													{chroma[key].toFixed(2)}
+												</span>
+											</div>
+										</PropertyItemValue>
+									</PropertyItem>
+								))}
+								<p className="text-muted-foreground text-xs">
+									{t(
+										"Keys out a color (green/blue screen). Per-frame, works with any clip.",
+									)}
+								</p>
+							</>
+						)}
 					</div>
 				</PropertyGroup>
 

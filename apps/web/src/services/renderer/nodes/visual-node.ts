@@ -1,7 +1,16 @@
 import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
-import type { ElementKeyframes, Transform } from "@/types/timeline";
+import type {
+	ChromaKeyConfig,
+	ElementKeyframes,
+	Transform,
+} from "@/types/timeline";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
+import {
+	applyChromaKey,
+	ensureChromaTarget,
+	type DrawableCanvas,
+} from "@/lib/renderer/chroma-key";
 
 const VISUAL_EPSILON = 1 / 1000;
 
@@ -15,6 +24,7 @@ export interface VisualNodeParams {
 	filter?: string;
 	vignette?: number; // 0-100, edge darkening intensity
 	blendMode?: string;
+	chromaKey?: ChromaKeyConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -23,6 +33,40 @@ export interface VisualNodeParams {
 export abstract class VisualNode<
 	Params extends VisualNodeParams = VisualNodeParams,
 > extends BaseNode<Params> {
+	private chromaTarget?: DrawableCanvas;
+
+	protected getMaskedSource({
+		source,
+		sourceWidth,
+		sourceHeight,
+	}: {
+		source: CanvasImageSource;
+		sourceWidth: number;
+		sourceHeight: number;
+	}): {
+		source: CanvasImageSource;
+		sourceWidth: number;
+		sourceHeight: number;
+	} {
+		if (!this.params.chromaKey) {
+			return { source, sourceWidth, sourceHeight };
+		}
+
+		this.chromaTarget = ensureChromaTarget({
+			existing: this.chromaTarget,
+			width: sourceWidth,
+			height: sourceHeight,
+		});
+		applyChromaKey({
+			source,
+			sourceWidth,
+			sourceHeight,
+			config: this.params.chromaKey,
+			target: this.chromaTarget,
+		});
+		return { source: this.chromaTarget, sourceWidth, sourceHeight };
+	}
+
 	protected getLocalTime(time: number): number {
 		const rate = this.params.playbackRate ?? 1;
 		const elapsed = time - this.params.timeOffset;

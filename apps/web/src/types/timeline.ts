@@ -218,6 +218,7 @@ export interface VideoElement extends BaseTimelineElement {
 	filter?: ElementFilter;
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
+	chromaKey?: ChromaKeyConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -232,6 +233,7 @@ export interface ImageElement extends BaseTimelineElement {
 	filter?: ElementFilter;
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
+	chromaKey?: ChromaKeyConfig;
 	keyframes?: ElementKeyframes;
 }
 
@@ -250,6 +252,18 @@ export interface TextShadow {
 export interface ElementFilter {
 	presetId: string;
 	intensity: number; // 0-1, multiplier on the filter strength
+}
+
+/** Chroma key (green/blue screen) configuration. */
+export interface ChromaKeyConfig {
+	/** Key color as [r, g, b] (0-255 each). */
+	keyColor: [number, number, number];
+	/** Color-distance threshold (0-1). */
+	threshold: number;
+	/** Edge softness (0-1). */
+	smoothness: number;
+	/** Spill suppression strength (0-1). */
+	spillSuppression: number;
 }
 
 export interface AdjustmentControls {

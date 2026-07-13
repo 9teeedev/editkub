@@ -42,12 +42,11 @@ export class ImageNode extends VisualNode<ImageNodeParams> {
 		const mediaW = this.image.naturalWidth || renderer.width;
 		const mediaH = this.image.naturalHeight || renderer.height;
 
-		this.renderVisual({
-			renderer,
+		const masked = this.getMaskedSource({
 			source: this.image,
 			sourceWidth: mediaW,
 			sourceHeight: mediaH,
-			time,
 		});
+		this.renderVisual({ renderer, ...masked, time });
 	}
 }

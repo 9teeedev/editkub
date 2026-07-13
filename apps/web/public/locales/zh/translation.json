@@ -722,5 +722,15 @@
   "kfe9d05e0": "开始编辑",
   "kff14c2cb": "删除 {{num}} 个项目？",
   "kff396558": "角色名称",
-  "kff9b9bf4": "编辑视频，"
+  "kff9b9bf4": "编辑视频，",
+  "k115bc125": "Green",
+  "k1fa18494": "Chroma Key",
+  "k3e04658a": "Blue",
+  "k698ba835": "Threshold",
+  "k9ba4dc6": "Smoothness",
+  "kc22c196f": "Red",
+  "kc6ad88de": "Enable chroma key",
+  "kcb589315": "Keys out a color (green/blue screen). Per-frame, works with any clip.",
+  "kd1143809": "Spill suppression",
+  "kfced0891": "Key color"
 }

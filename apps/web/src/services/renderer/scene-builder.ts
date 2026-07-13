@@ -57,6 +57,7 @@ function buildVisualElementNode({
 			filter: computeFilterString(element.filter, element.adjustments),
 			blendMode: element.blendMode,
 			vignette: element.adjustments?.vignette ?? 0,
+			chromaKey: element.chromaKey,
 			keyframes: element.keyframes,
 			playbackRate: videoElement.playbackRate,
 			reversed: videoElement.reversed,
@@ -75,6 +76,7 @@ function buildVisualElementNode({
 			filter: computeFilterString(element.filter, element.adjustments),
 			blendMode: element.blendMode,
 			vignette: element.adjustments?.vignette ?? 0,
+			chromaKey: element.chromaKey,
 			keyframes: element.keyframes,
 		});
 	}

@@ -2,6 +2,10 @@ import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
 import type { TransitionType } from "@/types/timeline";
 
+type Canvas2DContext =
+	| CanvasRenderingContext2D
+	| OffscreenCanvasRenderingContext2D;
+
 export interface TransitionNodeParams {
 	type: TransitionType;
 	duration: number;
@@ -91,8 +95,8 @@ export class TransitionNode extends BaseNode<TransitionNodeParams> {
 		const { width, height } = renderer;
 		const { canvasA, canvasB } = this.ensureOffscreen({ width, height });
 
-		const ctxA = canvasA.getContext("2d");
-		const ctxB = canvasB.getContext("2d");
+		const ctxA = canvasA.getContext("2d") as Canvas2DContext | null;
+		const ctxB = canvasB.getContext("2d") as Canvas2DContext | null;
 		if (!ctxA || !ctxB) {
 			throw new Error("Failed to get offscreen canvas context");
 		}
