@@ -21,7 +21,7 @@ type Canvas2DContext =
 	| CanvasRenderingContext2D
 	| OffscreenCanvasRenderingContext2D;
 
-function createCanvas({
+export function createCanvas({
 	width,
 	height,
 }: {

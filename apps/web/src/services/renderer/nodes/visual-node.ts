@@ -4,6 +4,7 @@ import type {
 	ChromaKeyConfig,
 	ElementKeyframes,
 	Transform,
+	VideoEffectConfig,
 } from "@/types/timeline";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 import {
@@ -11,6 +12,7 @@ import {
 	ensureChromaTarget,
 	type DrawableCanvas,
 } from "@/lib/renderer/chroma-key";
+import { applyVideoEffect } from "@/lib/renderer/video-effects";
 
 const VISUAL_EPSILON = 1 / 1000;
 
@@ -25,6 +27,7 @@ export interface VisualNodeParams {
 	vignette?: number; // 0-100, edge darkening intensity
 	blendMode?: string;
 	chromaKey?: ChromaKeyConfig;
+	videoEffect?: VideoEffectConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -34,6 +37,7 @@ export abstract class VisualNode<
 	Params extends VisualNodeParams = VisualNodeParams,
 > extends BaseNode<Params> {
 	private chromaTarget?: DrawableCanvas;
+	private vfxTarget?: DrawableCanvas;
 
 	protected getMaskedSource({
 		source,
@@ -48,23 +52,45 @@ export abstract class VisualNode<
 		sourceWidth: number;
 		sourceHeight: number;
 	} {
-		if (!this.params.chromaKey) {
-			return { source, sourceWidth, sourceHeight };
+		let currentSource: CanvasImageSource = source;
+
+		if (this.params.chromaKey) {
+			this.chromaTarget = ensureChromaTarget({
+				existing: this.chromaTarget,
+				width: sourceWidth,
+				height: sourceHeight,
+			});
+			applyChromaKey({
+				source: currentSource,
+				sourceWidth,
+				sourceHeight,
+				config: this.params.chromaKey,
+				target: this.chromaTarget,
+			});
+			currentSource = this.chromaTarget;
 		}
 
-		this.chromaTarget = ensureChromaTarget({
-			existing: this.chromaTarget,
-			width: sourceWidth,
-			height: sourceHeight,
-		});
-		applyChromaKey({
-			source,
-			sourceWidth,
-			sourceHeight,
-			config: this.params.chromaKey,
-			target: this.chromaTarget,
-		});
-		return { source: this.chromaTarget, sourceWidth, sourceHeight };
+		if (
+			this.params.videoEffect &&
+			this.params.videoEffect.effect !== "none" &&
+			this.params.videoEffect.intensity > 0
+		) {
+			this.vfxTarget = ensureChromaTarget({
+				existing: this.vfxTarget,
+				width: sourceWidth,
+				height: sourceHeight,
+			});
+			applyVideoEffect({
+				source: currentSource,
+				sourceWidth,
+				sourceHeight,
+				config: this.params.videoEffect,
+				target: this.vfxTarget,
+			});
+			currentSource = this.vfxTarget;
+		}
+
+		return { source: currentSource, sourceWidth, sourceHeight };
 	}
 
 	protected getLocalTime(time: number): number {

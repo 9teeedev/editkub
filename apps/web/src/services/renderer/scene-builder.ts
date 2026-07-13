@@ -58,6 +58,7 @@ function buildVisualElementNode({
 			blendMode: element.blendMode,
 			vignette: element.adjustments?.vignette ?? 0,
 			chromaKey: element.chromaKey,
+			videoEffect: element.videoEffect,
 			keyframes: element.keyframes,
 			playbackRate: videoElement.playbackRate,
 			reversed: videoElement.reversed,
@@ -77,6 +78,7 @@ function buildVisualElementNode({
 			blendMode: element.blendMode,
 			vignette: element.adjustments?.vignette ?? 0,
 			chromaKey: element.chromaKey,
+			videoEffect: element.videoEffect,
 			keyframes: element.keyframes,
 		});
 	}

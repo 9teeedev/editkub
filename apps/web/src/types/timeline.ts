@@ -219,6 +219,7 @@ export interface VideoElement extends BaseTimelineElement {
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
 	chromaKey?: ChromaKeyConfig;
+	videoEffect?: VideoEffectConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -234,6 +235,7 @@ export interface ImageElement extends BaseTimelineElement {
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
 	chromaKey?: ChromaKeyConfig;
+	videoEffect?: VideoEffectConfig;
 	keyframes?: ElementKeyframes;
 }
 
@@ -265,6 +267,24 @@ export interface ChromaKeyConfig {
 	/** Spill suppression strength (0-1). */
 	spillSuppression: number;
 }
+
+/**
+ * Video effect (VFX) overlay — per-frame pixel effects that CSS filters
+ * cannot express (glitch, VHS, pixelate, etc.).
+ */
+export interface VideoEffectConfig {
+	effect: VideoEffectId;
+	/** 0-1 strength multiplier. */
+	intensity: number;
+}
+
+export type VideoEffectId =
+	| "none"
+	| "glitch"
+	| "vhs"
+	| "pixelate"
+	| "rgb-split"
+	| "halftone";
 
 export interface AdjustmentControls {
 	brightness: number; // 0-2, default 1

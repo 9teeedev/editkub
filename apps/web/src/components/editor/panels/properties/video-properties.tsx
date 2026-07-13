@@ -19,6 +19,8 @@ import { useEditor } from "@/hooks/use-editor";
 import type {
 	ChromaKeyConfig,
 	ImageElement,
+	VideoEffectConfig,
+	VideoEffectId,
 	VideoElement,
 	AdjustmentControls,
 } from "@/types/timeline";
@@ -32,6 +34,7 @@ import {
 	hexToRgb,
 	rgbToHex,
 } from "@/lib/renderer/chroma-key";
+import { VFX_PRESETS } from "@/lib/renderer/video-effects";
 import { BLEND_MODES } from "@/constants/blend-mode-constants";
 import { hasContentBelowElement } from "@/lib/timeline/track-utils";
 import { Info } from "lucide-react";
@@ -310,6 +313,42 @@ export function VideoProperties({
 					elementId: element.id,
 					updates: {
 						chromaKey: enabled ? { ...CHROMA_DEFAULT } : undefined,
+					},
+				},
+			],
+			pushHistory: true,
+		});
+	};
+
+	const vfx: VideoEffectConfig | undefined = element.videoEffect;
+
+	const updateVfx = (
+		patch: Partial<VideoEffectConfig>,
+		pushHistory: boolean,
+	) => {
+		const current = vfx ?? { effect: "glitch" as VideoEffectId, intensity: 0.5 };
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { videoEffect: { ...current, ...patch } },
+				},
+			],
+			pushHistory,
+		});
+	};
+
+	const toggleVfx = (enabled: boolean) => {
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: {
+						videoEffect: enabled
+							? { effect: "glitch", intensity: 0.5 }
+							: undefined,
 					},
 				},
 			],
@@ -1199,6 +1238,71 @@ export function VideoProperties({
 					</div>
 				</PropertyGroup>
 
+				<PropertyGroup title={t("Video Effect")} collapsible={false}>
+					<div className="space-y-4">
+						<PropertyItem>
+							<PropertyItemLabel>{t("Enable video effect")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Switch checked={vfx !== undefined} onCheckedChange={toggleVfx} />
+							</PropertyItemValue>
+						</PropertyItem>
+						{vfx && (
+							<>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Effect")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Select
+											value={vfx.effect}
+											onValueChange={(effect) =>
+												updateVfx({ effect: effect as VideoEffectId }, true)
+											}
+										>
+											<SelectTrigger className="w-full">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												{VFX_PRESETS.map((preset) => (
+													<SelectItem key={preset.id} value={preset.id}>
+														{vfxPresetLabel(preset.id, t)}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</PropertyItemValue>
+								</PropertyItem>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Intensity")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<Slider
+												value={[vfx.intensity]}
+												min={0}
+												max={1}
+												step={0.01}
+												onValueChange={([value]) =>
+													updateVfx({ intensity: value }, false)
+												}
+												onValueCommit={([value]) =>
+													updateVfx({ intensity: value }, true)
+												}
+												className="flex-1"
+											/>
+											<span className="text-muted-foreground w-10 text-right text-xs">
+												{vfx.intensity.toFixed(2)}
+											</span>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+								<p className="text-muted-foreground text-xs">
+									{t(
+										"Per-frame pixel effects: Glitch, VHS, Pixelate, RGB Split, Halftone.",
+									)}
+								</p>
+							</>
+						)}
+					</div>
+				</PropertyGroup>
+
 				{isVideoElement && (
 <PropertyGroup title={t("Speed")} collapsible={false}>
 								<div className="space-y-6">
@@ -1306,4 +1410,21 @@ export function VideoProperties({
 				</PanelBaseView>
 		</div>
 	);
+}
+
+function vfxPresetLabel(id: VideoEffectId, t: (key: string) => string): string {
+	switch (id) {
+		case "none":
+			return t("None");
+		case "glitch":
+			return t("Glitch");
+		case "vhs":
+			return t("VHS");
+		case "pixelate":
+			return t("Pixelate");
+		case "rgb-split":
+			return t("RGB Split");
+		case "halftone":
+			return t("Halftone");
+	}
 }

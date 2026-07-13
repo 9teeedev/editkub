@@ -265,8 +265,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Video Effects Library (VFX)",
 				description:
-					"Time-based overlay effects rendered as WebGL shaders: Glitch, VHS, RGB Split, Shake, Light Leak, Sparkle, Film Burn, Edge Glow. Separate from color filters — these are animated pixel effects. Per-clip intensity and duration. Live thumbnail previews in the effects panel.",
-				status: { text: "Not started", type: "default" },
+					"Per-frame Canvas2D pixel effects: Glitch, VHS, Pixelate, RGB Split, and Halftone. Each clip has an effect selector and intensity control; processing stays local in the browser.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Masking",

@@ -732,5 +732,12 @@
   "kc6ad88de": "Enable chroma key",
   "kcb589315": "Keys out a color (green/blue screen). Per-frame, works with any clip.",
   "kd1143809": "Spill suppression",
-  "kfced0891": "Key color"
+  "kfced0891": "Key color",
+  "k4ec757a9": "Enable video effect",
+  "k5db24e53": "VHS",
+  "k8b8a4f33": "Video Effect",
+  "kbaaf6484": "Halftone",
+  "kc423cee7": "Per-frame pixel effects: Glitch, VHS, Pixelate, RGB Split, Halftone.",
+  "kd6e79281": "Pixelate",
+  "kfbdb95c4": "RGB Split"
 }
