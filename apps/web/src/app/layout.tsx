@@ -37,8 +37,8 @@ export default async function RootLayout({
 		>
 			<head>
 				<Script
-					src="https://app.tianji.dev/tracker.js"
-					data-website-id="cmm637ekbb51pbiglgy2s7n6k"
+					src="https://tianji.9tee.dev/tracker.js"
+					data-website-id="cmrky2xou0006fmgxlok8pf8m"
 				/>
 			</head>
 			<body className="font-sans antialiased">
