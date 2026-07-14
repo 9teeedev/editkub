@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { isAiEnabled, disabledResponse } from "@/lib/api-guard";
 
 const TTS_API_BASE = "https://api.milorapart.top/apis/mbAIsc";
 
@@ -14,6 +15,7 @@ const upstreamResponseSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+	if (!isAiEnabled()) return disabledResponse();
 	try {
 		const body = await request.json();
 		const validation = requestSchema.safeParse(body);

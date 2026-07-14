@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { isAiEnabled, disabledResponse } from "@/lib/api-guard";
 
 const PROVIDER_TASK_URLS: Record<string, string> = {
 	seedance:
@@ -12,6 +13,8 @@ const querySchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+	if (!isAiEnabled()) return disabledResponse();
+
 	try {
 		const providerId = request.nextUrl.searchParams.get("providerId");
 		const taskId = request.nextUrl.searchParams.get("taskId");

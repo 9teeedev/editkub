@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { isAiEnabled, disabledResponse } from "@/lib/api-guard";
 
 const proxyRequestSchema = z.object({
 	url: z.string().url(),
@@ -8,6 +9,7 @@ const proxyRequestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+	if (!isAiEnabled()) return disabledResponse();
 	try {
 		const json = await request.json();
 

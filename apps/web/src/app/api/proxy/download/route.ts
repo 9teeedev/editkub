@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { isAiEnabled, disabledResponse } from "@/lib/api-guard";
 
 export async function GET(request: NextRequest) {
+	if (!isAiEnabled()) return disabledResponse();
 	const referer = request.headers.get("referer");
 	const origin = request.headers.get("origin");
 	const allowedOrigin = request.nextUrl.origin;
