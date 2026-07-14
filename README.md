@@ -2,16 +2,22 @@
   <img src="apps/web/public/logos/editkub/Editkub_Banner.png" alt="Editkub banner" />
 </p>
 
-# Editkub
+<h1 align="center">Editkub</h1>
 
-<p>
+<p align="center">
   Privacy-first, open-source video editing.<br />
   Build, trim, layer, and export directly from your browser.
 </p>
 
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
-[![Buy me a coffee](https://img.shields.io/badge/Donate-Buy%20Me%20a%20Coffee-orange)](https://buymeacoffee.com/9teeedev)
+<p align="center">
+  <a href="LICENSE">![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)</a>
+  <a href=".github/CONTRIBUTING.md">![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)</a>
+  <a href="https://buymeacoffee.com/9teeedev"><img src="https://img.shields.io/badge/Donate-Buy%20Me%20a%20Coffee-orange" /></a>
+</p>
+
+<p align="center">
+  <a href="https://www.buymeacoffee.com/9teeedev"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" width="150" alt="Buy Me A Coffee" /></a>
+</p>
 
 ---
 
