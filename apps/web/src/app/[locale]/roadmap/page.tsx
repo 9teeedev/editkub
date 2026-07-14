@@ -33,37 +33,37 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Project Bootstrap",
 				description:
 					"Repository created, Bun monorepo setup, Next.js 16 + Turbopack, i18n (13 languages), dark/light theme, marketing site.",
-				status: { text: "Completed", type: "complete" },
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Editor Core Architecture",
 				description:
 					"Singleton `EditorCore` with specialized managers: PlaybackManager, TimelineManager, SceneManager, ProjectManager, MediaManager, RendererManager, AudioManager, SaveManager, SelectionManager.",
-				status: { text: "Completed", type: "complete" },
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Multi-track Timeline",
 				description:
 					"Video, audio, text, sticker tracks. Drag-and-drop, resize, trim, split, move, duplicate, delete. Timeline zoom, scroll sync, snapping, edge auto-scroll, selection box, playhead tracking.",
-				status: { text: "Completed", type: "complete" },
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Undo/Redo System",
 				description:
 					"Full command pattern: timeline operations (split, move, trim, clipboard paste), scene management (create, delete, rename, bookmark), media (add/remove), track operations (add, remove, reorder, mute, visibility).",
-				status: { text: "Completed", type: "complete" },
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Scene Management",
 				description:
 					"Multiple scenes per project, bookmarks, scene reordering, per-scene rendering.",
-				status: { text: "Completed", type: "complete" },
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Keyboard Shortcuts",
 				description:
 					"Full keybinding system with actions layer (`ACTIONS` definitions + `invokeAction`). Shortcut help overlay.",
-				status: { text: "Completed", type: "complete" },
+				status: { text: "Not started", type: "default" },
 			},
 		],
 	},
@@ -75,46 +75,72 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Local Export Pipeline",
 				description:
 					"FFmpeg.wasm + canvas renderer for MP4/WebM export with adjustable quality. Everything runs in-browser — no server uploads.",
-				status: { text: "Completed", type: "complete" },
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "AI Agent",
 				description:
 					"LLM-powered assistant that can edit timelines via tool calls. System prompt + project tools + AI generation tools. Chat-based interface.",
-				status: { text: "Completed", type: "complete" },
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "AI Image Generation",
-				description: "Generate images from text prompts directly in the editor via API route.",
-				status: { text: "Completed", type: "complete" },
+				description:
+					"Generate images from text prompts directly in the editor via API route.",
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "AI Video Generation",
 				description: "Text-to-video generation with async task polling.",
-				status: { text: "Completed", type: "complete" },
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Text-to-Speech (TTS)",
-				description: "Generate voiceover audio from text, insert directly to timeline.",
-				status: { text: "Completed", type: "complete" },
+				description:
+					"Generate voiceover audio from text, insert directly to timeline.",
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Audio Transcription",
 				description:
-					"Whisper-based transcription via @huggingface/transformers. Auto-generate captions from audio tracks.",
-				status: { text: "In progress", type: "pending" },
+					"Whisper-based transcription via @huggingface/transformers (5 models: Tiny → Large v3 Turbo). Auto-generate captions from audio tracks. Streaming results, progress UI, language auto-detect (9 languages), subtitle style templates.",
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Transitions Library",
 				description:
-					"Transition node system + overlay UI. Basic transitions (fade, slide, dissolve). Expandable transition-constants.",
-				status: { text: "In progress", type: "pending" },
+					"12 transition presets across 4 categories (Fade, Wipe, Slide, Zoom). Canvas-based rendering with offscreen compositing. Timeline junction overlays with drag-to-resize duration. Popover picker inline on timeline. Click-to-apply from sidebar panel.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Transition & Effect Preview Gallery",
+				description:
+					"Hover-to-play animated canvas previews in the transitions panel. Static first-frame otherwise. Same compositing logic as the actual transition renderer.",
+				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Text & Titles",
 				description:
-					"Rich text elements with fonts, styles, animations. Title templates and animated text presets.",
-				status: { text: "In progress", type: "pending" },
+					"Full text editing: content textarea, font picker, bold/italic/underline/strikethrough, font size with slider+input, color picker, opacity, stroke (color+width), shadow (color+offsetX+offsetY+blur), background (color+opacity+borderRadius+paddingX+paddingY), transform (position/scale/rotation). 8 subtitle templates (Classic, Modern, Minimal, High Contrast, News, Karaoke, Cinematic, Top Title). Style presets. Canvas renderer with word-wrap. TTS tab integrated.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Text Template Library",
+				description:
+					"Pre-designed text templates: Title cards (Bold, Elegant, Neon), Lower Thirds (News, Accent Bar), End Screens (Subscribe, Thanks), Callouts (Arrow, Badge), Social Handles. Category-filtered gallery with CSS-styled previews. Drag to timeline or click to add. Full style props carried through drag-and-drop.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Sound Effects Library",
+				description:
+					"Built-in royalty-free SFX library (whoosh, pop, ding, transition sounds, impact, UI sounds). Searchable by category and mood. Drag-to-timeline with auto-trim to clip boundary. Volume + fade controls per SFX.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Music & Song Library",
+				description:
+					"Curated royalty-free music library organized by genre/mood (Lo-fi, Upbeat, Cinematic, Ambient, Electronic, Acoustic). BPM-tagged, loop-ready. Auto-duck under voiceover. Timeline beat-sync markers for rhythmic editing.",
+				status: { text: "Not started", type: "default" },
 			},
 		],
 	},
@@ -125,7 +151,19 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Filters & Color Grading",
 				description:
-					"Brightness, contrast, saturation, temperature, hue controls. LUT support. Preset filter library (Vintage, Cinematic, Warm, Cool, etc.). Per-clip adjustment layers.",
+					"Preset filter library (Vintage, Cinematic, Warm, Cool, B&W, Film grain, etc.). One-click apply, intensity slider. Filter categories with live preview thumbnails. Import custom LUT files (.cube).",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Adjustment Controls",
+				description:
+					"Per-clip manual adjustment: brightness, contrast, saturation, temperature, tint, hue, vignette, sharpen. Non-destructive — always editable. Adjustment layers that affect all clips below.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Custom Subtitle System",
+				description:
+					"Full subtitle editor beyond auto-captions: per-word timing control, word-by-word highlight (karaoke style), custom subtitle duration presets (1-word, 2-word, 3-word per display), font/size/color/stroke/ shadow per subtitle, position drag on canvas, SRT/VTT import-export, style presets (TikTok, YouTube, Broadcast, Karaoke).",
 				status: { text: "Not started", type: "default" },
 			},
 			{
@@ -153,6 +191,18 @@ const roadmapPhases: RoadmapPhase[] = [
 				status: { text: "Not started", type: "default" },
 			},
 			{
+				title: "Split Screen",
+				description:
+					"Multi-frame layouts: 2-split (horizontal/vertical), 3-split, 4-grid, custom grid. Drag media into each frame. Adjustable divider positions, per-frame border/gap/rounding. Preset layouts for comparison videos, reactions, before/after.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Overlay & Blend Modes",
+				description:
+					"Layer compositing with blend modes (Normal, Multiply, Screen, Overlay, Soft Light, Color Dodge, Difference, Exclusion, Hue, Saturation, Color, Luminosity). Opacity control per layer. Blend mode preview thumbnails. Useful for light leaks, film grain, texture overlays, double exposure effects.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
 				title: "Audio Mixing & Ducking",
 				description:
 					"Multi-track audio levels, pan, fade in/out. Auto-duck background music when voiceover is active. Audio waveform visualization.",
@@ -161,13 +211,85 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Background Removal",
 				description:
-					"AI-powered background removal (portrait segmentation). Green screen / chroma key support. Replace or blur background.",
+					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU). Per-clip toggle removes the background so lower tracks show through. Runs locally — privacy-first. (Chroma key, blur, and background replace are planned.)",
 				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Auto-Captions",
 				description:
 					"Auto-detect speech, generate timed subtitle clips, style presets (TikTok-style, broadcast, minimal). Multi-language caption support.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Extract Audio from Clip",
+				description:
+					"Replace the 'Split into equal parts' toolbar action with an Extract Audio action. When a clip is selected in the timeline, the button detaches/separates the audio track from that clip onto its own audio track (non-destructive). Mirrors CapCut's extract-audio flow.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Keyframe Curve Editor",
+				description:
+					"Per-keyframe easing curve editor. 'Select a keyframe to edit its curve' panel lets the user pick an individual keyframe and adjust its interpolation (linear, ease-in, ease-out, custom bezier) via a visual curve handle editor. Extends the existing Keyframe Animation system.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Quick Add Keyframe Button",
+				description:
+					"CapCut-style 'Add Keyframe' / 'Mark' button. One click drops a keyframe for the currently selected property at the playhead position on the selected clip. Toolbar-level shortcut for fast animation authoring.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Preview Fit / Zoom Dropdown",
+				description:
+					"Zoom dropdown on the preview player transport bar: Fit, 25%, 50%, 75%, 100%, 150%, 200%. Controls canvas magnification for precise keyframe/adjustment work without changing the export resolution.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Chroma Key / Green Screen",
+				description:
+					"WebGL fragment-shader chroma keyer. Pick key color (green/blue/custom) with eyedropper, adjust similarity threshold and spill suppression edge softness. Real-time preview on canvas. Privacy-first — all GPU-local, no server.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Video Effects Library (VFX)",
+				description:
+					"Time-based overlay effects rendered as WebGL shaders: Glitch, VHS, RGB Split, Shake, Light Leak, Sparkle, Film Burn, Edge Glow. Separate from color filters — these are animated pixel effects. Per-clip intensity and duration. Live thumbnail previews in the effects panel.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Masking",
+				description:
+					"Shape masks (circle, rectangle, star, gradient, custom path) applied per clip. Invert option, feathered edges, animated mask position via keyframes. Enables advanced split-screen, spotlight, and reveal transitions.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Color Match",
+				description:
+					"Match one clip's color to another automatically. Histogram-matching algorithm maps the source clip's color distribution to a chosen reference frame. One-click, non-destructive, undoable.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Auto Silence Removal",
+				description:
+					"Detect and cut silent gaps automatically. Web Audio API analyzes RMS/peak amplitude; segments below a configurable threshold are marked for removal. Optional preview-then-confirm flow before cuts are applied. Great for podcasts, talking-head, and screencasts.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "AI Voice Enhancement & Denoise",
+				description:
+					"Remove background noise and enhance speech from any clip's audio track. Runs locally via RNNoise (Mozilla's neural denoiser compiled to WASM, ~500KB) — real-time, no cloud. Optional fallback to the browser's built-in WebRTC noise suppression for lower-end devices.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Voice Changer",
+				description:
+					"Real-time pitch and formant shifting with presets: Robot, Chipmunk, Deep, Echo, Telephone, Alien. Powered by Rubber Band or SoundTouch (WASM builds), all local. Per-clip effect, undoable.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Canvas Background Fill",
+				description:
+					"Fill empty canvas area (e.g. horizontal video in a vertical project) with blurred copy of the clip, solid color, or gradient. Auto-fit modes for 9:16, 1:1, and 4:5 exports. Essential for repurposing landscape clips to short-form vertical.",
 				status: { text: "Not started", type: "default" },
 			},
 		],
@@ -201,9 +323,15 @@ const roadmapPhases: RoadmapPhase[] = [
 				status: { text: "Not started", type: "default" },
 			},
 			{
-				title: "Project Collaboration",
+				title: "Voiceover Recording",
 				description:
-					"Share project files (JSON), import/export project bundles. Real-time multi-user editing (optional, opt-in cloud sync).",
+					"In-browser microphone capture via `getUserMedia()`. Countdown overlay (3·2·1), real-time playback while recording, optional original-audio monitoring, auto-insert to timeline at playhead.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Project Sharing",
+				description:
+					"Export/import project bundles (.cutia) — self-contained JSON with embedded media. Share a file, open it anywhere, fully local.",
 				status: { text: "Not started", type: "default" },
 			},
 		],
@@ -237,9 +365,27 @@ const roadmapPhases: RoadmapPhase[] = [
 				status: { text: "Not started", type: "default" },
 			},
 			{
-				title: "“Edit with Cutia” Badge",
+				title: "“Edit with Editkub” Badge",
 				description:
-					"Embeddable web component for video players. Click-to-open Cutia with project pre-loaded. For content platforms and embeds.",
+					"Embeddable web component for video players. Click-to-open Editkub with project pre-loaded. For content platforms and embeds.",
+				status: { text: "Not started", type: "default" },
+			},
+		],
+	},
+	{
+		phase: "Phase 6",
+		title: "Advanced & Experimental",
+		items: [
+			{
+				title: "Motion Tracking",
+				description:
+					"Track a moving subject through a clip and attach stickers, text, or masks that follow the tracked point. Runs locally via MediaPipe (Google) — WASM + WebGPU, model files bundled in-repo. Heavy on compute and bundle size (~10–20MB models), so treated as optional/experimental.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Video Stabilization",
+				description:
+					"Reduce camera shake by computing frame-to-frame motion and warping frames to smooth it out. Uses OpenCV.js (goodFeaturesToTrack + optical flow + homography), all in-browser. Slow for long clips — may be offered as an export-time pass rather than real-time preview. Optional feature.",
 				status: { text: "Not started", type: "default" },
 			},
 		],
@@ -247,13 +393,13 @@ const roadmapPhases: RoadmapPhase[] = [
 ];
 
 export const metadata: Metadata = {
-	title: "Roadmap - Cutia",
+	title: "Roadmap - Editkub",
 	description:
-		"See what's coming next for Cutia - the free, open-source video editor that respects your privacy.",
+		"See what's coming next for Editkub - the free, open-source video editor that respects your privacy.",
 	openGraph: {
-		title: "Cutia Roadmap - What's Coming Next",
+		title: "Editkub Roadmap - What's Coming Next",
 		description:
-			"See what's coming next for Cutia - the free, open-source video editor that respects your privacy.",
+			"See what's coming next for Editkub - the free, open-source video editor that respects your privacy.",
 		type: "website",
 		images: [
 			{
@@ -265,9 +411,9 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Cutia Roadmap - What's Coming Next",
+		title: "Editkub Roadmap - What's Coming Next",
 		description:
-			"See what's coming next for Cutia - the free, open-source video editor that respects your privacy.",
+			"See what's coming next for Editkub - the free, open-source video editor that respects your privacy.",
 	},
 };
 
@@ -302,7 +448,7 @@ export default function RoadmapPage() {
 
 				<GitHubContributeSection
 					title="Want to help?"
-					description="Cutia is open source and built by the community. Every contribution,
+					description="Editkub is open source and built by the community. Every contribution,
           no matter how small, helps us build the best free video editor
           possible."
 				/>
