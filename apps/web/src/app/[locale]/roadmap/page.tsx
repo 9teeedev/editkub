@@ -49,7 +49,7 @@ const roadmapItems: RoadmapItem[] = [
 	{
 		title: "Badge (potentially)",
 		description:
-			'An "Edit with Cutia" badge web apps can integrate. Shows on video players.',
+			'An "Edit with Editkub" badge web apps can integrate. Shows on video players.',
 		status: {
 			text: "Not started",
 			type: "default",
@@ -58,13 +58,13 @@ const roadmapItems: RoadmapItem[] = [
 ];
 
 export const metadata: Metadata = {
-	title: "Roadmap - Cutia",
+	title: "Roadmap - Editkub",
 	description:
-		"See what's coming next for Cutia - the free, open-source video editor that respects your privacy.",
+		"See what's coming next for Editkub - the free, open-source video editor that respects your privacy.",
 	openGraph: {
-		title: "Cutia Roadmap - What's Coming Next",
+		title: "Editkub Roadmap - What's Coming Next",
 		description:
-			"See what's coming next for Cutia - the free, open-source video editor that respects your privacy.",
+			"See what's coming next for Editkub - the free, open-source video editor that respects your privacy.",
 		type: "website",
 		images: [
 			{
@@ -76,9 +76,9 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Cutia Roadmap - What's Coming Next",
+		title: "Editkub Roadmap - What's Coming Next",
 		description:
-			"See what's coming next for Cutia - the free, open-source video editor that respects your privacy.",
+			"See what's coming next for Editkub - the free, open-source video editor that respects your privacy.",
 	},
 };
 
@@ -86,7 +86,7 @@ export default function RoadmapPage() {
 	return (
 		<BasePage
 			title="Roadmap"
-			description="What's coming next for Cutia (last updated: July 14, 2025)"
+			description="What's coming next for Editkub (last updated: July 14, 2025)"
 		>
 			<div className="mx-auto flex max-w-4xl flex-col gap-16">
 				<div className="flex flex-col gap-6">
@@ -96,7 +96,7 @@ export default function RoadmapPage() {
 				</div>
 				<GitHubContributeSection
 					title="Want to help?"
-					description="Cutia is open source and built by the community. Every contribution,
+					description="Editkub is open source and built by the community. Every contribution,
           no matter how small, helps us build the best free video editor
           possible."
 				/>

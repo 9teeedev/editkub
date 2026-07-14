@@ -6,45 +6,45 @@ export async function HomepageJsonLd({ locale }: { locale: string }) {
 
 	const faqItems = [
 		{
-			question: t("What is Cutia?"),
+			question: t("What is Editkub?"),
 			answer: t(
-				"Cutia is an AI-native, open-source video editor that runs entirely in your browser. It is a free, privacy-first alternative to CapCut — no installation or sign-up required, just open the website and start editing.",
+				"Editkub is an AI-native, open-source video editor that runs entirely in your browser. It is a free, privacy-first alternative to CapCut — no installation or sign-up required, just open the website and start editing.",
 			),
 		},
 		{
-			question: t("Is Cutia free to use?"),
+			question: t("Is Editkub free to use?"),
 			answer: t(
-				"Yes, Cutia is completely free. It is open-source software licensed under a permissive license. There are no hidden fees, subscriptions, or premium tiers.",
+				"Yes, Editkub is completely free. It is open-source software licensed under a permissive license. There are no hidden fees, subscriptions, or premium tiers.",
 			),
 		},
 		{
-			question: t("Does Cutia upload my files to a server?"),
+			question: t("Does Editkub upload my files to a server?"),
 			answer: t(
-				"All your media files and editing operations stay on your device. However, AI-related features (such as AI image generation) may send data to third-party AI services or Cutia's temporary relay server for processing.",
+				"All your media files and editing operations stay on your device. However, AI-related features (such as AI image generation) may send data to third-party AI services or Editkub's temporary relay server for processing.",
 			),
 		},
 		{
-			question: t("What export formats does Cutia support?"),
+			question: t("What export formats does Editkub support?"),
 			answer: t(
-				"Cutia supports exporting videos in MP4 and WebM formats with adjustable quality settings (low, medium, high, and very high).",
+				"Editkub supports exporting videos in MP4 and WebM formats with adjustable quality settings (low, medium, high, and very high).",
 			),
 		},
 		{
-			question: t("Does Cutia work offline?"),
+			question: t("Does Editkub work offline?"),
 			answer: t(
-				"Cutia runs in your browser and requires an initial page load. Once loaded, most editing features work without an active internet connection since all processing is done locally.",
+				"Editkub runs in your browser and requires an initial page load. Once loaded, most editing features work without an active internet connection since all processing is done locally.",
 			),
 		},
 		{
-			question: t("Is Cutia open source?"),
+			question: t("Is Editkub open source?"),
 			answer: t(
-				"Yes, Cutia is fully open source and community-driven. You can inspect the source code, contribute, or fork it on GitHub.",
+				"Yes, Editkub is fully open source and community-driven. You can inspect the source code, contribute, or fork it on GitHub.",
 			),
 		},
 		{
-			question: t("How is Cutia different from CapCut?"),
+			question: t("How is Editkub different from CapCut?"),
 			answer: t(
-				"Unlike CapCut, Cutia is fully open source and runs entirely in your browser. Your media files stay on your device — only AI features may communicate with external services. Cutia is AI-native with built-in AI agent, image generation, and audio transcription, with no account or subscription required.",
+				"Unlike CapCut, Editkub is fully open source and runs entirely in your browser. Your media files stay on your device — only AI features may communicate with external services. Editkub is AI-native with built-in AI agent, image generation, and audio transcription, with no account or subscription required.",
 			),
 		},
 	];
@@ -52,10 +52,10 @@ export async function HomepageJsonLd({ locale }: { locale: string }) {
 	const webApplicationSchema = {
 		"@context": "https://schema.org",
 		"@type": "WebApplication",
-		name: "Cutia",
+		name: "Editkub",
 		url: SITE_URL,
 		description: t(
-			"Cutia is an AI-native, open-source video editor that runs entirely in your browser. A free, privacy-first alternative to CapCut with AI-powered editing, multi-track timeline, and MP4/WebM export — no uploads, no tracking.",
+			"Editkub is an AI-native, open-source video editor that runs entirely in your browser. A free, privacy-first alternative to CapCut with AI-powered editing, multi-track timeline, and MP4/WebM export — no uploads, no tracking.",
 		),
 		applicationCategory: "MultimediaApplication",
 		operatingSystem: "Any (Browser-based)",
@@ -84,7 +84,7 @@ export async function HomepageJsonLd({ locale }: { locale: string }) {
 		softwareVersion: "1.0",
 		author: {
 			"@type": "Organization",
-			name: "Cutia",
+			name: "Editkub",
 			url: SITE_URL,
 		},
 	};
@@ -92,9 +92,9 @@ export async function HomepageJsonLd({ locale }: { locale: string }) {
 	const organizationSchema = {
 		"@context": "https://schema.org",
 		"@type": "Organization",
-		name: "Cutia",
+		name: "Editkub",
 		url: SITE_URL,
-		logo: `${SITE_URL}/logos/cutia/svg/logo.svg`,
+		logo: `${SITE_URL}/logos/editkub/svg/logo.svg`,
 		sameAs: [SOCIAL_LINKS.github, "https://x.com/moonrailgun"],
 	};
 

@@ -1,5 +1,5 @@
 import { AwsClient } from "aws4fetch";
-import { webEnv } from "@cutia/env/web";
+import { webEnv } from "@editkub/env/web";
 
 function getR2Config() {
 	const {

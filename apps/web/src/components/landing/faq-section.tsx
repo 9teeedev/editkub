@@ -29,7 +29,7 @@ export function FAQSection() {
 						{t("Frequently Asked Questions")}
 					</h2>
 					<p className="text-muted-foreground text-lg">
-						{t("Quick answers about Cutia and how it works.")}
+						{t("Quick answers about Editkub and how it works.")}
 					</p>
 				</motion.div>
 

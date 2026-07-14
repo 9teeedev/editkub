@@ -44,7 +44,7 @@ import {
 	InformationCircleIcon,
 	UserIcon,
 } from "@hugeicons/core-free-icons";
-import { OcVideoIcon } from "@cutia/ui/icons";
+import { OcVideoIcon } from "@editkub/ui/icons";
 import { Label } from "@/components/ui/label";
 import {
 	DropdownMenu,

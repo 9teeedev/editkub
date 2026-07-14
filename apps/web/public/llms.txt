@@ -1,26 +1,26 @@
-# Cutia
+# Editkub
 
 > An AI-native, open-source video editor in your browser — a free, privacy-first alternative to CapCut.
 
-Cutia lets you edit videos directly in a web browser with AI built into every step of the workflow. No installation, no sign-up, no file uploads. All media processing happens locally on the user's device, ensuring complete privacy. Cutia is designed as an open-source, privacy-respecting alternative to CapCut and other cloud-based video editors.
+Editkub lets you edit videos directly in a web browser with AI built into every step of the workflow. No installation, no sign-up, no file uploads. All media processing happens locally on the user's device, ensuring complete privacy. Editkub is designed as an open-source, privacy-respecting alternative to CapCut and other cloud-based video editors.
 
 ## Key Features
 
 - **AI-Native Editing**: AI is built into every step — generate images, transcribe audio, create captions, and let the AI agent edit videos for you.
 - **AI Agent**: Describe what you want, and the AI agent builds your video step by step.
-- **Privacy First**: Your media files stay on your device. AI features may communicate with third-party AI services or Cutia's temporary relay server, but your raw media is never uploaded.
+- **Privacy First**: Your media files stay on your device. AI features may communicate with third-party AI services or Editkub's temporary relay server, but your raw media is never uploaded.
 - **Browser-Based**: Works on any platform with a modern browser. No downloads or plugins required.
 - **Open Source**: Fully open source and community-driven, available on GitHub.
 - **Multi-Track Timeline**: Professional timeline supporting video, audio, text, and sticker tracks with drag, trim, and split.
 - **Flexible Export**: Export in MP4 or WebM with adjustable quality (low, medium, high, very high).
 
-## Why Cutia over CapCut?
+## Why Editkub over CapCut?
 
-- **Privacy**: CapCut uploads files to servers; Cutia keeps your media files local. Only AI features may use external services.
-- **Open Source**: CapCut is proprietary; Cutia is fully open source.
-- **No Account Required**: CapCut requires sign-up; Cutia works instantly.
-- **AI-Native**: Cutia has built-in AI agent, image generation, and audio transcription.
-- **No Watermarks**: Cutia never adds watermarks to exported videos.
+- **Privacy**: CapCut uploads files to servers; Editkub keeps your media files local. Only AI features may use external services.
+- **Open Source**: CapCut is proprietary; Editkub is fully open source.
+- **No Account Required**: CapCut requires sign-up; Editkub works instantly.
+- **AI-Native**: Editkub has built-in AI agent, image generation, and audio transcription.
+- **No Watermarks**: Editkub never adds watermarks to exported videos.
 
 ## Use Cases
 
@@ -33,33 +33,33 @@ Cutia lets you edit videos directly in a web browser with AI built into every st
 
 ## Links
 
-- Website: https://cutia.msgbyte.com
-- Editor: https://cutia.msgbyte.com/projects
+- Website: https://editkub.com
+- Editor: https://editkub.com/projects
 - GitHub: https://github.com/msgbyte/cutia
-- Roadmap: https://cutia.msgbyte.com/roadmap
+- Roadmap: https://editkub.com/roadmap
 
 ## FAQ
 
-### What is Cutia?
-Cutia is an AI-native, open-source video editor that runs entirely in your browser. It is a free, privacy-first alternative to CapCut — no installation or sign-up required, just open the website and start editing.
+### What is Editkub?
+Editkub is an AI-native, open-source video editor that runs entirely in your browser. It is a free, privacy-first alternative to CapCut — no installation or sign-up required, just open the website and start editing.
 
-### Is Cutia free to use?
-Yes, Cutia is completely free. It is open-source software. There are no hidden fees, subscriptions, or premium tiers.
+### Is Editkub free to use?
+Yes, Editkub is completely free. It is open-source software. There are no hidden fees, subscriptions, or premium tiers.
 
-### Does Cutia upload my files to a server?
-All your media files and editing operations stay on your device. However, AI-related features (such as AI image generation) may send data to third-party AI services or Cutia's temporary relay server for processing.
+### Does Editkub upload my files to a server?
+All your media files and editing operations stay on your device. However, AI-related features (such as AI image generation) may send data to third-party AI services or Editkub's temporary relay server for processing.
 
-### What export formats does Cutia support?
-Cutia supports exporting videos in MP4 and WebM formats with adjustable quality settings.
+### What export formats does Editkub support?
+Editkub supports exporting videos in MP4 and WebM formats with adjustable quality settings.
 
-### Does Cutia work offline?
-Cutia runs in your browser and requires an initial page load. Once loaded, most editing features work without an active internet connection since all processing is done locally.
+### Does Editkub work offline?
+Editkub runs in your browser and requires an initial page load. Once loaded, most editing features work without an active internet connection since all processing is done locally.
 
-### Is Cutia open source?
-Yes, Cutia is fully open source and community-driven. You can inspect the source code, contribute, or fork it on GitHub at https://github.com/msgbyte/cutia.
+### Is Editkub open source?
+Yes, Editkub is fully open source and community-driven. You can inspect the source code, contribute, or fork it on GitHub at https://github.com/msgbyte/cutia.
 
-### How is Cutia different from CapCut?
-Unlike CapCut, Cutia is fully open source and runs entirely in your browser. Your media files stay on your device — only AI features may communicate with external services. Cutia is AI-native with built-in AI agent, image generation, and audio transcription, with no account or subscription required.
+### How is Editkub different from CapCut?
+Unlike CapCut, Editkub is fully open source and runs entirely in your browser. Your media files stay on your device — only AI features may communicate with external services. Editkub is AI-native with built-in AI agent, image generation, and audio transcription, with no account or subscription required.
 
 ## Technical Details
 

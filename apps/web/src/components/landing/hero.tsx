@@ -95,7 +95,7 @@ export function Hero() {
 				>
 					<Image
 						src={DEFAULT_LOGO_URL}
-						alt="Cutia"
+						alt="Editkub"
 						width={20}
 						height={20}
 						className="dark:invert"

@@ -17,7 +17,7 @@ export const baseMetaData: Metadata = {
 				url: SITE_INFO.openGraphImage,
 				width: 1200,
 				height: 630,
-				alt: "Cutia Wordmark",
+				alt: "Editkub Wordmark",
 			},
 		],
 	},
@@ -25,7 +25,7 @@ export const baseMetaData: Metadata = {
 		card: "summary_large_image",
 		title: SITE_INFO.title,
 		description: SITE_INFO.description,
-		creator: "@cutiaapp",
+		creator: "@editkub",
 		images: [SITE_INFO.twitterImage],
 	},
 	pinterest: {
@@ -36,8 +36,8 @@ export const baseMetaData: Metadata = {
 		follow: true,
 	},
 	icons: {
-		icon: [{ url: "/logos/cutia/svg/logo.svg", type: "image/svg+xml" }],
-		shortcut: ["/logos/cutia/svg/logo.svg"],
+		icon: [{ url: "/logos/editkub/svg/logo.svg", type: "image/svg+xml" }],
+		shortcut: ["/logos/editkub/svg/logo.svg"],
 	},
 	appleWebApp: {
 		capable: true,

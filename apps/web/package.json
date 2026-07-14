@@ -1,5 +1,5 @@
 {
-  "name": "@cutia/web",
+  "name": "@editkub/web",
   "version": "0.1.0",
   "private": true,
   "packageManager": "bun@1.2.18",
@@ -20,8 +20,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@cutia/env": "workspace:*",
-    "@cutia/ui": "workspace:*",
+    "@editkub/env": "workspace:*",
+    "@editkub/ui": "workspace:*",
     "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",

@@ -1,4 +1,4 @@
-# Cutia
+# Editkub
 
 <p>
   Privacy-first, open-source video editing.<br />
@@ -7,22 +7,25 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](.github/CONTRIBUTING.md)
+[![Buy me a coffee](https://img.shields.io/badge/Donate-Buy%20Me%20a%20Coffee-orange)](https://buymeacoffee.com/9teeedev)
 
 ---
 
+> **Fork notice:** Editkub is a fork of [msgbyte/cutia](https://github.com/msgbyte/cutia), which itself forks [OpenCut-app/OpenCut](https://github.com/OpenCut-app/OpenCut). Released under the same MIT license with original copyright retained.
+
 ## At a Glance
 
-Cutia is designed for creators who want a clean editing workflow without subscriptions, tracking, or watermark traps.
+Editkub is designed for creators who want a clean editing workflow without subscriptions, tracking, or watermark traps.
 
 - Local-first editing mindset
 - Timeline-based multi-track workflow
 - Real-time preview while editing
 - Open-source and contribution-friendly
 
-## Why Cutia Exists
+## Why Editkub Exists
 
 Most lightweight editors are either too limited or progressively locked behind paywalls.  
-Cutia focuses on a simple idea: powerful basics should stay accessible.
+Editkub focuses on a simple idea: powerful basics should stay accessible.
 
 ## What You Can Do
 
@@ -42,7 +45,7 @@ Cutia focuses on a simple idea: powerful basics should stay accessible.
 
 ```bash
 git clone <your-fork-url>
-cd cutia/apps/web
+cd editkub/apps/web
 cp .env.example .env.local
 bun install
 bun dev
@@ -68,7 +71,7 @@ Required env values:
 
 ```bash
 UPSTASH_REDIS_REST_URL="http://localhost:8079"
-UPSTASH_REDIS_REST_TOKEN="cutia_redis_token"
+UPSTASH_REDIS_REST_TOKEN="editkub_redis_token"
 NODE_ENV="development"
 ```
 
@@ -79,7 +82,7 @@ docker compose up redis serverless-redis-http postgres -d
 ```
 
 ```bash
-DATABASE_URL="postgresql://cutia:cutia@localhost:5432/cutia"
+DATABASE_URL="postgresql://editkub:***@localhost:5432/editkub"
 BETTER_AUTH_SECRET="your-generated-secret-here"
 ```
 
@@ -126,7 +129,7 @@ This starts Redis and the web app. To enable authentication, uncomment the Postg
 
 ## Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmsgbyte%2Fcutia&project-name=cutia&repository-name=cutia)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F9teeedev%2Feditkub&project-name=editkub&repository-name=editkub)
 
 ## License
 

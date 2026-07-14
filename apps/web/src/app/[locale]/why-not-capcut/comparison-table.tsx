@@ -15,8 +15,8 @@ type FeatureStatus = "yes" | "no" | "partial";
 
 interface ComparisonRow {
 	feature: string;
-	cutia: FeatureStatus;
-	cutiaNote: string;
+	editkub: FeatureStatus;
+	editkubNote: string;
 	capcut: FeatureStatus;
 	capcutNote: string;
 	capcutSourceUrl?: string;
@@ -39,22 +39,22 @@ export function ComparisonTable() {
 	const rows: ComparisonRow[] = [
 		{
 			feature: t("Price"),
-			cutia: "yes",
-			cutiaNote: t("100% free, no premium tiers"),
+			editkub: "yes",
+			editkubNote: t("100% free, no premium tiers"),
 			capcut: "partial",
 			capcutNote: t("Free tier with paid Pro plan"),
 		},
 		{
 			feature: t("Open Source"),
-			cutia: "yes",
-			cutiaNote: t("Fully open source on GitHub"),
+			editkub: "yes",
+			editkubNote: t("Fully open source on GitHub"),
 			capcut: "no",
 			capcutNote: t("Closed-source proprietary"),
 		},
 		{
 			feature: t("Privacy"),
-			cutia: "yes",
-			cutiaNote: t("Files stay on your device"),
+			editkub: "yes",
+			editkubNote: t("Files stay on your device"),
 			capcut: "no",
 			capcutNote: t("Files uploaded to servers"),
 			capcutSourceUrl:
@@ -63,64 +63,64 @@ export function ComparisonTable() {
 		},
 		{
 			feature: t("Account Required"),
-			cutia: "yes",
-			cutiaNote: t("No sign-up needed"),
+			editkub: "yes",
+			editkubNote: t("No sign-up needed"),
 			capcut: "no",
 			capcutNote: t("Account required"),
 		},
 		{
 			feature: t("Watermark-Free Export"),
-			cutia: "yes",
-			cutiaNote: t("Never adds watermarks"),
+			editkub: "yes",
+			editkubNote: t("Never adds watermarks"),
 			capcut: "partial",
 			capcutNote: t("Watermark on free tier exports"),
 		},
 		{
 			feature: t("Browser-Based"),
-			cutia: "yes",
-			cutiaNote: t("Runs entirely in your browser"),
+			editkub: "yes",
+			editkubNote: t("Runs entirely in your browser"),
 			capcut: "partial",
 			capcutNote: t("Web version available, desktop app preferred"),
 		},
 		{
 			feature: t("AI Features"),
-			cutia: "yes",
-			cutiaNote: t("AI agent, image generation, transcription"),
+			editkub: "yes",
+			editkubNote: t("AI agent, image generation, transcription"),
 			capcut: "yes",
 			capcutNote: t("AI-powered editing features"),
 		},
 		{
 			feature: t("Multi-Track Timeline"),
-			cutia: "yes",
-			cutiaNote: t("Video, audio, text, sticker tracks"),
+			editkub: "yes",
+			editkubNote: t("Video, audio, text, sticker tracks"),
 			capcut: "yes",
 			capcutNote: t("Full multi-track timeline"),
 		},
 		{
 			feature: t("Export Formats"),
-			cutia: "partial",
-			cutiaNote: t("MP4 and WebM"),
+			editkub: "partial",
+			editkubNote: t("MP4 and WebM"),
 			capcut: "yes",
 			capcutNote: t("MP4, MOV, and more"),
 		},
 		{
 			feature: t("Offline Editing"),
-			cutia: "yes",
-			cutiaNote: t("Works offline after initial load"),
+			editkub: "yes",
+			editkubNote: t("Works offline after initial load"),
 			capcut: "partial",
 			capcutNote: t("Desktop app works offline"),
 		},
 		{
 			feature: t("No Installation"),
-			cutia: "yes",
-			cutiaNote: t("Just open the website"),
+			editkub: "yes",
+			editkubNote: t("Just open the website"),
 			capcut: "no",
 			capcutNote: t("Desktop app requires installation"),
 		},
 		{
 			feature: t("Self-Hostable"),
-			cutia: "yes",
-			cutiaNote: t("Deploy on your own server"),
+			editkub: "yes",
+			editkubNote: t("Deploy on your own server"),
 			capcut: "no",
 			capcutNote: t("Not available for self-hosting"),
 		},
@@ -139,7 +139,7 @@ export function ComparisonTable() {
 								{t("Feature")}
 							</TableHead>
 							<TableHead className="font-semibold text-green-600 dark:text-green-400">
-								Cutia
+								Editkub
 							</TableHead>
 							<TableHead className="font-semibold">CapCut</TableHead>
 						</TableRow>
@@ -152,9 +152,9 @@ export function ComparisonTable() {
 								</TableCell>
 								<TableCell>
 									<div className="flex items-center gap-2">
-										<StatusIcon status={row.cutia} />
+										<StatusIcon status={row.editkub} />
 										<span className="text-muted-foreground text-sm">
-											{row.cutiaNote}
+											{row.editkubNote}
 										</span>
 									</div>
 								</TableCell>
@@ -163,7 +163,7 @@ export function ComparisonTable() {
 									<StatusIcon status={row.capcut} />
 									<div className="flex flex-col gap-0.5">
 										<span className="text-muted-foreground text-sm">
-											{row.capcutNote}
+											{row.editkubNote}
 										</span>
 										{row.capcutSourceUrl && (
 											<a

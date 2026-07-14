@@ -2,7 +2,7 @@ import { betterAuth, type RateLimit } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { Redis } from "@upstash/redis";
 import { db } from "@/lib/db";
-import { webEnv } from "@cutia/env/web";
+import { webEnv } from "@editkub/env/web";
 
 function isAuthConfigured() {
 	return Boolean(webEnv.DATABASE_URL && webEnv.BETTER_AUTH_SECRET);
@@ -47,7 +47,7 @@ function createAuth() {
 			},
 		},
 		baseURL: webEnv.NEXT_PUBLIC_SITE_URL,
-		appName: "Cutia",
+		appName: "Editkub",
 		trustedOrigins: [webEnv.NEXT_PUBLIC_SITE_URL],
 	});
 }

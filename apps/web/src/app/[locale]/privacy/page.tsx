@@ -10,13 +10,13 @@ import { Separator } from "@/components/ui/separator";
 import { SOCIAL_LINKS } from "@/constants/site-constants";
 
 export const metadata: Metadata = {
-	title: "Privacy Policy - Cutia",
+	title: "Privacy Policy - Editkub",
 	description:
-		"Learn how Cutia handles your data and privacy. Our commitment to protecting your information while you edit videos.",
+		"Learn how Editkub handles your data and privacy. Our commitment to protecting your information while you edit videos.",
 	openGraph: {
-		title: "Privacy Policy - Cutia",
+		title: "Privacy Policy - Editkub",
 		description:
-			"Learn how Cutia handles your data and privacy. Our commitment to protecting your information while you edit videos.",
+			"Learn how Editkub handles your data and privacy. Our commitment to protecting your information while you edit videos.",
 		type: "website",
 	},
 };
@@ -175,7 +175,7 @@ export default function PrivacyPage() {
 
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Third-Party Services</h2>
-				<p>Cutia integrates with these services:</p>
+				<p>Editkub integrates with these services:</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>
 						<strong>Google OAuth:</strong> For optional Google sign-in (governed
@@ -201,7 +201,7 @@ export default function PrivacyPage() {
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Open Source Transparency</h2>
 				<p>
-					Cutia is completely open source. You can review our code, see exactly
+					Editkub is completely open source. You can review our code, see exactly
 					how we handle data, and even self-host the application if you prefer.
 				</p>
 				<p>
