@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="apps/web/public/logos/editkub/Editkub_Banner.png" alt="Editkub banner" />
+</p>
+
 # Editkub
 
 <p>
