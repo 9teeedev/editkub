@@ -1,32 +1,28 @@
 # Security Policy
 
+## Supported Versions
+
+| Version | Supported |
+| ------- | --------- |
+| 1.x.x   | ✅        |
+
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Editkub, please report it responsibly.
+We take security vulnerabilities seriously. If you discover a security vulnerability within Editkub, please send an email to **phongsathornlan@gmail.com**. All security vulnerabilities will be promptly addressed.
 
-**Do NOT open a public GitHub issue.**
+Please do not report security vulnerabilities through public GitHub issues.
 
-Instead, email **teedev@9tee.dev** with:
+### What to include in your report
 
-1. Description of the vulnerability
-2. Steps to reproduce
-3. Potential impact
-4. Suggested fix (if any)
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact
+- Any suggested fixes
 
-You will receive a response within 48 hours.
+### Response timeline
 
-## Scope
+- We will acknowledge receipt within 48 hours
+- We will provide a detailed response within 5 business days
+- We will keep you updated on our progress
 
-- Server-side API routes (AI proxy, upload, auth)
-- Client-side data handling (media files, project data)
-- Dependency vulnerabilities
-
-## Out of Scope
-
-- Self-hosted instances with non-default configurations
-- Issues requiring physical access to a user's device
-- Social engineering attacks
-
-## Disclosure
-
-We follow responsible disclosure. Security fixes will be released as patch versions and credited to the reporter (unless anonymity is requested).
+Thank you for helping keep Editkub secure!

@@ -1,50 +1,70 @@
 # Contributing to Editkub
 
-Thanks for your interest in contributing! 🎬
+> ⚠️ **We are currently NOT accepting feature PRs while we build out the core editor.**
+
+If you want to contribute:
+
+1. Open an issue first to discuss
+2. Wait for maintainer approval
+3. Only then start coding
+
+Critical bug fixes may be accepted on a case-by-case basis.
+
+---
 
 ## Getting Started
 
-1. Fork the repo
-2. `git clone <your-fork>`
-3. `bun install` (at repo root — this is a monorepo)
-4. `bun run dev:web` → `http://localhost:4100`
+### Prerequisites
 
-## Development
+- [Node.js](https://nodejs.org/) (v18 or later)
+- [Bun](https://bun.sh/docs/installation)
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose (optional, for Redis/PostgreSQL)
 
-- **Monorepo:** `apps/web` (main app), `packages/ui`, `packages/env`
-- **Editor core:** `apps/web/src/core/` — singleton `EditorCore` with managers
-- **Actions:** `apps/web/src/lib/actions/definitions.ts` — source of truth for user actions
-- **Commands:** `apps/web/src/lib/commands/` — undo/redo mutations
+### Setup
 
-### Before submitting a PR
+1. Fork the repository
+2. Clone your fork locally
+3. Install dependencies: `bun install` (at repo root — this is a monorepo)
+4. Start the development server: `bun run dev:web`
+5. Open `http://localhost:4100`
 
-```bash
-bun run lint:web     # biome lint
-bun run build:web    # verify build passes
-```
+> **Note:** Core editor works without any env vars. Only auth/Redis features need backing services.
 
-## High-Impact Areas
+## What to Focus On
 
-- Timeline behavior and interaction quality
-- Project management and reliability
-- Performance tuning and bug fixing
-- UI improvements outside preview internals
+**Good areas to contribute:**
 
-## Areas Under Active Refactor
+- Timeline functionality and UI improvements
+- Project management features
+- Performance optimizations
+- Bug fixes in existing functionality
+- UI/UX improvements
+- Documentation and testing
 
-- Preview panel internals (fonts/stickers/effects)
-- Export pipeline internals
+**Areas to avoid:**
 
-## Commit Style
+- Preview panel enhancements (text fonts, stickers, effects)
+- Export functionality improvements
+- Preview rendering optimizations
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+## Code Style
 
-```
-feat: add split-screen support
-fix: timeline snapping edge case
-chore: bump dependencies
-```
+- We use [Biome](https://biomejs.dev/) for code formatting and linting
+- Run `bun run lint:web` from repo root to check linting
+- Follow existing code patterns
 
-## License
+## Pull Request Process
 
-By contributing, you agree your contributions are licensed under the MIT License.
+1. Fill out the pull request template completely
+2. Link any related issues
+3. Ensure build passes: `bun run build:web`
+4. Request review from maintainers
+5. Address any feedback
+
+## Community
+
+- Be respectful and inclusive
+- Follow our [Code of Conduct](CODE_OF_CONDUCT.md)
+- Help others in discussions and issues
+
+Thank you for contributing!

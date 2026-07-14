@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE">![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)</a>
-  <a href=".github/CONTRIBUTING.md">![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)</a>
-  <a href="https://buymeacoffee.com/9teeedev"><img src="https://img.shields.io/badge/Donate-Buy%20Me%20a%20Coffee-orange" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
+  <a href=".github/CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" /></a>
+  <a href="https://buymeacoffee.com/9teeedev"><img src="https://img.shields.io/badge/Donate-Buy%20Me%20a%20Coffee-orange" alt="Buy Me A Coffee" /></a>
 </p>
 
 <p align="center">
