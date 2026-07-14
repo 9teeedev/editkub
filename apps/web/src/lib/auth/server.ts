@@ -15,9 +15,18 @@ function createAuth() {
 		);
 	}
 
+	const redisUrl = webEnv.UPSTASH_REDIS_REST_URL;
+	const redisToken = webEnv.UPSTASH_REDIS_REST_TOKEN;
+
+	if (!redisUrl || !redisToken) {
+		throw new Error(
+			"Auth requires UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.",
+		);
+	}
+
 	const redis = new Redis({
-		url: webEnv.UPSTASH_REDIS_REST_URL,
-		token: webEnv.UPSTASH_REDIS_REST_TOKEN,
+		url: redisUrl,
+		token: redisToken,
 	});
 
 	return betterAuth({

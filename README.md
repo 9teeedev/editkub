@@ -36,50 +36,57 @@ Editkub focuses on a simple idea: powerful basics should stay accessible.
 
 ## Stack Snapshot
 
-- `Next.js` application in `apps/web`
+- `Next.js 16` application in `apps/web`
 - `Bun` for dependency management and scripts
+- `Turborepo` monorepo (`apps/web`, `packages/ui`, `packages/env`)
 - `PostgreSQL + Redis` (optional for frontend-only work)
 - `TypeScript` across the project
 
-## Quick Start (Fast Path)
+## Quick Start (Frontend Only)
+
+> **Core editor works 100% client-side.** No env vars, no databases needed to start editing.
 
 ```bash
-git clone <your-fork-url>
-cd editkub/apps/web
-cp .env.example .env.local
+git clone https://github.com/9teeedev/editkub.git
+cd editkub
 bun install
-bun dev
+bun run dev:web
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:4100`.
 
-## Full Local Setup (With Services)
+## Full Local Setup (With Backend Services)
 
-Start only the backing services for local development:
+Some optional features (auth, freesound, uploads) need backing services.
+
+### 1. Start Redis
 
 ```bash
 docker compose up redis serverless-redis-http -d
 ```
 
-Then in `apps/web`:
+### 2. Configure env
 
 ```bash
-cp .env.example .env.local
+cp apps/web/.env.example apps/web/.env.local
 ```
 
-Required env values:
+Required for Redis-backed features:
 
 ```bash
 UPSTASH_REDIS_REST_URL="http://localhost:8079"
 UPSTASH_REDIS_REST_TOKEN="editkub_redis_token"
-NODE_ENV="development"
 ```
 
-To enable authentication, also start PostgreSQL and add these env values:
+### 3. (Optional) Enable Authentication
+
+Start PostgreSQL:
 
 ```bash
 docker compose up redis serverless-redis-http postgres -d
 ```
+
+Add to `.env.local`:
 
 ```bash
 DATABASE_URL="postgresql://editkub:***@localhost:5432/editkub"
@@ -92,28 +99,14 @@ Generate `BETTER_AUTH_SECRET`:
 openssl rand -base64 32
 ```
 
-Run:
+Run migrations then start dev:
 
 ```bash
+cd apps/web
 bun run db:migrate
-bun run dev
+cd ..
+bun run dev:web
 ```
-
-## Contributing
-
-Contributions are welcome. Check `.github/CONTRIBUTING.md` before opening a PR.
-
-Current high-impact areas:
-
-- Timeline behavior and interaction quality
-- Project management and reliability
-- Performance tuning and bug fixing
-- UI improvements outside preview internals
-
-Areas currently under active refactor:
-
-- Preview panel internals (fonts/stickers/effects)
-- Export pipeline internals
 
 ## Docker Deployment
 
@@ -127,9 +120,24 @@ Open `http://localhost:3000`.
 
 This starts Redis and the web app. To enable authentication, uncomment the PostgreSQL service and related env vars in `docker-compose.yaml`.
 
-## Deploy
+> **AI features** (image generation, TTS, auto-captions via remote API) are disabled by default. Set `EDITKUB_AI_ENABLED=1` to enable.
+
+## Deploy on Vercel
+
+The editor works on Vercel free tier with zero configuration — no env vars required.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F9teeedev%2Feditkub&project-name=editkub&repository-name=editkub)
+
+## Contributing
+
+Contributions are welcome. Check `.github/CONTRIBUTING.md` before opening a PR.
+
+Current high-impact areas:
+
+- Timeline behavior and interaction quality
+- Project management and reliability
+- Performance tuning and bug fixing
+- UI improvements outside preview internals
 
 ## License
 
