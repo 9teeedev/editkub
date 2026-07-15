@@ -60,5 +60,8 @@ export const baseMetaData: Metadata = {
 			it: "/it",
 		},
 	},
+	verification: {
+		google: "2vT5_zr_I5KwYWIwZeIrfaZNOCFzG5iUpVPhGHiMXas",
+	},
 	other: {},
 };
