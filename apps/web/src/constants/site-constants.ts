@@ -1,4 +1,4 @@
-export const SITE_URL = "https://editkub.com";
+export const SITE_URL = "https://editkub.vercel.app";
 
 export const SITE_INFO = {
 	title: "Editkub",
@@ -22,7 +22,7 @@ export const EXTERNAL_TOOLS: ExternalTool[] = [];
 export const DEFAULT_LOGO_URL = "/logos/editkub/svg/logo.svg";
 
 export const SOCIAL_LINKS = {
-	x: "https://x.com/moonrailgun",
+	x: "https://x.com/editkub",
 	github: "https://github.com/9teeedev/editkub",
 	discord: "",
 };

@@ -33,10 +33,10 @@ Editkub lets you edit videos directly in a web browser with AI built into every 
 
 ## Links
 
-- Website: https://editkub.com
-- Editor: https://editkub.com/projects
-- GitHub: https://github.com/msgbyte/cutia
-- Roadmap: https://editkub.com/roadmap
+- Website: https://editkub.vercel.app
+- Editor: https://editkub.vercel.app/projects
+- GitHub: https://github.com/9teeedev/editkub
+- Roadmap: https://editkub.vercel.app/roadmap
 
 ## FAQ
 
@@ -56,7 +56,7 @@ Editkub supports exporting videos in MP4 and WebM formats with adjustable qualit
 Editkub runs in your browser and requires an initial page load. Once loaded, most editing features work without an active internet connection since all processing is done locally.
 
 ### Is Editkub open source?
-Yes, Editkub is fully open source and community-driven. You can inspect the source code, contribute, or fork it on GitHub at https://github.com/msgbyte/cutia.
+Yes, Editkub is fully open source and community-driven. You can inspect the source code, contribute, or fork it on GitHub at https://github.com/9teeedev/editkub.
 
 ### How is Editkub different from CapCut?
 Unlike CapCut, Editkub is fully open source and runs entirely in your browser. Your media files stay on your device — only AI features may communicate with external services. Editkub is AI-native with built-in AI agent, image generation, and audio transcription, with no account or subscription required.
