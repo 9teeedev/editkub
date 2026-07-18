@@ -33,37 +33,37 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Project Bootstrap",
 				description:
 					"Repository created, Bun monorepo setup, Next.js 16 + Turbopack, i18n (13 languages), dark/light theme, marketing site.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Editor Core Architecture",
 				description:
 					"Singleton `EditorCore` with specialized managers: PlaybackManager, TimelineManager, SceneManager, ProjectManager, MediaManager, RendererManager, AudioManager, SaveManager, SelectionManager.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Multi-track Timeline",
 				description:
 					"Video, audio, text, sticker tracks. Drag-and-drop, resize, trim, split, move, duplicate, delete. Timeline zoom, scroll sync, snapping, edge auto-scroll, selection box, playhead tracking.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Undo/Redo System",
 				description:
 					"Full command pattern: timeline operations (split, move, trim, clipboard paste), scene management (create, delete, rename, bookmark), media (add/remove), track operations (add, remove, reorder, mute, visibility).",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Scene Management",
 				description:
 					"Multiple scenes per project, bookmarks, scene reordering, per-scene rendering.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Keyboard Shortcuts",
 				description:
 					"Full keybinding system with actions layer (`ACTIONS` definitions + `invokeAction`). Shortcut help overlay.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 		],
 	},
@@ -75,72 +75,72 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Local Export Pipeline",
 				description:
 					"FFmpeg.wasm + canvas renderer for MP4/WebM export with adjustable quality. Everything runs in-browser — no server uploads.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "AI Agent",
 				description:
 					"LLM-powered assistant that can edit timelines via tool calls. System prompt + project tools + AI generation tools. Chat-based interface.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "AI Image Generation",
 				description:
 					"Generate images from text prompts directly in the editor via API route.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "AI Video Generation",
 				description: "Text-to-video generation with async task polling.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Text-to-Speech (TTS)",
 				description:
 					"Generate voiceover audio from text, insert directly to timeline.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Audio Transcription",
 				description:
 					"Whisper-based transcription via @huggingface/transformers (5 models: Tiny → Large v3 Turbo). Auto-generate captions from audio tracks. Streaming results, progress UI, language auto-detect (9 languages), subtitle style templates.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Transitions Library",
 				description:
 					"12 transition presets across 4 categories (Fade, Wipe, Slide, Zoom). Canvas-based rendering with offscreen compositing. Timeline junction overlays with drag-to-resize duration. Popover picker inline on timeline. Click-to-apply from sidebar panel.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Transition & Effect Preview Gallery",
 				description:
 					"Hover-to-play animated canvas previews in the transitions panel. Static first-frame otherwise. Same compositing logic as the actual transition renderer.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Text & Titles",
 				description:
 					"Full text editing: content textarea, font picker, bold/italic/underline/strikethrough, font size with slider+input, color picker, opacity, stroke (color+width), shadow (color+offsetX+offsetY+blur), background (color+opacity+borderRadius+paddingX+paddingY), transform (position/scale/rotation). 8 subtitle templates (Classic, Modern, Minimal, High Contrast, News, Karaoke, Cinematic, Top Title). Style presets. Canvas renderer with word-wrap. TTS tab integrated.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Text Template Library",
 				description:
 					"Pre-designed text templates: Title cards (Bold, Elegant, Neon), Lower Thirds (News, Accent Bar), End Screens (Subscribe, Thanks), Callouts (Arrow, Badge), Social Handles. Category-filtered gallery with CSS-styled previews. Drag to timeline or click to add. Full style props carried through drag-and-drop.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Not started", type: "default" }
 			},
 			{
 				title: "Sound Effects Library",
 				description:
 					"Built-in royalty-free SFX library (whoosh, pop, ding, transition sounds, impact, UI sounds). Searchable by category and mood. Drag-to-timeline with auto-trim to clip boundary. Volume + fade controls per SFX.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Not started", type: "default" }
 			},
 			{
 				title: "Music & Song Library",
 				description:
 					"Curated royalty-free music library organized by genre/mood (Lo-fi, Upbeat, Cinematic, Ambient, Electronic, Acoustic). BPM-tagged, loop-ready. Auto-duck under voiceover. Timeline beat-sync markers for rhythmic editing.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Not started", type: "default" }
 			},
 		],
 	},
