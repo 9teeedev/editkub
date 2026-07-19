@@ -139,11 +139,12 @@ function SoundEffectsView() {
 				);
 
 				if (!shouldIgnore) {
+					const data = await response.json();
+
 					if (!response.ok) {
-						throw new Error(`Failed to fetch: ${response.status}`);
+						throw new Error(data.error || `Failed to fetch: ${response.status}`);
 					}
 
-					const data = await response.json();
 					setTopSoundEffects({ sounds: data.results });
 					setHasLoaded({ loaded: true });
 
