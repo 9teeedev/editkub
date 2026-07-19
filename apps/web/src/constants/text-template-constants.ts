@@ -2,14 +2,12 @@ import type { TextElement } from "@/types/timeline";
 
 export type TextTemplateCategory =
 	| "title"
-	| "lower-third"
 	| "end-screen"
 	| "callout"
 	| "social";
 
 export const TEXT_TEMPLATE_CATEGORIES = [
 	"title",
-	"lower-third",
 	"end-screen",
 	"callout",
 	"social",
@@ -20,7 +18,6 @@ export const TEXT_TEMPLATE_CATEGORY_LABELS: Record<
 	string
 > = {
 	title: "Title Cards",
-	"lower-third": "Lower Thirds",
 	"end-screen": "End Screens",
 	callout: "Callouts",
 	social: "Social Handles",
@@ -46,7 +43,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		type: "text",
 		name: "Title",
 		content: "Your Title Here",
-		fontSize: 20,
+		fontSize: 10,
 		fontFamily: "Impact",
 		color: "#ffffff",
 		backgroundColor: "transparent",
@@ -65,7 +62,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		type: "text",
 		name: "Title",
 		content: "Your Title Here",
-		fontSize: 18,
+		fontSize: 10,
 		fontFamily: "Georgia",
 		color: "#ffffff",
 		backgroundColor: "transparent",
@@ -84,7 +81,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		type: "text",
 		name: "Title",
 		content: "Your Title Here",
-		fontSize: 22,
+		fontSize: 10,
 		fontFamily: "Arial",
 		color: "#00ffff",
 		backgroundColor: "transparent",
@@ -96,49 +93,6 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		shadow: { color: "#00ffff", offsetX: 0, offsetY: 0, blur: 16 },
 		transform: { scale: 1, position: { x: 0, y: 0 }, rotate: 0 },
 	},
-	// ---- Lower Thirds ----
-	{
-		templateId: "lower-third-news",
-		category: "lower-third",
-		previewText: "Name — Role",
-		type: "text",
-		name: "Lower Third",
-		content: "John Doe\nJournalist",
-		fontSize: 8,
-		fontFamily: "Arial",
-		color: "#ffffff",
-		backgroundColor: "rgba(0, 0, 0, 0.8)",
-		textAlign: "left",
-		fontWeight: "bold",
-		fontStyle: "normal",
-		textDecoration: "none",
-		opacity: 1,
-		backgroundBorderRadius: 4,
-		backgroundPaddingX: 12,
-		backgroundPaddingY: 8,
-		transform: { scale: 1, position: { x: -200, y: 150 }, rotate: 0 },
-	},
-	{
-		templateId: "lower-third-bar",
-		category: "lower-third",
-		previewText: "Accent Bar",
-		type: "text",
-		name: "Lower Third",
-		content: "Your Name Here",
-		fontSize: 10,
-		fontFamily: "Inter",
-		color: "#ffffff",
-		backgroundColor: "#e63946",
-		textAlign: "left",
-		fontWeight: "bold",
-		fontStyle: "normal",
-		textDecoration: "none",
-		opacity: 1,
-		backgroundBorderRadius: 2,
-		backgroundPaddingX: 16,
-		backgroundPaddingY: 6,
-		transform: { scale: 1, position: { x: -180, y: 150 }, rotate: 0 },
-	},
 	// ---- End Screens ----
 	{
 		templateId: "end-subscribe",
@@ -147,7 +101,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		type: "text",
 		name: "End Screen",
 		content: "Subscribe for more!",
-		fontSize: 16,
+		fontSize: 10,
 		fontFamily: "Arial",
 		color: "#ffffff",
 		backgroundColor: "#cc0000",
@@ -168,7 +122,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		type: "text",
 		name: "End Screen",
 		content: "Thanks for watching!",
-		fontSize: 14,
+		fontSize: 10,
 		fontFamily: "Georgia",
 		color: "#ffffff",
 		backgroundColor: "transparent",
@@ -200,7 +154,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		backgroundBorderRadius: 6,
 		backgroundPaddingX: 14,
 		backgroundPaddingY: 6,
-		transform: { scale: 1, position: { x: 150, y: -100 }, rotate: 0 },
+		transform: { scale: 1, position: { x: 0, y: 0 }, rotate: 0 },
 	},
 	{
 		templateId: "callout-circle",
@@ -209,7 +163,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		type: "text",
 		name: "Callout",
 		content: "NEW",
-		fontSize: 12,
+		fontSize: 10,
 		fontFamily: "Arial",
 		color: "#ffffff",
 		backgroundColor: "#ff6600",
@@ -221,7 +175,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		backgroundBorderRadius: 100,
 		backgroundPaddingX: 20,
 		backgroundPaddingY: 14,
-		transform: { scale: 1, position: { x: 200, y: -120 }, rotate: 0 },
+		transform: { scale: 1, position: { x: 0, y: 0 }, rotate: 0 },
 	},
 	// ---- Social Handles ----
 	{
@@ -231,7 +185,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		type: "text",
 		name: "Social",
 		content: "@yourhandle",
-		fontSize: 8,
+		fontSize: 10,
 		fontFamily: "Inter",
 		color: "#ffffff",
 		backgroundColor: "rgba(0, 0, 0, 0.6)",
@@ -243,7 +197,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		backgroundBorderRadius: 4,
 		backgroundPaddingX: 12,
 		backgroundPaddingY: 6,
-		transform: { scale: 1, position: { x: 200, y: 160 }, rotate: 0 },
+		transform: { scale: 1, position: { x: 0, y: 0 }, rotate: 0 },
 	},
 	{
 		templateId: "social-follow",
@@ -252,7 +206,7 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		type: "text",
 		name: "Social",
 		content: "Follow for more ↓",
-		fontSize: 7,
+		fontSize: 10,
 		fontFamily: "Arial",
 		color: "#ffffff",
 		backgroundColor: "transparent",
@@ -262,6 +216,6 @@ export const TEXT_TEMPLATES: TextTemplate[] = [
 		textDecoration: "none",
 		opacity: 1,
 		stroke: { color: "#000000", width: 2 },
-		transform: { scale: 1, position: { x: 0, y: 180 }, rotate: 0 },
+		transform: { scale: 1, position: { x: 0, y: 0 }, rotate: 0 },
 	},
 ];

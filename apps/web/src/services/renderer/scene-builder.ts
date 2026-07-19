@@ -185,6 +185,7 @@ export function buildScene(params: BuildSceneParams) {
 							x: canvasSize.width / 2,
 							y: canvasSize.height / 2,
 						},
+						canvasWidth: canvasSize.width,
 						canvasHeight: canvasSize.height,
 						textBaseline,
 					}),

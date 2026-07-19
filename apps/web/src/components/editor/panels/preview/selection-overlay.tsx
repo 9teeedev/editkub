@@ -10,7 +10,7 @@ import type {
 	ElementType,
 } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
-import { FONT_SIZE_SCALE_REFERENCE } from "@/constants/text-constants";
+import { getTextScaleFactor } from "@/constants/text-constants";
 import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
 
 type ScaleHandle = "top-left" | "top-right" | "bottom-left" | "bottom-right";
@@ -105,7 +105,7 @@ function computeTextBounds({
 	canvasHeight: number;
 	displayScale: number;
 }): ElementBounds {
-	const scaleFactor = canvasHeight / FONT_SIZE_SCALE_REFERENCE;
+	const scaleFactor = getTextScaleFactor({ canvasWidth, canvasHeight });
 	const scaledFontSize = element.fontSize * scaleFactor;
 
 	const elementBoxWidth = element.boxWidth;

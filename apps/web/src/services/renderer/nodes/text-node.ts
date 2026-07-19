@@ -1,7 +1,7 @@
 import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
 import type { TextElement } from "@/types/timeline";
-import { FONT_SIZE_SCALE_REFERENCE } from "@/constants/text-constants";
+import { getTextScaleFactor } from "@/constants/text-constants";
 
 type RenderContext =
 	| CanvasRenderingContext2D
@@ -9,22 +9,26 @@ type RenderContext =
 
 function scaleFontSize({
 	fontSize,
+	canvasWidth,
 	canvasHeight,
 }: {
 	fontSize: number;
+	canvasWidth: number;
 	canvasHeight: number;
 }): number {
-	return fontSize * (canvasHeight / FONT_SIZE_SCALE_REFERENCE);
+	return fontSize * getTextScaleFactor({ canvasWidth, canvasHeight });
 }
 
 export function scaleBoxWidth({
 	boxWidth,
+	canvasWidth,
 	canvasHeight,
 }: {
 	boxWidth: number;
+	canvasWidth: number;
 	canvasHeight: number;
 }): number {
-	return boxWidth * (canvasHeight / FONT_SIZE_SCALE_REFERENCE);
+	return boxWidth * getTextScaleFactor({ canvasWidth, canvasHeight });
 }
 
 function wrapText({
@@ -70,6 +74,7 @@ function wrapText({
 
 export type TextNodeParams = TextElement & {
 	canvasCenter: { x: number; y: number };
+	canvasWidth: number;
 	canvasHeight: number;
 	textBaseline?: CanvasTextBaseline;
 };
@@ -108,6 +113,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		const textBaseline = this.params.textBaseline || "middle";
 		const scaledFontSize = scaleFontSize({
 			fontSize: this.params.fontSize,
+			canvasWidth: this.params.canvasWidth,
 			canvasHeight: this.params.canvasHeight,
 		});
 		renderer.context.font = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${this.params.fontFamily}`;
@@ -123,6 +129,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		const scaledBoxWidth = hasBoxWidth
 			? scaleBoxWidth({
 					boxWidth,
+					canvasWidth: this.params.canvasWidth,
 					canvasHeight: this.params.canvasHeight,
 				})
 			: 0;

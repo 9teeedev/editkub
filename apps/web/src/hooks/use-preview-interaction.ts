@@ -7,7 +7,7 @@ import type {
 	TextElement,
 } from "@/types/timeline";
 import { hitTestElements } from "@/lib/preview/hit-test";
-import { FONT_SIZE_SCALE_REFERENCE } from "@/constants/text-constants";
+import { getTextScaleFactor } from "@/constants/text-constants";
 import {
 	getElementHalfSize,
 	getElementCenterInCanvas,
@@ -281,7 +281,8 @@ export function usePreviewInteraction({
 			});
 
 			const canvasHeight = canvasRef.current?.height ?? 0;
-			const scaleFactor = canvasHeight / FONT_SIZE_SCALE_REFERENCE;
+			const canvasWidth = canvasRef.current?.width ?? 0;
+			const scaleFactor = getTextScaleFactor({ canvasWidth, canvasHeight });
 
 			const initialBoxWidth =
 				textElement.boxWidth && textElement.boxWidth > 0

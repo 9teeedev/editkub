@@ -1,6 +1,6 @@
 import type { TimelineElement, Transform } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
-import { FONT_SIZE_SCALE_REFERENCE } from "@/constants/text-constants";
+import { getTextScaleFactor } from "@/constants/text-constants";
 import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
 
 export interface ElementHalfSize {
@@ -33,7 +33,7 @@ export function getElementHalfSize({
 	}
 
 	if (element.type === "text") {
-		const scaleFactor = canvasHeight / FONT_SIZE_SCALE_REFERENCE;
+		const scaleFactor = getTextScaleFactor({ canvasWidth, canvasHeight });
 		const scaledFontSize = element.fontSize * scaleFactor;
 		const elementScale = element.transform.scale;
 
