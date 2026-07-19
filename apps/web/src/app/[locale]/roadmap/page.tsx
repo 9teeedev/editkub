@@ -170,7 +170,7 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Keyframe Animation",
 				description:
 					"Animate position, scale, rotation, opacity, and effects over time. Easing curves (linear, ease-in, ease-out, bezier). Keyframe timeline visualization.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Speed Control",
@@ -181,7 +181,13 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Stickers & Emojis",
 				description:
-					"Animated stickers, emoji library, custom sticker upload. Position/rotate/scale controls. Timeline-based sticker animation.",
+					"Iconify-powered sticker + emoji library (icons, brands, Twemoji, Fluent Emoji). Drag-to-timeline. Position/scale/rotate/opacity/color controls. Keyframe animation on all transform properties.",
+				status: { text: "Completed", type: "complete" },
+			},
+			{
+				title: "Custom Sticker Upload & Animated Stickers",
+				description:
+					"User-uploaded custom stickers (PNG/SVG) and animated stickers (Lottie, APNG, animated emoji).",
 				status: { text: "Not started", type: "default" },
 			},
 			{
@@ -203,9 +209,15 @@ const roadmapPhases: RoadmapPhase[] = [
 				status: { text: "Not started", type: "default" },
 			},
 			{
-				title: "Audio Mixing & Ducking",
+				title: "Audio Mixing",
 				description:
-					"Multi-track audio levels, pan, fade in/out. Auto-duck background music when voiceover is active. Audio waveform visualization.",
+					"Per-clip volume (0-200%) and per-track mute. Audio waveform visualization on timeline clips (WaveSurfer.js).",
+				status: { text: "Completed", type: "complete" },
+			},
+			{
+				title: "Pan, Fade & Auto-Duck",
+				description:
+					"Per-clip stereo pan, fade in/out gain ramps, and auto-ducking (sidechain-lower background music when voiceover is active).",
 				status: { text: "Not started", type: "default" },
 			},
 			{
