@@ -19,3 +19,4 @@ bun.lockb
 .vercel
 
 .DS_Store
+.zcode/
