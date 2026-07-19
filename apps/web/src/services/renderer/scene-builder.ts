@@ -55,6 +55,7 @@ function buildVisualElementNode({
 			transform: element.transform,
 			opacity: element.opacity,
 			filter: computeFilterString(element.filter, element.adjustments),
+			vignette: element.adjustments?.vignette ?? 0,
 			playbackRate: videoElement.playbackRate,
 			reversed: videoElement.reversed,
 		});
@@ -70,6 +71,7 @@ function buildVisualElementNode({
 			transform: element.transform,
 			opacity: element.opacity,
 			filter: computeFilterString(element.filter, element.adjustments),
+			vignette: element.adjustments?.vignette ?? 0,
 		});
 	}
 
@@ -290,7 +292,9 @@ function computeFilterString(
 		adjustments.saturation === 1 &&
 		adjustments.temperature === 0 &&
 		adjustments.tint === 0 &&
-		adjustments.hue === 0;
+		adjustments.hue === 0 &&
+		(adjustments.vignette ?? 0) === 0 &&
+		(adjustments.sharpen ?? 0) === 0;
 
 	if (isDefault) return presetFilter;
 
@@ -316,10 +320,55 @@ function computeFilterString(
 		parts.push(`sepia(${round(sepiaAmount)})`);
 	}
 
+	// Sharpen: 3×3 unsharp convolution via SVG filter (cached, injected into DOM once).
+	// Browsers without ctx.filter url() support silently skip it (no crash).
+	const sharpenLevel = Math.round(adjustments.sharpen ?? 0);
+	if (sharpenLevel > 0) {
+		parts.push(`url(#${getSharpenFilterId(sharpenLevel)})`);
+	}
+
 	const adjFilter = parts.join(" ");
 
 	if (presetFilter === "none") return adjFilter;
 	return `${presetFilter} ${adjFilter}`;
+}
+
+// ---- Sharpen filter cache ----
+// ponytail: sharpen is a 3×3 unsharp convolution implemented as an SVG filter element
+// injected into <body> once per level. ctx.filter accepts url(#id) on Chromium/Firefox/Safari.
+// Levels are bounded 1-100 so cache size is capped.
+const sharpenCache = new Map<number, string>();
+
+function getSharpenFilterId(level: number): string {
+	const cached = sharpenCache.get(level);
+	if (cached) return cached;
+
+	const id = `cutia-sharpen-${level}`;
+	if (typeof document !== "undefined" && !document.getElementById(id)) {
+		// kernelWeight: 0 at level 1 → 1 at level 100. Center stays at 1, neighbors subtract.
+		const w = level / 100; // 0..1
+		const center = 1 + 8 * w;
+		const side = -w;
+		const k = `${side} ${side} ${side} ${side} ${center} ${side} ${side} ${side} ${side}`;
+		const ns = "http://www.w3.org/2000/svg";
+		const svg = document.createElementNS(ns, "svg");
+		svg.setAttribute("width", "0");
+		svg.setAttribute("height", "0");
+		svg.style.position = "absolute";
+		svg.style.pointerEvents = "none";
+		const filter = document.createElementNS(ns, "filter");
+		filter.setAttribute("id", id);
+		filter.setAttribute("color-interpolation-filters", "sRGB");
+		const matrix = document.createElementNS(ns, "feConvolveMatrix");
+		matrix.setAttribute("order", "3");
+		matrix.setAttribute("kernelMatrix", k);
+		matrix.setAttribute("preserveAlpha", "true");
+		filter.appendChild(matrix);
+		svg.appendChild(filter);
+		document.body.appendChild(svg);
+	}
+	sharpenCache.set(level, id);
+	return id;
 }
 
 // ---- End Filter helpers ----

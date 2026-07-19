@@ -152,6 +152,8 @@ export function VideoProperties({
 		temperature: 0,
 		tint: 0,
 		hue: 0,
+		vignette: 0,
+		sharpen: 0,
 	};
 
 	const getAdjustment = (key: keyof AdjustmentControls): number => {
@@ -728,6 +730,20 @@ export function VideoProperties({
 								label: "Hue",
 								min: -180,
 								max: 180,
+								step: 1,
+							},
+							{
+								key: "vignette" as const,
+								label: "Vignette",
+								min: 0,
+								max: 100,
+								step: 1,
+							},
+							{
+								key: "sharpen" as const,
+								label: "Sharpen",
+								min: 0,
+								max: 100,
 								step: 1,
 							},
 						] as const).map(({ key, label, min, max, step }) => {

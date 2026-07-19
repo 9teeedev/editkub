@@ -155,6 +155,8 @@ export interface AdjustmentControls {
 	temperature: number; // -100 to 100, default 0 (negative=blue, positive=orange)
 	tint: number; // -100 to 100, default 0
 	hue: number; // -180 to 180, default 0 (degrees)
+	vignette: number; // 0-100, default 0 (edge darkening intensity)
+	sharpen: number; // 0-100, default 0 (unsharp convolution strength)
 }
 
 export interface TextElement extends BaseTimelineElement {

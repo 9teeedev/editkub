@@ -157,7 +157,13 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Adjustment Controls",
 				description:
-					"Per-clip manual adjustment: brightness, contrast, saturation, temperature, tint, hue, vignette, sharpen. Non-destructive — always editable. Adjustment layers that affect all clips below.",
+					"Per-clip manual adjustment: brightness, contrast, saturation, temperature, tint, hue. Non-destructive — always editable.",
+				status: { text: "Completed", type: "complete" },
+			},
+			{
+				title: "Vignette & Sharpen",
+				description:
+					"Per-clip vignette (radial-gradient edge darkening via canvas overlay) and sharpen (3×3 unsharp convolution via SVG filter). Two extra sliders in the Adjustments panel. Non-destructive, undoable.",
 				status: { text: "Completed", type: "complete" },
 			},
 			{
@@ -290,6 +296,12 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Custom Subtitle System",
 				description:
 					"Full subtitle editor beyond auto-captions: per-word timing control, word-by-word highlight (karaoke style), custom subtitle duration presets (1-word, 2-word, 3-word per display), font/size/color/stroke/ shadow per subtitle, position drag on canvas, SRT/VTT import-export, style presets (TikTok, YouTube, Broadcast, Karaoke).",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Adjustment Layers",
+				description:
+					"A dedicated adjustment-layer track type whose brightness/contrast/saturation/temperature/tint/hue/vignette/sharpen values affect every visible clip on tracks below during its time span. Non-destructive, draggable, saveable.",
 				status: { text: "Not started", type: "default" },
 			},
 		],

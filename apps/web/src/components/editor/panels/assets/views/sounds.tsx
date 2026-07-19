@@ -94,6 +94,11 @@ function SoundEffectsView() {
 		setHasNextPage,
 		setTotalCount,
 	} = useSoundsStore();
+	// ponytail: when the Freesound API key is missing the server returns
+	// soundsEnabled=false — remember it locally and skip subsequent fetches
+	// so we don't keep retrying an endpoint that has no chance of working.
+	const [soundsEnabled, setSoundsEnabled] = useState<boolean>(true);
+
 	const {
 		results: searchResults,
 		isLoading: isSearching,
@@ -110,10 +115,6 @@ function SoundEffectsView() {
 	const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
 		null,
 	);
-	// ponytail: when the Freesound API key is missing the server returns
-	// soundsEnabled=false — remember it locally and skip subsequent fetches
-	// so we don't keep retrying an endpoint that has no chance of working.
-	const [soundsEnabled, setSoundsEnabled] = useState<boolean>(true);
 
 	const { scrollAreaRef, handleScroll } = useInfiniteScroll({
 		onLoadMore: loadMore,
