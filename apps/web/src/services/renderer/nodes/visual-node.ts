@@ -11,6 +11,7 @@ export interface VisualNodeParams {
 	trimEnd: number;
 	transform: Transform;
 	opacity: number;
+	filter?: string;
 	playbackRate?: number;
 	reversed?: boolean;
 }
@@ -48,6 +49,10 @@ export abstract class VisualNode<
 		sourceHeight: number;
 	}): void {
 		renderer.context.save();
+
+		if (this.params.filter && this.params.filter !== "none") {
+			renderer.context.filter = this.params.filter;
+		}
 
 		const { transform, opacity } = this.params;
 		const containScale = Math.min(

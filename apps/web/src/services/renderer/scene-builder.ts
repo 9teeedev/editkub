@@ -3,6 +3,7 @@ import type {
 	VideoElement,
 	ImageElement,
 	VideoTrack,
+	ElementFilter,
 } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
 import { RootNode } from "./nodes/root-node";
@@ -18,6 +19,7 @@ import type { TBackground, TCanvasSize } from "@/types/project";
 import { DEFAULT_BLUR_INTENSITY } from "@/constants/project-constants";
 import { isMainTrack } from "@/lib/timeline";
 import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
+import { FILTER_PRESETS } from "@/constants/filter-constants";
 
 export type BuildSceneParams = {
 	canvasSize: TCanvasSize;
@@ -51,6 +53,7 @@ function buildVisualElementNode({
 			trimEnd: element.trimEnd,
 			transform: element.transform,
 			opacity: element.opacity,
+			filter: computeFilterString(element.filter),
 			playbackRate: videoElement.playbackRate,
 			reversed: videoElement.reversed,
 		});
@@ -65,6 +68,7 @@ function buildVisualElementNode({
 			trimEnd: element.trimEnd,
 			transform: element.transform,
 			opacity: element.opacity,
+			filter: computeFilterString(element.filter),
 		});
 	}
 
@@ -230,3 +234,44 @@ export function buildScene(params: BuildSceneParams) {
 
 	return rootNode;
 }
+
+// ---- Filter helpers ----
+
+// ponytail: computeFilterString handles the 3 cases (none, partial, full),
+// correctly interpolating towards the neutral value for each filter function type.
+function computeFilterString(
+	filter: ElementFilter | undefined,
+): string {
+	if (!filter || filter.presetId === "none" || filter.intensity <= 0)
+		return "none";
+	const preset = FILTER_PRESETS.find((p) => p.id === filter.presetId);
+	if (!preset) return "none";
+	if (filter.intensity >= 1) return preset.cssFilter;
+
+	const round = (n: number) => Math.round(n * 1000) / 1000;
+
+	return preset.cssFilter.replace(
+		/(\w+)\(([^)]+)\)/g,
+		(_match, func: string, value: string) => {
+			const hasDeg = value.includes("deg");
+			const num = parseFloat(value);
+			if (isNaN(num)) return _match;
+
+			let scaled: number;
+			if (hasDeg) {
+				// hue-rotate: neutral at 0
+				scaled = round(num * filter.intensity);
+			} else if (func === "sepia" || func === "grayscale") {
+				// amount-based: neutral at 0
+				scaled = round(num * filter.intensity);
+			} else {
+				// saturate, contrast, brightness — neutral at 1
+				scaled = round(1 + (num - 1) * filter.intensity);
+			}
+
+			return `${func}(${scaled}${hasDeg ? "deg" : ""})`;
+		},
+	);
+}
+
+// ---- End Filter helpers ----

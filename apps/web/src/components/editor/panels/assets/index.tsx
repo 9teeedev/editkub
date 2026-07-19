@@ -11,6 +11,7 @@ import { SoundsView } from "./views/sounds";
 import { StickersView } from "./views/stickers";
 import { TextView } from "./views/text";
 import { TransitionsView } from "./views/transitions";
+import { FiltersView } from "./views/filters";
 
 export function AssetsPanel() {
 	const { activeTab } = useAssetsPanelStore();
@@ -27,11 +28,7 @@ export function AssetsPanel() {
 		),
 		transitions: <TransitionsView />,
 		captions: <Captions />,
-		filters: (
-			<div className="text-muted-foreground p-4">
-				Filters view coming soon...
-			</div>
-		),
+		filters: <FiltersView />,
 		adjustment: (
 			<div className="text-muted-foreground p-4">
 				Adjustment view coming soon...

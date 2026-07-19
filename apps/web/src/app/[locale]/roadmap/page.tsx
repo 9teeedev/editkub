@@ -152,7 +152,7 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Filters & Color Grading",
 				description:
 					"Preset filter library (Vintage, Cinematic, Warm, Cool, B&W, Film grain, etc.). One-click apply, intensity slider. Filter categories with live preview thumbnails. Import custom LUT files (.cube).",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "green" },
 			},
 			{
 				title: "Adjustment Controls",

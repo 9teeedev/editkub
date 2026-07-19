@@ -115,6 +115,7 @@ export interface VideoElement extends BaseTimelineElement {
 	hidden?: boolean;
 	transform: Transform;
 	opacity: number;
+	filter?: ElementFilter;
 	playbackRate?: number;
 	reversed?: boolean;
 }
@@ -125,6 +126,7 @@ export interface ImageElement extends BaseTimelineElement {
 	hidden?: boolean;
 	transform: Transform;
 	opacity: number;
+	filter?: ElementFilter;
 }
 
 export interface TextStroke {
@@ -137,6 +139,11 @@ export interface TextShadow {
 	offsetX: number;
 	offsetY: number;
 	blur: number;
+}
+
+export interface ElementFilter {
+	presetId: string;
+	intensity: number; // 0-1, multiplier on the filter strength
 }
 
 export interface TextElement extends BaseTimelineElement {

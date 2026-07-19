@@ -15,6 +15,14 @@ import { clamp } from "@/utils/math";
 import { useEditor } from "@/hooks/use-editor";
 import type { ImageElement, VideoElement } from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
+import { FILTER_PRESETS } from "@/constants/filter-constants";
+import {
+	Select,
+	SelectTrigger,
+	SelectValue,
+	SelectContent,
+	SelectItem,
+} from "@/components/ui/select";
 
 export function VideoProperties({
 	_element: element,
@@ -542,6 +550,105 @@ export function VideoProperties({
 								</div>
 							</PropertyItemValue>
 						</PropertyItem>
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup title={t("Filter")} collapsible={false}>
+					<div className="space-y-6">
+						<PropertyItem direction="column">
+							<PropertyItemLabel>{t("Preset")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Select
+									value={element.filter?.presetId ?? "none"}
+									onValueChange={(presetId) => {
+										editor.timeline.updateElements({
+											updates: [
+												{
+													trackId,
+													elementId: element.id,
+													updates: {
+														filter:
+															presetId === "none"
+																? undefined
+																: {
+																		presetId,
+																		intensity:
+																			element.filter?.intensity ?? 1,
+																	},
+													},
+												},
+											],
+											pushHistory: true,
+										});
+									}}
+								>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder={t("None")} />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">{t("None")}</SelectItem>
+										{FILTER_PRESETS.filter((p) => p.id !== "none").map(
+											(preset) => (
+												<SelectItem key={preset.id} value={preset.id}>
+													{preset.name}
+												</SelectItem>
+											),
+										)}
+									</SelectContent>
+								</Select>
+							</PropertyItemValue>
+						</PropertyItem>
+
+						{element.filter && element.filter.presetId !== "none" && (
+							<PropertyItem direction="column">
+								<PropertyItemLabel>{t("Intensity")}</PropertyItemLabel>
+								<PropertyItemValue>
+									<Slider
+										value={[element.filter.intensity * 100]}
+										min={0}
+										max={100}
+										step={1}
+										onValueChange={([value]) => {
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: {
+															filter: {
+																presetId:
+																	element.filter!.presetId,
+																intensity: value / 100,
+															},
+														},
+													},
+												],
+												pushHistory: false,
+											});
+										}}
+										onValueCommit={([value]) => {
+											editor.timeline.updateElements({
+												updates: [
+													{
+														trackId,
+														elementId: element.id,
+														updates: {
+															filter: {
+																presetId:
+																	element.filter!.presetId,
+																intensity: value / 100,
+															},
+														},
+													},
+												],
+												pushHistory: true,
+											});
+										}}
+										className="w-full"
+									/>
+								</PropertyItemValue>
+							</PropertyItem>
+						)}
 					</div>
 				</PropertyGroup>
 
