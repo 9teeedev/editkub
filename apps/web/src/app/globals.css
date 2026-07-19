@@ -114,10 +114,13 @@
   --foreground: hsl(0 0% 85%);
   --card: hsl(0, 0%, 10%);
   --card-foreground: hsl(0 0% 85%);
+  --primary: hsl(0, 0%, 93%);
+  --primary-foreground: hsl(0, 0%, 10%);
   --secondary: hsl(204, 100%, 12%);
   --secondary-border: hsl(204, 100%, 17%);
   --secondary-foreground: hsl(200, 98%, 63%);
   --muted: hsl(0 0% 22%);
+  --muted-foreground: hsl(0, 0%, 70%);
   --accent: hsl(0, 0%, 15%);
   --accent-foreground: hsl(0 0% 93%);
   --constructive: hsl(141, 71%, 52%);
