@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="skyF" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="0.5" stop-color="#7dd3fc"/>
+      <stop offset="1" stop-color="#fef9c3"/>
+    </linearGradient>
+    <radialGradient id="sunF" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fffbeb"/>
+      <stop offset="0.5" stop-color="#fde047"/>
+      <stop offset="1" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hillF1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16a34a"/>
+      <stop offset="1" stop-color="#14532d"/>
+    </linearGradient>
+    <linearGradient id="hillF2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#65a30d"/>
+      <stop offset="1" stop-color="#365314"/>
+    </linearGradient>
+    <linearGradient id="grassF" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#84cc16"/>
+      <stop offset="1" stop-color="#3f6212"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="90" fill="url(#skyF)"/>
+  <circle cx="120" cy="22" r="18" fill="url(#sunF)"/>
+  <circle cx="120" cy="22" r="9" fill="#fef9c3"/>
+  <circle cx="30" cy="18" r="6" fill="#ffffff" opacity="0.85"/>
+  <circle cx="48" cy="28" r="4" fill="#ffffff" opacity="0.7"/>
+  <path d="M0 60 Q 30 50 60 56 T 120 52 T 160 56 L160 90 L0 90 Z" fill="url(#hillF1)"/>
+  <path d="M0 72 Q 40 64 80 70 T 160 68 L160 90 L0 90 Z" fill="url(#hillF2)"/>
+  <rect y="80" width="160" height="10" fill="url(#grassF)"/>
+</svg>
