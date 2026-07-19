@@ -128,7 +128,7 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Text Template Library",
 				description:
 					"Pre-designed text templates: Title cards (Bold, Elegant, Neon), Lower Thirds (News, Accent Bar), End Screens (Subscribe, Thanks), Callouts (Arrow, Badge), Social Handles. Category-filtered gallery with CSS-styled previews. Drag to timeline or click to add. Full style props carried through drag-and-drop.",
-				status: { text: "Not started", type: "default" }
+				status: { text: "Completed", type: "complete" }
 			},
 			{
 				title: "Sound Effects Library",

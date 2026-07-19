@@ -178,7 +178,7 @@ export function useTimelineDragDrop({
 			dragData,
 		}: {
 			target: DropTarget;
-			dragData: { name?: string; content?: string };
+			dragData: { name?: string; content?: string; styles?: Record<string, unknown> };
 		}) => {
 			let trackId: string;
 
@@ -197,6 +197,7 @@ export function useTimelineDragDrop({
 				raw: {
 					name: dragData.name ?? "",
 					content: dragData.content ?? "",
+					...(dragData.styles ?? {}),
 				},
 				startTime: target.xPosition,
 			});

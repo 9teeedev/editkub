@@ -11,6 +11,8 @@ export interface MediaDragData extends BaseDragData {
 export interface TextDragData extends BaseDragData {
 	type: "text";
 	content: string;
+	/** Optional template style props passed through to buildTextElement */
+	styles?: Record<string, unknown>;
 }
 
 export interface StickerDragData extends BaseDragData {
