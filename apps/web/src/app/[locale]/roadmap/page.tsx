@@ -161,12 +161,6 @@ const roadmapPhases: RoadmapPhase[] = [
 				status: { text: "Completed", type: "complete" },
 			},
 			{
-				title: "Custom Subtitle System",
-				description:
-					"Full subtitle editor beyond auto-captions: per-word timing control, word-by-word highlight (karaoke style), custom subtitle duration presets (1-word, 2-word, 3-word per display), font/size/color/stroke/ shadow per subtitle, position drag on canvas, SRT/VTT import-export, style presets (TikTok, YouTube, Broadcast, Karaoke).",
-				status: { text: "Not started", type: "default" },
-			},
-			{
 				title: "Keyframe Animation",
 				description:
 					"Animate position, scale, rotation, opacity, and effects over time. Easing curves (linear, ease-in, ease-out, bezier). Keyframe timeline visualization.",
@@ -176,7 +170,7 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Speed Control",
 				description:
 					"Variable speed (0.25x–4x), speed curves/ramping, freeze frame, reverse playback. Speed graph editor.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Stickers & Emojis",
@@ -290,6 +284,12 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Canvas Background Fill",
 				description:
 					"Fill empty canvas area (e.g. horizontal video in a vertical project) with blurred copy of the clip, solid color, or gradient. Auto-fit modes for 9:16, 1:1, and 4:5 exports. Essential for repurposing landscape clips to short-form vertical.",
+				status: { text: "Not started", type: "default" },
+			},
+			{
+				title: "Custom Subtitle System",
+				description:
+					"Full subtitle editor beyond auto-captions: per-word timing control, word-by-word highlight (karaoke style), custom subtitle duration presets (1-word, 2-word, 3-word per display), font/size/color/stroke/ shadow per subtitle, position drag on canvas, SRT/VTT import-export, style presets (TikTok, YouTube, Broadcast, Karaoke).",
 				status: { text: "Not started", type: "default" },
 			},
 		],
