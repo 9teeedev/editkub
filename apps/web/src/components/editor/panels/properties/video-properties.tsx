@@ -13,7 +13,7 @@ import {
 } from "./property-item";
 import { clamp } from "@/utils/math";
 import { useEditor } from "@/hooks/use-editor";
-import type { ImageElement, VideoElement } from "@/types/timeline";
+import type { ImageElement, VideoElement, AdjustmentControls } from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
 import {
@@ -143,6 +143,39 @@ export function VideoProperties({
 			apply(parsed);
 		}
 		initial.current = null;
+	};
+
+	const ADJUSTMENT_DEFAULTS: AdjustmentControls = {
+		brightness: 1,
+		contrast: 1,
+		saturation: 1,
+		temperature: 0,
+		tint: 0,
+		hue: 0,
+	};
+
+	const getAdjustment = (key: keyof AdjustmentControls): number => {
+		return element.adjustments?.[key] ?? ADJUSTMENT_DEFAULTS[key];
+	};
+
+	const updateAdjustment = (
+		key: keyof AdjustmentControls,
+		value: number,
+		pushHistory: boolean,
+	) => {
+		const current = element.adjustments ?? { ...ADJUSTMENT_DEFAULTS };
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: {
+						adjustments: { ...current, [key]: value },
+					},
+				},
+			],
+			pushHistory,
+		});
 	};
 
 	return (
@@ -649,6 +682,102 @@ export function VideoProperties({
 								</PropertyItemValue>
 							</PropertyItem>
 						)}
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup title={t("Adjustments")} collapsible={false}>
+					<div className="space-y-6">
+						{([
+							{
+								key: "brightness" as const,
+								label: "Brightness",
+								min: 0,
+								max: 2,
+								step: 0.01,
+							},
+							{
+								key: "contrast" as const,
+								label: "Contrast",
+								min: 0,
+								max: 2,
+								step: 0.01,
+							},
+							{
+								key: "saturation" as const,
+								label: "Saturation",
+								min: 0,
+								max: 2,
+								step: 0.01,
+							},
+							{
+								key: "temperature" as const,
+								label: "Temperature",
+								min: -100,
+								max: 100,
+								step: 1,
+							},
+							{
+								key: "tint" as const,
+								label: "Tint",
+								min: -100,
+								max: 100,
+								step: 1,
+							},
+							{
+								key: "hue" as const,
+								label: "Hue",
+								min: -180,
+								max: 180,
+								step: 1,
+							},
+						] as const).map(({ key, label, min, max, step }) => {
+							const value = getAdjustment(key);
+							return (
+								<PropertyItem key={key} direction="column">
+									<PropertyItemLabel>
+										{t(label)}
+									</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<Slider
+												value={[value]}
+												min={min}
+												max={max}
+												step={step}
+												onValueChange={([v]) =>
+													updateAdjustment(key, v, false)
+												}
+												onValueCommit={([v]) =>
+													updateAdjustment(key, v, true)
+												}
+												className="flex-1"
+											/>
+											<span className="text-muted-foreground w-10 text-right text-xs">
+												{key === "brightness" ||
+												key === "contrast" ||
+												key === "saturation"
+													? value.toFixed(2)
+													: value.toFixed(0)}
+											</span>
+											<button
+												type="button"
+												className="text-muted-foreground hover:text-foreground text-xs"
+												onClick={() =>
+													updateAdjustment(
+														key,
+														ADJUSTMENT_DEFAULTS[key],
+														true,
+													)
+												}
+												title={`Reset ${label}`}
+											>
+												↺
+											</button>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+							);
+						})}
 					</div>
 				</PropertyGroup>
 

@@ -116,6 +116,7 @@ export interface VideoElement extends BaseTimelineElement {
 	transform: Transform;
 	opacity: number;
 	filter?: ElementFilter;
+	adjustments?: AdjustmentControls;
 	playbackRate?: number;
 	reversed?: boolean;
 }
@@ -127,6 +128,7 @@ export interface ImageElement extends BaseTimelineElement {
 	transform: Transform;
 	opacity: number;
 	filter?: ElementFilter;
+	adjustments?: AdjustmentControls;
 }
 
 export interface TextStroke {
@@ -144,6 +146,15 @@ export interface TextShadow {
 export interface ElementFilter {
 	presetId: string;
 	intensity: number; // 0-1, multiplier on the filter strength
+}
+
+export interface AdjustmentControls {
+	brightness: number; // 0-2, default 1
+	contrast: number; // 0-2, default 1
+	saturation: number; // 0-2, default 1
+	temperature: number; // -100 to 100, default 0 (negative=blue, positive=orange)
+	tint: number; // -100 to 100, default 0
+	hue: number; // -180 to 180, default 0 (degrees)
 }
 
 export interface TextElement extends BaseTimelineElement {

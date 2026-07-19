@@ -4,6 +4,7 @@ import type {
 	ImageElement,
 	VideoTrack,
 	ElementFilter,
+	AdjustmentControls,
 } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
 import { RootNode } from "./nodes/root-node";
@@ -53,7 +54,7 @@ function buildVisualElementNode({
 			trimEnd: element.trimEnd,
 			transform: element.transform,
 			opacity: element.opacity,
-			filter: computeFilterString(element.filter),
+			filter: computeFilterString(element.filter, element.adjustments),
 			playbackRate: videoElement.playbackRate,
 			reversed: videoElement.reversed,
 		});
@@ -68,7 +69,7 @@ function buildVisualElementNode({
 			trimEnd: element.trimEnd,
 			transform: element.transform,
 			opacity: element.opacity,
-			filter: computeFilterString(element.filter),
+			filter: computeFilterString(element.filter, element.adjustments),
 		});
 	}
 
@@ -241,37 +242,84 @@ export function buildScene(params: BuildSceneParams) {
 // correctly interpolating towards the neutral value for each filter function type.
 function computeFilterString(
 	filter: ElementFilter | undefined,
+	adjustments?: AdjustmentControls,
 ): string {
-	if (!filter || filter.presetId === "none" || filter.intensity <= 0)
-		return "none";
-	const preset = FILTER_PRESETS.find((p) => p.id === filter.presetId);
-	if (!preset) return "none";
-	if (filter.intensity >= 1) return preset.cssFilter;
+	// ---- Preset filter ----
+	let presetFilter: string;
+	if (!filter || filter.presetId === "none" || filter.intensity <= 0) {
+		presetFilter = "none";
+	} else {
+		const preset = FILTER_PRESETS.find((p) => p.id === filter.presetId);
+		if (!preset) {
+			presetFilter = "none";
+		} else if (filter.intensity >= 1) {
+			presetFilter = preset.cssFilter;
+		} else {
+			const round = (n: number) => Math.round(n * 1000) / 1000;
+			presetFilter = preset.cssFilter.replace(
+				/(\w+)\(([^)]+)\)/g,
+				(_match, func: string, value: string) => {
+					const hasDeg = value.includes("deg");
+					const num = parseFloat(value);
+					if (isNaN(num)) return _match;
+
+					let scaled: number;
+					if (hasDeg) {
+						// hue-rotate: neutral at 0
+						scaled = round(num * filter.intensity);
+					} else if (func === "sepia" || func === "grayscale") {
+						// amount-based: neutral at 0
+						scaled = round(num * filter.intensity);
+					} else {
+						// saturate, contrast, brightness — neutral at 1
+						scaled = round(1 + (num - 1) * filter.intensity);
+					}
+
+					return `${func}(${scaled}${hasDeg ? "deg" : ""})`;
+				},
+			);
+		}
+	}
+
+	// ---- Adjustment controls ----
+	if (!adjustments) return presetFilter;
+
+	const isDefault =
+		adjustments.brightness === 1 &&
+		adjustments.contrast === 1 &&
+		adjustments.saturation === 1 &&
+		adjustments.temperature === 0 &&
+		adjustments.tint === 0 &&
+		adjustments.hue === 0;
+
+	if (isDefault) return presetFilter;
 
 	const round = (n: number) => Math.round(n * 1000) / 1000;
+	const parts: string[] = [];
 
-	return preset.cssFilter.replace(
-		/(\w+)\(([^)]+)\)/g,
-		(_match, func: string, value: string) => {
-			const hasDeg = value.includes("deg");
-			const num = parseFloat(value);
-			if (isNaN(num)) return _match;
+	parts.push(`brightness(${round(adjustments.brightness)})`);
+	parts.push(`contrast(${round(adjustments.contrast)})`);
+	parts.push(`saturate(${round(adjustments.saturation)})`);
 
-			let scaled: number;
-			if (hasDeg) {
-				// hue-rotate: neutral at 0
-				scaled = round(num * filter.intensity);
-			} else if (func === "sepia" || func === "grayscale") {
-				// amount-based: neutral at 0
-				scaled = round(num * filter.intensity);
-			} else {
-				// saturate, contrast, brightness — neutral at 1
-				scaled = round(1 + (num - 1) * filter.intensity);
-			}
+	// Combined hue-rotate for temperature + tint + hue
+	const temp = adjustments.temperature;
+	const tempHue = temp <= 0 ? -temp * 0.3 : -temp * 0.15;
+	const tintHue = adjustments.tint * 0.5;
+	const totalHue = tempHue + tintHue + adjustments.hue;
+	if (Math.abs(totalHue) > 0.01) {
+		parts.push(`hue-rotate(${round(totalHue)}deg)`);
+	}
 
-			return `${func}(${scaled}${hasDeg ? "deg" : ""})`;
-		},
-	);
+	// Tint adds sepia based on magnitude
+	const sepiaAmount = Math.abs(adjustments.tint) / 100;
+	if (sepiaAmount > 0.01) {
+		parts.push(`sepia(${round(sepiaAmount)})`);
+	}
+
+	const adjFilter = parts.join(" ");
+
+	if (presetFilter === "none") return adjFilter;
+	return `${presetFilter} ${adjFilter}`;
 }
 
 // ---- End Filter helpers ----

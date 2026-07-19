@@ -158,7 +158,7 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Adjustment Controls",
 				description:
 					"Per-clip manual adjustment: brightness, contrast, saturation, temperature, tint, hue, vignette, sharpen. Non-destructive — always editable. Adjustment layers that affect all clips below.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Custom Subtitle System",
