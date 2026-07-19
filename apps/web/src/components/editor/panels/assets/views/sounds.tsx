@@ -103,12 +103,17 @@ function SoundEffectsView() {
 	} = useSoundSearch({
 		query: searchQuery,
 		commercialOnly: showCommercialOnly,
+		enabled: soundsEnabled,
 	});
 
 	const [playingId, setPlayingId] = useState<number | null>(null);
 	const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
 		null,
 	);
+	// ponytail: when the Freesound API key is missing the server returns
+	// soundsEnabled=false — remember it locally and skip subsequent fetches
+	// so we don't keep retrying an endpoint that has no chance of working.
+	const [soundsEnabled, setSoundsEnabled] = useState<boolean>(true);
 
 	const { scrollAreaRef, handleScroll } = useInfiniteScroll({
 		onLoadMore: loadMore,
@@ -143,6 +148,17 @@ function SoundEffectsView() {
 
 					if (!response.ok) {
 						throw new Error(data.error || `Failed to fetch: ${response.status}`);
+					}
+
+					// ponytail: server signals missing API key — render setup
+					// empty-state instead of a forever-loading or error spinner.
+					if (data.soundsEnabled === false) {
+						setSoundsEnabled(false);
+						setHasLoaded({ loaded: true });
+						setTopSoundEffects({ sounds: [] });
+						setHasNextPage({ hasNext: false });
+						setTotalCount({ count: 0 });
+						return;
 					}
 
 					setTopSoundEffects({ sounds: data.results });
@@ -303,10 +319,22 @@ function SoundEffectsView() {
 						))}
 						{!isLoading && !isSearching && displayedSounds.length === 0 && (
 							<div className="text-muted-foreground text-sm">
-								{searchQuery
-									? t("No sounds found")
-									: t("No sounds available")}
+								{!soundsEnabled
+									? t("Sound effects need a Freesound API key to be configured on the server.")
+									: searchQuery
+										? t("No sounds found")
+										: t("No sounds available")}
 							</div>
+						)}
+						{!isLoading && !soundsEnabled && (
+							<a
+								href="https://freesound.org/apiv2/apply/"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-primary hover:underline text-xs"
+							>
+								{t("Apply for a Freesound API key")} →
+							</a>
 						)}
 						{isLoadingMore && (
 							<div className="text-muted-foreground py-4 text-center text-sm">

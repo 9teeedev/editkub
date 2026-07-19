@@ -86,6 +86,7 @@ const apiResponseSchema = z.object({
 	pageSize: z.number(),
 	sort: z.string(),
 	minRating: z.number().optional(),
+	soundsEnabled: z.boolean().optional(),
 });
 
 function buildSortParameter({ query, sort }: { query?: string; sort: string }) {
@@ -152,6 +153,25 @@ export async function GET(request: NextRequest) {
 		const { limited } = await checkRateLimit({ request });
 		if (limited) {
 			return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+		}
+
+		// ponytail: short-circuit when the Freesound API key is not configured.
+		// Returns a valid empty payload with `soundsEnabled: false` so the
+		// client can render a setup empty-state instead of treating this as
+		// an error and spamming the console.
+		if (!webEnv.FREESOUND_API_KEY) {
+			return NextResponse.json({
+				count: 0,
+				next: null,
+				previous: null,
+				results: [],
+				query: "",
+				type: "effects",
+				page: 1,
+				pageSize: 0,
+				sort: "downloads",
+				soundsEnabled: false,
+			});
 		}
 
 		const { searchParams } = new URL(request.url);

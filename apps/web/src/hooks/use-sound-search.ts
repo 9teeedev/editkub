@@ -4,9 +4,11 @@ import { useSoundsStore } from "@/stores/sounds-store";
 export function useSoundSearch({
 	query,
 	commercialOnly,
+	enabled = true,
 }: {
 	query: string;
 	commercialOnly: boolean;
+	enabled?: boolean;
 }) {
 	const {
 		searchResults,
@@ -76,6 +78,10 @@ export function useSoundSearch({
 	};
 
 	useEffect(() => {
+		if (!enabled) {
+			return;
+		}
+
 		if (!query.trim()) {
 			setSearchResults({ results: [] });
 			setSearchError({ error: null });
@@ -129,6 +135,7 @@ export function useSoundSearch({
 			ignore = true;
 		};
 	}, [
+		enabled,
 		query,
 		lastSearchQuery,
 		searchResults.length,
