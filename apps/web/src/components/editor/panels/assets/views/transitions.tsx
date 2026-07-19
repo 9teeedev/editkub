@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
-import { useState } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEditor } from "@/hooks/use-editor";
 import {
@@ -97,6 +97,7 @@ function CategoryPill({
 function TransitionPresetCard({ preset }: { preset: TransitionPreset }) {
 	const { t } = useTranslation();
 	const editor = useEditor();
+	const [isHovering, setIsHovering] = useState(false);
 
 	const handleApplyTransition = () => {
 		applyTransitionToAdjacentPairs({
@@ -112,10 +113,19 @@ function TransitionPresetCard({ preset }: { preset: TransitionPreset }) {
 				<TooltipTrigger asChild>
 					<button
 						type="button"
-						className="bg-muted hover:bg-accent flex flex-col items-center gap-2 rounded-lg border p-3 transition-colors"
+						className={cn(
+							"group bg-muted hover:bg-accent relative flex flex-col items-center gap-2 rounded-lg border p-3",
+							"transition-all duration-200 motion-reduce:transition-none",
+							"hover:scale-[1.03] hover:shadow-lg hover:ring-1 hover:ring-primary",
+							"motion-reduce:hover:scale-100",
+							isHovering &&
+								"scale-[1.03] shadow-lg ring-1 ring-primary motion-reduce:scale-100",
+						)}
+						onMouseEnter={() => setIsHovering(true)}
+						onMouseLeave={() => setIsHovering(false)}
 						onClick={handleApplyTransition}
 					>
-						<TransitionPreview type={preset.type} />
+						<TransitionPreview type={preset.type} isHovering={isHovering} />
 						<span className="text-xs font-medium">{preset.label}</span>
 					</button>
 				</TooltipTrigger>
@@ -131,121 +141,199 @@ function TransitionPresetCard({ preset }: { preset: TransitionPreset }) {
 	);
 }
 
-function TransitionPreview({ type }: { type: TransitionType }) {
-	return (
-		<div className="relative flex h-10 w-full items-center justify-center overflow-hidden rounded">
-			<TransitionIcon type={type} />
-		</div>
-	);
+const SCENE_A_URL = "/preview/transitions/scene-a.svg";
+const SCENE_B_URL = "/preview/transitions/scene-b.svg";
+
+// Module-level cache: SVG images shared across all TransitionPreview instances.
+// Loaded once on first use, reused for every card after.
+let cachedSceneA: HTMLImageElement | null = null;
+let cachedSceneB: HTMLImageElement | null = null;
+let loadPromise: Promise<{ a: HTMLImageElement; b: HTMLImageElement }> | null = null;
+
+function loadScenes(): Promise<{ a: HTMLImageElement; b: HTMLImageElement }> {
+	if (cachedSceneA && cachedSceneB) {
+		return Promise.resolve({ a: cachedSceneA, b: cachedSceneB });
+	}
+	if (loadPromise) return loadPromise;
+
+	loadPromise = new Promise((resolve, reject) => {
+		const mk = (src: string) =>
+			new Promise<HTMLImageElement>((res, rej) => {
+				const img = new Image();
+				img.onload = () => res(img);
+				img.onerror = () => rej(new Error(`Failed to load ${src}`));
+				img.src = src;
+			});
+		Promise.all([mk(SCENE_A_URL), mk(SCENE_B_URL)]).then(
+			([a, b]) => {
+				cachedSceneA = a;
+				cachedSceneB = b;
+				resolve({ a, b });
+			},
+			(err) => {
+				loadPromise = null; // allow retry on next attempt
+				reject(err);
+			},
+		);
+	});
+	return loadPromise;
 }
 
-function TransitionIcon({ type }: { type: TransitionType }) {
-	const baseClass = "size-full";
-	const label = TRANSITION_PRESETS.find((p) => p.type === type)?.label ?? type;
+// Smoothstep easing — matches the real renderer's `applyDissolve`.
+const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
-	if (type === "fade" || type === "dissolve") {
-		return (
-			<svg viewBox="0 0 60 30" className={baseClass} role="img" aria-label={label}>
-				<title>{label}</title>
-				<defs>
-					<linearGradient id={`grad-${type}`} x1="0" y1="0" x2="1" y2="0">
-						<stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="1" />
-						<stop
-							offset="100%"
-							stopColor="hsl(var(--primary))"
-							stopOpacity={type === "dissolve" ? "0.3" : "0"}
-						/>
-					</linearGradient>
-				</defs>
-				<rect x="0" y="2" width="28" height="26" rx="2" fill={`url(#grad-${type})`} />
-				<rect x="32" y="2" width="28" height="26" rx="2" fill="hsl(var(--muted-foreground))" opacity="0.3" />
-			</svg>
-		);
-	}
+function TransitionPreview({
+	type,
+	isHovering,
+}: {
+	type: TransitionType;
+	isHovering: boolean;
+}) {
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const rafRef = useRef<number>(0);
 
-	if (type.startsWith("wipe-")) {
-		const direction = type.replace("wipe-", "");
-		return (
-			<svg viewBox="0 0 60 30" className={baseClass} role="img" aria-label={label}>
-				<title>{label}</title>
-				<rect x="2" y="2" width="26" height="26" rx="2" fill="hsl(var(--primary))" />
-				<rect x="32" y="2" width="26" height="26" rx="2" fill="hsl(var(--muted-foreground))" opacity="0.3" />
-				<path
-					d={getArrowPath({ direction })}
-					fill="none"
-					stroke="hsl(var(--foreground))"
-					strokeWidth="1.5"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-				/>
-			</svg>
-		);
-	}
-
-	if (type.startsWith("slide-")) {
-		const direction = type.replace("slide-", "");
-		return (
-			<svg viewBox="0 0 60 30" className={baseClass} role="img" aria-label={label}>
-				<title>{label}</title>
-				<rect x="2" y="2" width="26" height="26" rx="2" fill="hsl(var(--primary))" />
-				<rect x="32" y="2" width="26" height="26" rx="2" fill="hsl(var(--muted-foreground))" opacity="0.3" />
-				<path
-					d={getArrowPath({ direction })}
-					fill="none"
-					stroke="hsl(var(--foreground))"
-					strokeWidth="1.5"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-					strokeDasharray="2 2"
-				/>
-			</svg>
-		);
-	}
-
-	if (type === "zoom-in") {
-		return (
-			<svg viewBox="0 0 60 30" className={baseClass} role="img" aria-label={label}>
-				<title>{label}</title>
-				<rect x="2" y="2" width="26" height="26" rx="2" fill="hsl(var(--primary))" />
-				<rect x="36" y="6" width="18" height="18" rx="2" fill="hsl(var(--muted-foreground))" opacity="0.3" />
-				<rect x="34" y="4" width="22" height="22" rx="3" fill="none" stroke="hsl(var(--foreground))" strokeWidth="1" />
-			</svg>
-		);
-	}
-
-	if (type === "zoom-out") {
-		return (
-			<svg viewBox="0 0 60 30" className={baseClass} role="img" aria-label={label}>
-				<title>{label}</title>
-				<rect x="4" y="4" width="22" height="22" rx="2" fill="hsl(var(--primary))" />
-				<rect x="2" y="2" width="26" height="26" rx="3" fill="none" stroke="hsl(var(--foreground))" strokeWidth="1" />
-				<rect x="32" y="2" width="26" height="26" rx="2" fill="hsl(var(--muted-foreground))" opacity="0.3" />
-			</svg>
-		);
-	}
-
-	return (
-		<svg viewBox="0 0 60 30" className={baseClass} role="img" aria-label={label}>
-			<title>{label}</title>
-			<rect x="2" y="2" width="26" height="26" rx="2" fill="hsl(var(--primary))" />
-			<rect x="32" y="2" width="26" height="26" rx="2" fill="hsl(var(--muted-foreground))" opacity="0.3" />
-		</svg>
+	// ponytail: detect reduced-motion once on mount — if set, freeze at progress=0.5
+	// (mid-crossfade) so the user still sees both scenes without motion.
+	const reducedMotion = useMemo(
+		() =>
+			typeof window !== "undefined" &&
+			window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+		[],
 	);
-}
 
-function getArrowPath({ direction }: { direction: string }): string {
-	switch (direction) {
-		case "left":
-			return "M32 15 L25 15 M28 11 L25 15 L28 19";
-		case "right":
-			return "M28 15 L35 15 M32 11 L35 15 L32 19";
-		case "up":
-			return "M30 20 L30 13 M26 16 L30 13 L34 16";
-		case "down":
-			return "M30 10 L30 17 M26 14 L30 17 L34 14";
-		default:
-			return "M28 15 L35 15 M32 11 L35 15 L32 19";
-	}
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+
+		const dpr = window.devicePixelRatio || 1;
+		const CSS_W = canvas.clientWidth;
+		const CSS_H = canvas.clientHeight;
+		if (CSS_W === 0 || CSS_H === 0) return;
+		canvas.width = CSS_W * dpr;
+		canvas.height = CSS_H * dpr;
+		ctx.scale(dpr, dpr);
+
+		const W = CSS_W;
+		const H = CSS_H;
+
+		// drawFrame renders a single transition frame at `progress` ∈ [0,1].
+		// Easing matches transition-node.ts: dissolve uses smoothstep, all others linear.
+		const drawFrame = (imgA: HTMLImageElement, imgB: HTMLImageElement, progress: number) => {
+			ctx.clearRect(0, 0, W, H);
+			ctx.save();
+
+			if (type === "fade" || type === "dissolve") {
+				const eased = type === "dissolve" ? smoothstep(progress) : progress;
+				ctx.globalAlpha = 1 - eased;
+				ctx.drawImage(imgA, 0, 0, W, H);
+				ctx.globalAlpha = eased;
+				ctx.drawImage(imgB, 0, 0, W, H);
+			} else if (type.startsWith("wipe-")) {
+				const dir = type.replace("wipe-", "");
+				ctx.drawImage(imgA, 0, 0, W, H);
+				ctx.save();
+				ctx.beginPath();
+				if (dir === "left") ctx.rect(W * (1 - progress), 0, W * progress, H);
+				else if (dir === "right") ctx.rect(0, 0, W * progress, H);
+				else if (dir === "up") ctx.rect(0, H * (1 - progress), W, H * progress);
+				else ctx.rect(0, 0, W, H * progress);
+				ctx.clip();
+				ctx.drawImage(imgB, 0, 0, W, H);
+				ctx.restore();
+			} else if (type.startsWith("slide-")) {
+				const dir = type.replace("slide-", "");
+				let ox = 0;
+				let oy = 0;
+				if (dir === "left") ox = -W * progress;
+				else if (dir === "right") ox = W * progress;
+				else if (dir === "up") oy = -H * progress;
+				else oy = H * progress;
+				ctx.drawImage(imgA, ox, oy, W, H);
+				const bx = dir === "left" ? W + ox : dir === "right" ? -W + ox : 0;
+				const by = dir === "up" ? H + oy : dir === "down" ? -H + oy : 0;
+				ctx.drawImage(imgB, bx, by, W, H);
+			} else if (type === "zoom-in") {
+				ctx.drawImage(imgB, 0, 0, W, H);
+				const s = 1 + progress * 0.5;
+				const sw = W * s;
+				const sh = H * s;
+				ctx.globalAlpha = 1 - progress;
+				ctx.drawImage(imgA, (W - sw) / 2, (H - sh) / 2, sw, sh);
+			} else if (type === "zoom-out") {
+				ctx.drawImage(imgA, 0, 0, W, H);
+				const s = 1 - progress * 0.5;
+				const sw = W * s;
+				const sh = H * s;
+				ctx.globalAlpha = progress;
+				ctx.drawImage(imgB, (W - sw) / 2, (H - sh) / 2, sw, sh);
+			} else {
+				ctx.drawImage(imgA, 0, 0, W, H);
+				ctx.drawImage(imgB, 0, 0, W, H);
+			}
+			ctx.restore();
+		};
+
+		let cancelled = false;
+
+		// Reduced motion: freeze at mid-crossfade so both scenes are visible.
+		if (reducedMotion) {
+			loadScenes()
+				.then(({ a, b }) => {
+					if (cancelled) return;
+					drawFrame(a, b, 0.5);
+				})
+				.catch(() => {
+					// Asset failed to load — canvas stays blank, no crash.
+				});
+			return () => {
+				cancelled = true;
+			};
+		}
+
+		// ponytail: ping-pong loop — progress goes 0→1→0 across DURATION, no jarring
+		// restart at the loop boundary.
+		const DURATION = 2400;
+		const HALF = DURATION / 2;
+		let start = 0;
+
+		const draw = (imgA: HTMLImageElement, imgB: HTMLImageElement) => {
+			if (!isHovering) {
+				// Idle: show scene A only — clear sign of "source clip".
+				drawFrame(imgA, imgB, 0);
+				return;
+			}
+
+			const tick = (t: number) => {
+				if (cancelled) return;
+				if (!start) start = t;
+				const cycle = (t - start) % DURATION;
+				const progress = cycle < HALF ? cycle / HALF : 2 - cycle / HALF;
+				drawFrame(imgA, imgB, progress);
+				rafRef.current = requestAnimationFrame(tick);
+			};
+			rafRef.current = requestAnimationFrame(tick);
+		};
+
+		let subscribed = true;
+		loadScenes()
+			.then(({ a, b }) => {
+				if (cancelled || !subscribed) return;
+				draw(a, b);
+			})
+			.catch(() => {
+				// Asset failed to load — canvas stays blank, no crash.
+			});
+
+		return () => {
+			cancelled = true;
+			subscribed = false;
+			cancelAnimationFrame(rafRef.current);
+		};
+	}, [type, isHovering, reducedMotion]);
+
+	return <canvas ref={canvasRef} className="h-14 w-full rounded" />;
 }
 
 function applyTransitionToAdjacentPairs({

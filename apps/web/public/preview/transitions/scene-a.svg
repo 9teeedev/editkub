@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="skyA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e3a8a"/>
+      <stop offset="0.4" stop-color="#f97316"/>
+      <stop offset="0.75" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#fef3c7"/>
+    </linearGradient>
+    <radialGradient id="sunA" cx="0.5" cy="0.7" r="0.18">
+      <stop offset="0" stop-color="#fffbeb"/>
+      <stop offset="0.5" stop-color="#fde047"/>
+      <stop offset="1" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hillA1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c2d12"/>
+      <stop offset="1" stop-color="#431407"/>
+    </linearGradient>
+    <linearGradient id="hillA2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#451a03"/>
+      <stop offset="1" stop-color="#1c0701"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="90" fill="url(#skyA)"/>
+  <circle cx="80" cy="62" r="22" fill="url(#sunA)"/>
+  <circle cx="80" cy="62" r="11" fill="#fef3c7" opacity="0.95"/>
+  <path d="M0 68 Q 30 58 60 64 T 120 60 T 160 64 L160 90 L0 90 Z" fill="url(#hillA1)"/>
+  <path d="M0 78 Q 40 70 80 76 T 160 74 L160 90 L0 90 Z" fill="url(#hillA2)"/>
+</svg>

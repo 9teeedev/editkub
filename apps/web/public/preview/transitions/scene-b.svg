@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="skyB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c4a6e"/>
+      <stop offset="0.4" stop-color="#0891b2"/>
+      <stop offset="0.75" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#cffafe"/>
+    </linearGradient>
+    <radialGradient id="moonB" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="0.6" stop-color="#e0f2fe"/>
+      <stop offset="1" stop-color="#7dd3fc" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="seaB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e7490"/>
+      <stop offset="1" stop-color="#082f49"/>
+    </linearGradient>
+    <linearGradient id="waveB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#155e75"/>
+      <stop offset="1" stop-color="#0c4a6e"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="90" fill="url(#skyB)"/>
+  <circle cx="118" cy="26" r="14" fill="url(#moonB)"/>
+  <circle cx="118" cy="26" r="9" fill="#f1f5f9"/>
+  <rect y="58" width="160" height="32" fill="url(#seaB)"/>
+  <path d="M0 70 Q 20 67 40 70 T 80 70 T 120 70 T 160 70 L160 90 L0 90 Z" fill="url(#waveB)" opacity="0.7"/>
+  <path d="M0 80 Q 25 77 50 80 T 100 80 T 160 80 L160 90 L0 90 Z" fill="#0c4a6e" opacity="0.8"/>
+</svg>
