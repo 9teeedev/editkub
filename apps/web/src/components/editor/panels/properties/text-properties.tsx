@@ -22,6 +22,9 @@ import {
 	PropertyItemLabel,
 	PropertyItemValue,
 } from "./property-item";
+import { KeyframeRow } from "./keyframe-row";
+import { useAnimatedProperty } from "./use-animated-property";
+import { useAnimatedValueWriter } from "./use-animated-value-writer";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { uppercase } from "@/utils/string";
 import { clamp } from "@/utils/math";
@@ -47,6 +50,86 @@ export function TextProperties({
 	elements: TextElementRef[];
 }) {
 	const element = elementRefs[0].element;
+	// For keyframe-awareness, we bind to the first element only (batch stays
+	// static when multiple text elements are selected — see plan).
+	const firstRef = elementRefs[0];
+	// Keyframe-aware display values (sampled at playhead when animated).
+	const posX = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "position.x",
+		baseValue: element.transform.position.x,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const posY = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "position.y",
+		baseValue: element.transform.position.y,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const scaleProp = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "scale",
+		baseValue: element.transform.scale,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const rotateProp = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "rotate",
+		baseValue: element.transform.rotate,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const opacityProp = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "opacity",
+		baseValue: element.opacity,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	// Auto-keyframe writers (only operate on the first element).
+	const posXWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "position.x",
+		trackId: firstRef.trackId,
+		elementId: firstRef.element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const posYWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "position.y",
+		trackId: firstRef.trackId,
+		elementId: firstRef.element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const scaleWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "scale",
+		trackId: firstRef.trackId,
+		elementId: firstRef.element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const rotateWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "rotate",
+		trackId: firstRef.trackId,
+		elementId: firstRef.element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const opacityWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "opacity",
+		trackId: firstRef.trackId,
+		elementId: firstRef.element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
 
 	const { t } = useTranslation();
 	const editor = useEditor();
@@ -79,7 +162,7 @@ export function TextProperties({
 		: element.fontSize.toString();
 	const opacityDisplay = isEditingOpacity.current
 		? opacityDraft.current
-		: Math.round(element.opacity * 100).toString();
+		: Math.round(opacityProp.resolvedValue * 100).toString();
 	const contentDisplay = isEditingContent.current
 		? contentDraft.current
 		: element.content;
@@ -103,19 +186,19 @@ export function TextProperties({
 	const initialBgPaddingXRef = useRef<number | null>(null);
 	const initialBgPaddingYRef = useRef<number | null>(null);
 
-	const scalePercent = Math.round(element.transform.scale * 100);
+	const scalePercent = Math.round(scaleProp.resolvedValue * 100);
 	const posXDisplay = isEditingPosX.current
 		? posXDraft.current
-		: Math.round(element.transform.position.x).toString();
+		: Math.round(posX.resolvedValue).toString();
 	const posYDisplay = isEditingPosY.current
 		? posYDraft.current
-		: Math.round(element.transform.position.y).toString();
+		: Math.round(posY.resolvedValue).toString();
 	const scaleDisplay = isEditingScale.current
 		? scaleDraft.current
 		: scalePercent.toString();
 	const rotationDisplay = isEditingRotation.current
 		? rotationDraft.current
-		: Math.round(element.transform.rotate).toString();
+		: Math.round(rotateProp.resolvedValue).toString();
 
 	const updateTransform = ({
 		updates: transformUpdates,
@@ -223,33 +306,40 @@ export function TextProperties({
 
 		if (value.trim() !== "") {
 			if (initialOpacityRef.current === null) {
-				initialOpacityRef.current = element.opacity;
+				initialOpacityRef.current = opacityProp.resolvedValue;
 			}
 			const parsed = parseInt(value, 10);
 			const opacityPercent = Number.isNaN(parsed)
-				? Math.round(element.opacity * 100)
+				? Math.round(opacityProp.resolvedValue * 100)
 				: clamp({ value: parsed, min: 0, max: 100 });
-			editor.timeline.updateElements({
-				updates: buildBatchUpdates({ opacity: opacityPercent / 100 }),
-				pushHistory: false,
-			});
+			opacityWriter.commitValue(opacityPercent / 100, false, () =>
+				editor.timeline.updateElements({
+					updates: buildBatchUpdates({ opacity: opacityPercent / 100 }),
+					pushHistory: false,
+				}),
+			);
 		}
 	};
 
 	const handleOpacityBlur = () => {
 		if (initialOpacityRef.current !== null) {
+			const initial = initialOpacityRef.current;
 			const parsed = parseInt(opacityDraft.current, 10);
 			const opacityPercent = Number.isNaN(parsed)
-				? Math.round(element.opacity * 100)
+				? Math.round(opacityProp.resolvedValue * 100)
 				: clamp({ value: parsed, min: 0, max: 100 });
-			editor.timeline.updateElements({
-				updates: buildBatchUpdates({ opacity: initialOpacityRef.current }),
-				pushHistory: false,
-			});
-			editor.timeline.updateElements({
-				updates: buildBatchUpdates({ opacity: opacityPercent / 100 }),
-				pushHistory: true,
-			});
+			opacityWriter.commitValue(initial, false, () =>
+				editor.timeline.updateElements({
+					updates: buildBatchUpdates({ opacity: initial }),
+					pushHistory: false,
+				}),
+			);
+			opacityWriter.commitValue(opacityPercent / 100, true, () =>
+				editor.timeline.updateElements({
+					updates: buildBatchUpdates({ opacity: opacityPercent / 100 }),
+					pushHistory: true,
+				}),
+			);
 			initialOpacityRef.current = null;
 		}
 		isEditingOpacity.current = false;
@@ -577,39 +667,58 @@ export function TextProperties({
 									</PropertyItemValue>
 								</PropertyItem>
 								<PropertyItem direction="column">
-									<PropertyItemLabel>{t("Opacity")}</PropertyItemLabel>
+									<PropertyItemLabel className="flex items-center gap-1.5">
+										{t("Opacity")}
+										<KeyframeRow
+											property="opacity"
+											trackId={elementRefs[0].trackId}
+											elementId={element.id}
+											keyframes={element.keyframes}
+											baseTransform={element.transform}
+											baseOpacity={element.opacity}
+											elementStartTime={element.startTime}
+											elementDuration={element.duration}
+										/>
+									</PropertyItemLabel>
 									<PropertyItemValue>
 										<div className="flex items-center gap-2">
 											<Slider
-												value={[element.opacity * 100]}
+												value={[opacityProp.resolvedValue * 100]}
 												min={0}
 												max={100}
 												step={1}
 												onValueChange={([value]) => {
 													if (initialOpacityRef.current === null) {
-														initialOpacityRef.current = element.opacity;
+														initialOpacityRef.current = opacityProp.resolvedValue;
 													}
-													editor.timeline.updateElements({
-														updates: buildBatchUpdates({
-															opacity: value / 100,
-														}),
-														pushHistory: false,
-													});
-												}}
-												onValueCommit={([value]) => {
-													if (initialOpacityRef.current !== null) {
-														editor.timeline.updateElements({
-															updates: buildBatchUpdates({
-																opacity: initialOpacityRef.current,
-															}),
-															pushHistory: false,
-														});
+													opacityWriter.commitValue(value / 100, false, () =>
 														editor.timeline.updateElements({
 															updates: buildBatchUpdates({
 																opacity: value / 100,
 															}),
-															pushHistory: true,
-														});
+															pushHistory: false,
+														}),
+													);
+												}}
+												onValueCommit={([value]) => {
+													if (initialOpacityRef.current !== null) {
+														const initial = initialOpacityRef.current;
+														opacityWriter.commitValue(initial, false, () =>
+															editor.timeline.updateElements({
+																updates: buildBatchUpdates({
+																	opacity: initial,
+																}),
+																pushHistory: false,
+															}),
+														);
+														opacityWriter.commitValue(value / 100, true, () =>
+															editor.timeline.updateElements({
+																updates: buildBatchUpdates({
+																	opacity: value / 100,
+																}),
+																pushHistory: true,
+															}),
+														);
 														initialOpacityRef.current = null;
 													}
 												}}
@@ -623,7 +732,7 @@ export function TextProperties({
 												onFocus={() => {
 													isEditingOpacity.current = true;
 													opacityDraft.current = Math.round(
-														element.opacity * 100,
+														opacityProp.resolvedValue * 100,
 													).toString();
 													forceRender();
 												}}
@@ -1165,7 +1274,19 @@ export function TextProperties({
 						<PropertyGroup title={t("Transform")}>
 							<div className="space-y-6">
 								<PropertyItem>
-									<PropertyItemLabel>{t("Position X")}</PropertyItemLabel>
+									<PropertyItemLabel className="flex items-center gap-1.5">
+										{t("Position X")}
+										<KeyframeRow
+											property="position.x"
+											trackId={elementRefs[0].trackId}
+											elementId={element.id}
+											keyframes={element.keyframes}
+											baseTransform={element.transform}
+											baseOpacity={element.opacity}
+											elementStartTime={element.startTime}
+											elementDuration={element.duration}
+										/>
+									</PropertyItemLabel>
 									<PropertyItemValue>
 										<Input
 											type="number"
@@ -1173,7 +1294,7 @@ export function TextProperties({
 											onFocus={() => {
 												isEditingPosX.current = true;
 												posXDraft.current = Math.round(
-													element.transform.position.x,
+													posX.resolvedValue,
 												).toString();
 												forceRender();
 											}}
@@ -1181,45 +1302,52 @@ export function TextProperties({
 												posXDraft.current = e.target.value;
 												forceRender();
 												if (initialPosXRef.current === null) {
-													initialPosXRef.current = element.transform.position.x;
+													initialPosXRef.current = posX.resolvedValue;
 												}
 												const parsed = Number.parseFloat(e.target.value);
 												if (!Number.isNaN(parsed)) {
-													updateTransform({
-														updates: {
-															position: {
-																...element.transform.position,
-																x: parsed,
+													posXWriter.commitValue(parsed, false, () =>
+														updateTransform({
+															updates: {
+																position: {
+																	...element.transform.position,
+																	x: parsed,
+																},
 															},
-														},
-														pushHistory: false,
-													});
+															pushHistory: false,
+														}),
+													);
 												}
 											}}
 											onBlur={() => {
 												if (initialPosXRef.current !== null) {
+													const initial = initialPosXRef.current;
 													const parsed = Number.parseFloat(posXDraft.current);
 													const value = Number.isNaN(parsed)
-														? element.transform.position.x
+														? posX.resolvedValue
 														: parsed;
-													updateTransform({
-														updates: {
-															position: {
-																...element.transform.position,
-																x: initialPosXRef.current,
+													posXWriter.commitValue(initial, false, () =>
+														updateTransform({
+															updates: {
+																position: {
+																	...element.transform.position,
+																	x: initial,
+																},
 															},
-														},
-														pushHistory: false,
-													});
-													updateTransform({
-														updates: {
-															position: {
-																...element.transform.position,
-																x: value,
+															pushHistory: false,
+														}),
+													);
+													posXWriter.commitValue(value, true, () =>
+														updateTransform({
+															updates: {
+																position: {
+																	...element.transform.position,
+																	x: value,
+																},
 															},
-														},
-														pushHistory: true,
-													});
+															pushHistory: true,
+														}),
+													);
 													initialPosXRef.current = null;
 												}
 												isEditingPosX.current = false;
@@ -1230,253 +1358,318 @@ export function TextProperties({
 										/>
 									</PropertyItemValue>
 								</PropertyItem>
-								<PropertyItem>
-									<PropertyItemLabel>{t("Position Y")}</PropertyItemLabel>
-									<PropertyItemValue>
-										<Input
-											type="number"
-											value={posYDisplay}
-											onFocus={() => {
-												isEditingPosY.current = true;
-												posYDraft.current = Math.round(
-													element.transform.position.y,
-												).toString();
-												forceRender();
-											}}
-											onChange={(e) => {
-												posYDraft.current = e.target.value;
-												forceRender();
-												if (initialPosYRef.current === null) {
-													initialPosYRef.current = element.transform.position.y;
-												}
-												const parsed = Number.parseFloat(e.target.value);
-												if (!Number.isNaN(parsed)) {
-													updateTransform({
-														updates: {
-															position: {
-																...element.transform.position,
-																y: parsed,
-															},
-														},
-														pushHistory: false,
-													});
-												}
-											}}
-											onBlur={() => {
-												if (initialPosYRef.current !== null) {
-													const parsed = Number.parseFloat(posYDraft.current);
-													const value = Number.isNaN(parsed)
-														? element.transform.position.y
-														: parsed;
-													updateTransform({
-														updates: {
-															position: {
-																...element.transform.position,
-																y: initialPosYRef.current,
-															},
-														},
-														pushHistory: false,
-													});
-													updateTransform({
-														updates: {
-															position: {
-																...element.transform.position,
-																y: value,
-															},
-														},
-														pushHistory: true,
-													});
-													initialPosYRef.current = null;
-												}
-												isEditingPosY.current = false;
-												posYDraft.current = "";
-												forceRender();
-											}}
-											className="bg-accent h-7 w-full [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-										/>
-									</PropertyItemValue>
-								</PropertyItem>
-								<PropertyItem direction="column">
-									<PropertyItemLabel>{t("Scale")}</PropertyItemLabel>
-									<PropertyItemValue>
-										<div className="flex items-center gap-2">
-											<Slider
-												value={[scalePercent]}
-												min={10}
-												max={500}
-												step={1}
-												onValueChange={([value]) => {
-													if (initialScaleRef.current === null) {
-														initialScaleRef.current = element.transform.scale;
-													}
-													updateTransform({
-														updates: { scale: value / 100 },
-														pushHistory: false,
-													});
-												}}
-												onValueCommit={([value]) => {
-													if (initialScaleRef.current !== null) {
-														updateTransform({
-															updates: { scale: initialScaleRef.current },
-															pushHistory: false,
-														});
-														updateTransform({
-															updates: { scale: value / 100 },
-															pushHistory: true,
-														});
-														initialScaleRef.current = null;
-													}
-												}}
-												className="w-full"
+									<PropertyItem>
+										<PropertyItemLabel className="flex items-center gap-1.5">
+											{t("Position Y")}
+											<KeyframeRow
+												property="position.y"
+												trackId={elementRefs[0].trackId}
+												elementId={element.id}
+												keyframes={element.keyframes}
+												baseTransform={element.transform}
+												baseOpacity={element.opacity}
+												elementStartTime={element.startTime}
+												elementDuration={element.duration}
 											/>
+										</PropertyItemLabel>
+										<PropertyItemValue>
 											<Input
 												type="number"
-												value={scaleDisplay}
-												min={10}
-												max={500}
+												value={posYDisplay}
 												onFocus={() => {
-													isEditingScale.current = true;
-													scaleDraft.current = scalePercent.toString();
-													forceRender();
-												}}
-												onChange={(e) => {
-													scaleDraft.current = e.target.value;
-													forceRender();
-													if (initialScaleRef.current === null) {
-														initialScaleRef.current = element.transform.scale;
-													}
-													const parsed = parseInt(e.target.value, 10);
-													if (!Number.isNaN(parsed)) {
-														const clamped = clamp({
-															value: parsed,
-															min: 10,
-															max: 500,
-														});
-														updateTransform({
-															updates: { scale: clamped / 100 },
-															pushHistory: false,
-														});
-													}
-												}}
-												onBlur={() => {
-													if (initialScaleRef.current !== null) {
-														const parsed = parseInt(scaleDraft.current, 10);
-														const clamped = Number.isNaN(parsed)
-															? scalePercent
-															: clamp({ value: parsed, min: 10, max: 500 });
-														updateTransform({
-															updates: { scale: initialScaleRef.current },
-															pushHistory: false,
-														});
-														updateTransform({
-															updates: { scale: clamped / 100 },
-															pushHistory: true,
-														});
-														initialScaleRef.current = null;
-													}
-													isEditingScale.current = false;
-													scaleDraft.current = "";
-													forceRender();
-												}}
-												className="bg-accent h-7 w-14 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-											/>
-										</div>
-									</PropertyItemValue>
-								</PropertyItem>
-								<PropertyItem direction="column">
-									<PropertyItemLabel>{t("Rotation")}</PropertyItemLabel>
-									<PropertyItemValue>
-										<div className="flex items-center gap-2">
-											<Slider
-												value={[element.transform.rotate]}
-												min={-180}
-												max={180}
-												step={1}
-												onValueChange={([value]) => {
-													if (initialRotationRef.current === null) {
-														initialRotationRef.current =
-															element.transform.rotate;
-													}
-													updateTransform({
-														updates: { rotate: value },
-														pushHistory: false,
-													});
-												}}
-												onValueCommit={([value]) => {
-													if (initialRotationRef.current !== null) {
-														updateTransform({
-															updates: {
-																rotate: initialRotationRef.current,
-															},
-															pushHistory: false,
-														});
-														updateTransform({
-															updates: { rotate: value },
-															pushHistory: true,
-														});
-														initialRotationRef.current = null;
-													}
-												}}
-												className="w-full"
-											/>
-											<Input
-												type="number"
-												value={rotationDisplay}
-												min={-360}
-												max={360}
-												onFocus={() => {
-													isEditingRotation.current = true;
-													rotationDraft.current = Math.round(
-														element.transform.rotate,
+													isEditingPosY.current = true;
+													posYDraft.current = Math.round(
+														posY.resolvedValue,
 													).toString();
 													forceRender();
 												}}
 												onChange={(e) => {
-													rotationDraft.current = e.target.value;
+													posYDraft.current = e.target.value;
 													forceRender();
-													if (initialRotationRef.current === null) {
-														initialRotationRef.current =
-															element.transform.rotate;
+													if (initialPosYRef.current === null) {
+														initialPosYRef.current = posY.resolvedValue;
 													}
 													const parsed = Number.parseFloat(e.target.value);
 													if (!Number.isNaN(parsed)) {
-														updateTransform({
-															updates: { rotate: parsed },
-															pushHistory: false,
-														});
+														posYWriter.commitValue(parsed, false, () =>
+															updateTransform({
+																updates: {
+																	position: {
+																		...element.transform.position,
+																		y: parsed,
+																	},
+																},
+																pushHistory: false,
+															}),
+														);
 													}
 												}}
 												onBlur={() => {
-													if (initialRotationRef.current !== null) {
-														const parsed = Number.parseFloat(
-															rotationDraft.current,
-														);
+													if (initialPosYRef.current !== null) {
+														const initial = initialPosYRef.current;
+														const parsed = Number.parseFloat(posYDraft.current);
 														const value = Number.isNaN(parsed)
-															? element.transform.rotate
+															? posY.resolvedValue
 															: parsed;
-														updateTransform({
-															updates: {
-																rotate: initialRotationRef.current,
-															},
-															pushHistory: false,
-														});
-														updateTransform({
-															updates: { rotate: value },
-															pushHistory: true,
-														});
-														initialRotationRef.current = null;
+														posYWriter.commitValue(initial, false, () =>
+															updateTransform({
+																updates: {
+																	position: {
+																		...element.transform.position,
+																		y: initial,
+																	},
+																},
+																pushHistory: false,
+															}),
+														);
+														posYWriter.commitValue(value, true, () =>
+															updateTransform({
+																updates: {
+																	position: {
+																		...element.transform.position,
+																		y: value,
+																	},
+																},
+																pushHistory: true,
+															}),
+														);
+														initialPosYRef.current = null;
 													}
-													isEditingRotation.current = false;
-													rotationDraft.current = "";
+													isEditingPosY.current = false;
+													posYDraft.current = "";
 													forceRender();
 												}}
-												className="bg-accent h-7 w-14 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+												className="bg-accent h-7 w-full [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 											/>
-										</div>
-									</PropertyItemValue>
-								</PropertyItem>
-							</div>
-						</PropertyGroup>
+										</PropertyItemValue>
+									</PropertyItem>
+									<PropertyItem direction="column">
+											<PropertyItemLabel className="flex items-center gap-1.5">
+												{t("Scale")}
+												<KeyframeRow
+													property="scale"
+													trackId={elementRefs[0].trackId}
+													elementId={element.id}
+													keyframes={element.keyframes}
+													baseTransform={element.transform}
+													baseOpacity={element.opacity}
+													elementStartTime={element.startTime}
+													elementDuration={element.duration}
+												/>
+											</PropertyItemLabel>
+										<PropertyItemValue>
+											<div className="flex items-center gap-2">
+												<Slider
+													value={[scalePercent]}
+													min={10}
+													max={500}
+													step={1}
+													onValueChange={([value]) => {
+														if (initialScaleRef.current === null) {
+															initialScaleRef.current = scaleProp.resolvedValue;
+														}
+														scaleWriter.commitValue(value / 100, false, () =>
+															updateTransform({
+																updates: { scale: value / 100 },
+																pushHistory: false,
+															}),
+														);
+													}}
+													onValueCommit={([value]) => {
+														if (initialScaleRef.current !== null) {
+															const initial = initialScaleRef.current;
+															scaleWriter.commitValue(initial, false, () =>
+																updateTransform({
+																	updates: { scale: initial },
+																	pushHistory: false,
+																}),
+															);
+															scaleWriter.commitValue(value / 100, true, () =>
+																updateTransform({
+																	updates: { scale: value / 100 },
+																	pushHistory: true,
+																}),
+															);
+															initialScaleRef.current = null;
+														}
+													}}
+													className="w-full"
+												/>
+												<Input
+													type="number"
+													value={scaleDisplay}
+													min={10}
+													max={500}
+													onFocus={() => {
+														isEditingScale.current = true;
+														scaleDraft.current = scalePercent.toString();
+														forceRender();
+													}}
+													onChange={(e) => {
+														scaleDraft.current = e.target.value;
+														forceRender();
+														if (initialScaleRef.current === null) {
+															initialScaleRef.current = scaleProp.resolvedValue;
+														}
+														const parsed = parseInt(e.target.value, 10);
+														if (!Number.isNaN(parsed)) {
+															const clamped = clamp({
+																value: parsed,
+																min: 10,
+																max: 500,
+															});
+															scaleWriter.commitValue(clamped / 100, false, () =>
+																updateTransform({
+																	updates: { scale: clamped / 100 },
+																	pushHistory: false,
+																}),
+															);
+														}
+													}}
+													onBlur={() => {
+														if (initialScaleRef.current !== null) {
+															const initial = initialScaleRef.current;
+															const parsed = parseInt(scaleDraft.current, 10);
+															const clamped = Number.isNaN(parsed)
+																? scalePercent
+																: clamp({ value: parsed, min: 10, max: 500 });
+															scaleWriter.commitValue(initial, false, () =>
+																updateTransform({
+																	updates: { scale: initial },
+																	pushHistory: false,
+																}),
+															);
+															scaleWriter.commitValue(clamped / 100, true, () =>
+																updateTransform({
+																	updates: { scale: clamped / 100 },
+																	pushHistory: true,
+																}),
+															);
+															initialScaleRef.current = null;
+														}
+														isEditingScale.current = false;
+														scaleDraft.current = "";
+														forceRender();
+													}}
+													className="bg-accent h-7 w-14 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+												/>
+											</div>
+										</PropertyItemValue>
+									</PropertyItem>
+									<PropertyItem direction="column">
+											<PropertyItemLabel className="flex items-center gap-1.5">
+												{t("Rotation")}
+												<KeyframeRow
+													property="rotate"
+													trackId={elementRefs[0].trackId}
+													elementId={element.id}
+													keyframes={element.keyframes}
+													baseTransform={element.transform}
+													baseOpacity={element.opacity}
+													elementStartTime={element.startTime}
+													elementDuration={element.duration}
+												/>
+											</PropertyItemLabel>
+										<PropertyItemValue>
+											<div className="flex items-center gap-2">
+												<Slider
+													value={[rotateProp.resolvedValue]}
+													min={-180}
+													max={180}
+													step={1}
+													onValueChange={([value]) => {
+														if (initialRotationRef.current === null) {
+															initialRotationRef.current = rotateProp.resolvedValue;
+														}
+														rotateWriter.commitValue(value, false, () =>
+															updateTransform({
+																updates: { rotate: value },
+																pushHistory: false,
+															}),
+														);
+													}}
+													onValueCommit={([value]) => {
+														if (initialRotationRef.current !== null) {
+															const initial = initialRotationRef.current;
+															rotateWriter.commitValue(initial, false, () =>
+																updateTransform({
+																	updates: { rotate: initial },
+																	pushHistory: false,
+																}),
+															);
+															rotateWriter.commitValue(value, true, () =>
+																updateTransform({
+																	updates: { rotate: value },
+																	pushHistory: true,
+																}),
+															);
+															initialRotationRef.current = null;
+														}
+													}}
+													className="w-full"
+												/>
+												<Input
+													type="number"
+													value={rotationDisplay}
+													min={-360}
+													max={360}
+													onFocus={() => {
+														isEditingRotation.current = true;
+														rotationDraft.current = Math.round(
+															rotateProp.resolvedValue,
+														).toString();
+														forceRender();
+													}}
+													onChange={(e) => {
+														rotationDraft.current = e.target.value;
+														forceRender();
+														if (initialRotationRef.current === null) {
+															initialRotationRef.current = rotateProp.resolvedValue;
+														}
+														const parsed = Number.parseFloat(e.target.value);
+														if (!Number.isNaN(parsed)) {
+															rotateWriter.commitValue(parsed, false, () =>
+																updateTransform({
+																	updates: { rotate: parsed },
+																	pushHistory: false,
+																}),
+															);
+														}
+													}}
+													onBlur={() => {
+														if (initialRotationRef.current !== null) {
+															const initial = initialRotationRef.current;
+															const parsed = Number.parseFloat(
+																rotationDraft.current,
+															);
+															const value = Number.isNaN(parsed)
+																? rotateProp.resolvedValue
+																: parsed;
+															rotateWriter.commitValue(initial, false, () =>
+																updateTransform({
+																	updates: { rotate: initial },
+																	pushHistory: false,
+																}),
+															);
+															rotateWriter.commitValue(value, true, () =>
+																updateTransform({
+																	updates: { rotate: value },
+																	pushHistory: true,
+																}),
+															);
+															initialRotationRef.current = null;
+														}
+														isEditingRotation.current = false;
+														rotationDraft.current = "";
+														forceRender();
+													}}
+													className="bg-accent h-7 w-14 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+												/>
+											</div>
+										</PropertyItemValue>
+									</PropertyItem>
+								</div>
+							</PropertyGroup>
 					</PanelBaseView>
 				</TabsContent>
 				<TabsContent value="speech" className="mt-0 flex-1 overflow-auto">

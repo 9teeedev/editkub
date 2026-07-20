@@ -31,6 +31,7 @@ import {
 	Copy01Icon,
 	AlignLeftIcon,
 	AlignRightIcon,
+	KeyframeAddIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -137,6 +138,14 @@ function ToolbarLeftSection() {
 					tooltip={t('Delete element')}
 					onClick={({ event }) =>
 						handleAction({ action: "delete-selected", event })
+					}
+				/>
+
+				<ToolbarButton
+					icon={<HugeiconsIcon icon={KeyframeAddIcon} />}
+					tooltip={t('Add keyframe at playhead')}
+					onClick={({ event }) =>
+						handleAction({ action: "add-keyframe-at-playhead", event })
 					}
 				/>
 

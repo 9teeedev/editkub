@@ -56,6 +56,7 @@ function buildVisualElementNode({
 			opacity: element.opacity,
 			filter: computeFilterString(element.filter, element.adjustments),
 			vignette: element.adjustments?.vignette ?? 0,
+			keyframes: element.keyframes,
 			playbackRate: videoElement.playbackRate,
 			reversed: videoElement.reversed,
 		});
@@ -72,6 +73,7 @@ function buildVisualElementNode({
 			opacity: element.opacity,
 			filter: computeFilterString(element.filter, element.adjustments),
 			vignette: element.adjustments?.vignette ?? 0,
+			keyframes: element.keyframes,
 		});
 	}
 
@@ -210,6 +212,7 @@ export function buildScene(params: BuildSceneParams) {
 						transform: element.transform,
 						opacity: element.opacity,
 						color: element.color,
+						keyframes: element.keyframes,
 					}),
 				);
 			}

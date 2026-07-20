@@ -9,6 +9,17 @@ import { getElementsAtTime } from "@/lib/timeline";
 import { generateAndInsertSpeech } from "@/lib/tts/service";
 import { toast } from "sonner";
 import { i18next } from "@/lib/i18n";
+import {
+	KEYFRAME_PROPERTIES,
+	enableChannel,
+	generateKeyframeId,
+	getKeyframeAtTime,
+	hasChannel,
+	sampleChannel,
+	setChannel,
+	upsertKeyframe,
+} from "@/lib/timeline/keyframe-utils";
+import type { ElementKeyframes, KeyframeProperty } from "@/types/timeline";
 
 export function useEditorActions() {
 	const editor = useEditor();
@@ -262,6 +273,122 @@ export function useEditorActions() {
 		"toggle-bookmark",
 		() => {
 			editor.scenes.toggleBookmark({ time: editor.playback.getCurrentTime() });
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"add-keyframe-at-playhead",
+		() => {
+			if (selectedElements.length === 0) {
+				toast.error(i18next.t("Select an element first"));
+				return;
+			}
+			if (selectedElements.length > 1) {
+				toast.error(i18next.t("Select a single element"));
+				return;
+			}
+
+			const results = editor.timeline.getElementsWithTracks({
+				elements: selectedElements,
+			});
+			const entry = results[0];
+			if (!entry) return;
+			const { track, element } = entry;
+
+			// Only visual elements support keyframes.
+			if (!("keyframes" in element) && !("transform" in element)) {
+				toast.error(i18next.t("This element does not support keyframes"));
+				return;
+			}
+
+			const localTime = Math.max(
+				0,
+				Math.min(
+					element.duration,
+					editor.playback.getCurrentTime() - element.startTime,
+				),
+			);
+
+			// Read base values for channels we may need to seed.
+			const baseTransform =
+				"transform" in element ? element.transform : undefined;
+			const baseOpacity = "opacity" in element ? element.opacity : 1;
+			if (!baseTransform) {
+				toast.error(i18next.t("This element does not support keyframes"));
+				return;
+			}
+
+			const getBaseValue = (property: KeyframeProperty): number => {
+				switch (property) {
+					case "position.x":
+						return baseTransform.position.x;
+					case "position.y":
+						return baseTransform.position.y;
+					case "scale":
+						return baseTransform.scale;
+					case "rotate":
+						return baseTransform.rotate;
+					case "opacity":
+						return baseOpacity;
+				}
+			};
+
+			const current =
+				(element as { keyframes?: ElementKeyframes }).keyframes ?? {};
+			let next: ElementKeyframes = { ...current };
+
+			// Seed all channels on first keyframe press so a baseline animation
+			// curve exists. Subsequent presses only drop a keyframe at the
+			// playhead (sampling each channel's current interpolated value).
+			const wasEmpty = KEYFRAME_PROPERTIES.every(
+				(p) => !hasChannel(current, p),
+			);
+			if (wasEmpty) {
+				for (const property of KEYFRAME_PROPERTIES) {
+					next = enableChannel(
+						next,
+						property,
+						getBaseValue(property),
+						element.duration,
+					);
+				}
+			}
+
+			// For channels already active, drop a keyframe at the playhead if
+			// there isn't already one there.
+			for (const property of KEYFRAME_PROPERTIES) {
+				if (!hasChannel(next, property)) continue;
+				const existing = next[property] ?? [];
+				const atTime = getKeyframeAtTime(existing, localTime);
+				if (atTime) continue;
+				const value =
+					existing.length > 0
+						? sampleChannel(existing, localTime).value
+						: getBaseValue(property);
+				next = setChannel(
+					next,
+					property,
+					upsertKeyframe(existing, {
+						id: generateKeyframeId(),
+						time: localTime,
+						value,
+						easing: "linear",
+					}),
+				);
+			}
+
+			editor.timeline.updateKeyframes({
+				trackId: track.id,
+				elementId: element.id,
+				keyframes: next,
+			});
+
+			toast.success(
+				wasEmpty
+					? i18next.t("Keyframes enabled at playhead")
+					: i18next.t("Keyframe added at playhead"),
+			);
 		},
 		undefined,
 	);

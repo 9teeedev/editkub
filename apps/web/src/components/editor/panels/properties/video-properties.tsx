@@ -11,6 +11,9 @@ import {
 	PropertyItemLabel,
 	PropertyItemValue,
 } from "./property-item";
+import { KeyframeRow } from "./keyframe-row";
+import { useAnimatedProperty } from "./use-animated-property";
+import { useAnimatedValueWriter } from "./use-animated-value-writer";
 import { clamp } from "@/utils/math";
 import { useEditor } from "@/hooks/use-editor";
 import type { ImageElement, VideoElement, AdjustmentControls } from "@/types/timeline";
@@ -56,22 +59,105 @@ export function VideoProperties({
 	const initialOpacityRef = useRef<number | null>(null);
 	const initialSpeedRef = useRef<number | null>(null);
 
-	const scalePercent = Math.round(element.transform.scale * 100);
+	// Keyframe-aware display values: when a channel is animated, the input
+	// shows the value sampled at the playhead (instead of the static base).
+	// While the user is typing (isEditing=true), we keep showing the draft
+	// so the cursor doesn't jump on each keystroke.
+	const posX = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "position.x",
+		baseValue: element.transform.position.x,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const posY = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "position.y",
+		baseValue: element.transform.position.y,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const scaleProp = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "scale",
+		baseValue: element.transform.scale,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const rotateProp = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "rotate",
+		baseValue: element.transform.rotate,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const opacityProp = useAnimatedProperty({
+		keyframes: element.keyframes,
+		property: "opacity",
+		baseValue: element.opacity,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+
+	// Auto-keyframe writers: when a channel is animated, edits upsert a
+	// keyframe at the playhead instead of mutating the static base.
+	const posXWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "position.x",
+		trackId,
+		elementId: element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const posYWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "position.y",
+		trackId,
+		elementId: element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const scaleWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "scale",
+		trackId,
+		elementId: element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const rotateWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "rotate",
+		trackId,
+		elementId: element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+	const opacityWriter = useAnimatedValueWriter({
+		keyframes: element.keyframes,
+		property: "opacity",
+		trackId,
+		elementId: element.id,
+		elementStartTime: element.startTime,
+		elementDuration: element.duration,
+	});
+
+	const scalePercent = Math.round(scaleProp.resolvedValue * 100);
 	const scaleDisplay = isEditingScale.current
 		? scaleDraft.current
 		: scalePercent.toString();
 	const posXDisplay = isEditingPosX.current
 		? posXDraft.current
-		: Math.round(element.transform.position.x).toString();
+		: Math.round(posX.resolvedValue).toString();
 	const posYDisplay = isEditingPosY.current
 		? posYDraft.current
-		: Math.round(element.transform.position.y).toString();
+		: Math.round(posY.resolvedValue).toString();
 	const rotationDisplay = isEditingRotation.current
 		? rotationDraft.current
-		: Math.round(element.transform.rotate).toString();
+		: Math.round(rotateProp.resolvedValue).toString();
 	const opacityDisplay = isEditingOpacity.current
 		? opacityDraft.current
-		: Math.round(element.opacity * 100).toString();
+		: Math.round(opacityProp.resolvedValue * 100).toString();
 
 	const isVideoElement = element.type === "video";
 	const currentSpeed = isVideoElement
@@ -187,7 +273,19 @@ export function VideoProperties({
 					<div className="space-y-6">
 						{/* Position X */}
 						<PropertyItem>
-							<PropertyItemLabel>{t("Position X")}</PropertyItemLabel>
+							<PropertyItemLabel className="flex items-center gap-1.5">
+								{t("Position X")}
+								<KeyframeRow
+									property="position.x"
+									trackId={trackId}
+									elementId={element.id}
+									keyframes={element.keyframes}
+									baseTransform={element.transform}
+									baseOpacity={element.opacity}
+									elementStartTime={element.startTime}
+									elementDuration={element.duration}
+								/>
+							</PropertyItemLabel>
 							<PropertyItemValue>
 								<Input
 									type="number"
@@ -195,7 +293,7 @@ export function VideoProperties({
 									onFocus={() => {
 										isEditingPosX.current = true;
 										posXDraft.current = Math.round(
-											element.transform.position.x,
+											posX.resolvedValue,
 										).toString();
 										forceRender();
 									}}
@@ -203,14 +301,16 @@ export function VideoProperties({
 										posXDraft.current = e.target.value;
 										forceRender();
 										if (initialPosXRef.current === null) {
-											initialPosXRef.current = element.transform.position.x;
+											initialPosXRef.current = posX.resolvedValue;
 										}
 										const parsed = Number.parseFloat(e.target.value);
 										if (!Number.isNaN(parsed)) {
-											updateTransform({
-												updates: { position: { ...element.transform.position, x: parsed } },
-												pushHistory: false,
-											});
+											posXWriter.commitValue(parsed, false, () =>
+												updateTransform({
+													updates: { position: { ...element.transform.position, x: parsed } },
+													pushHistory: false,
+												}),
+											);
 										}
 									}}
 									onBlur={() => {
@@ -218,14 +318,18 @@ export function VideoProperties({
 											draft: posXDraft.current,
 											initial: initialPosXRef,
 											apply: (value) => {
-												updateTransform({
-													updates: { position: { ...element.transform.position, x: initialPosXRef.current ?? 0 } },
-													pushHistory: false,
-												});
-												updateTransform({
-													updates: { position: { ...element.transform.position, x: value } },
-													pushHistory: true,
-												});
+												posXWriter.commitValue(initialPosXRef.current ?? 0, false, () =>
+													updateTransform({
+														updates: { position: { ...element.transform.position, x: initialPosXRef.current ?? 0 } },
+														pushHistory: false,
+													}),
+												);
+												posXWriter.commitValue(value, true, () =>
+													updateTransform({
+														updates: { position: { ...element.transform.position, x: value } },
+														pushHistory: true,
+													}),
+												);
 											},
 										});
 										isEditingPosX.current = false;
@@ -239,7 +343,19 @@ export function VideoProperties({
 
 						{/* Position Y */}
 						<PropertyItem>
-							<PropertyItemLabel>{t("Position Y")}</PropertyItemLabel>
+							<PropertyItemLabel className="flex items-center gap-1.5">
+								{t("Position Y")}
+								<KeyframeRow
+									property="position.y"
+									trackId={trackId}
+									elementId={element.id}
+									keyframes={element.keyframes}
+									baseTransform={element.transform}
+									baseOpacity={element.opacity}
+									elementStartTime={element.startTime}
+									elementDuration={element.duration}
+								/>
+							</PropertyItemLabel>
 							<PropertyItemValue>
 								<Input
 									type="number"
@@ -247,7 +363,7 @@ export function VideoProperties({
 									onFocus={() => {
 										isEditingPosY.current = true;
 										posYDraft.current = Math.round(
-											element.transform.position.y,
+											posY.resolvedValue,
 										).toString();
 										forceRender();
 									}}
@@ -255,14 +371,16 @@ export function VideoProperties({
 										posYDraft.current = e.target.value;
 										forceRender();
 										if (initialPosYRef.current === null) {
-											initialPosYRef.current = element.transform.position.y;
+											initialPosYRef.current = posY.resolvedValue;
 										}
 										const parsed = Number.parseFloat(e.target.value);
 										if (!Number.isNaN(parsed)) {
-											updateTransform({
-												updates: { position: { ...element.transform.position, y: parsed } },
-												pushHistory: false,
-											});
+											posYWriter.commitValue(parsed, false, () =>
+												updateTransform({
+													updates: { position: { ...element.transform.position, y: parsed } },
+													pushHistory: false,
+												}),
+											);
 										}
 									}}
 									onBlur={() => {
@@ -270,14 +388,18 @@ export function VideoProperties({
 											draft: posYDraft.current,
 											initial: initialPosYRef,
 											apply: (value) => {
-												updateTransform({
-													updates: { position: { ...element.transform.position, y: initialPosYRef.current ?? 0 } },
-													pushHistory: false,
-												});
-												updateTransform({
-													updates: { position: { ...element.transform.position, y: value } },
-													pushHistory: true,
-												});
+												posYWriter.commitValue(initialPosYRef.current ?? 0, false, () =>
+													updateTransform({
+														updates: { position: { ...element.transform.position, y: initialPosYRef.current ?? 0 } },
+														pushHistory: false,
+													}),
+												);
+												posYWriter.commitValue(value, true, () =>
+													updateTransform({
+														updates: { position: { ...element.transform.position, y: value } },
+														pushHistory: true,
+													}),
+												);
 											},
 										});
 										isEditingPosY.current = false;
@@ -291,7 +413,19 @@ export function VideoProperties({
 
 						{/* Scale */}
 						<PropertyItem direction="column">
-							<PropertyItemLabel>{t("Scale")}</PropertyItemLabel>
+							<PropertyItemLabel className="flex items-center gap-1.5">
+								{t("Scale")}
+								<KeyframeRow
+									property="scale"
+									trackId={trackId}
+									elementId={element.id}
+									keyframes={element.keyframes}
+									baseTransform={element.transform}
+									baseOpacity={element.opacity}
+									elementStartTime={element.startTime}
+									elementDuration={element.duration}
+								/>
+							</PropertyItemLabel>
 							<PropertyItemValue>
 								<div className="flex items-center gap-2">
 									<Slider
@@ -301,23 +435,30 @@ export function VideoProperties({
 										step={1}
 										onValueChange={([value]) => {
 											if (initialScaleRef.current === null) {
-												initialScaleRef.current = element.transform.scale;
+												initialScaleRef.current = scaleProp.resolvedValue;
 											}
-											updateTransform({
-												updates: { scale: value / 100 },
-												pushHistory: false,
-											});
+											scaleWriter.commitValue(value / 100, false, () =>
+												updateTransform({
+													updates: { scale: value / 100 },
+													pushHistory: false,
+												}),
+											);
 										}}
 										onValueCommit={([value]) => {
 											if (initialScaleRef.current !== null) {
-												updateTransform({
-													updates: { scale: initialScaleRef.current },
-													pushHistory: false,
-												});
-												updateTransform({
-													updates: { scale: value / 100 },
-													pushHistory: true,
-												});
+												const initial = initialScaleRef.current;
+												scaleWriter.commitValue(initial, false, () =>
+													updateTransform({
+														updates: { scale: initial },
+														pushHistory: false,
+													}),
+												);
+												scaleWriter.commitValue(value / 100, true, () =>
+													updateTransform({
+														updates: { scale: value / 100 },
+														pushHistory: true,
+													}),
+												);
 												initialScaleRef.current = null;
 											}
 										}}
@@ -337,31 +478,38 @@ export function VideoProperties({
 											scaleDraft.current = e.target.value;
 											forceRender();
 											if (initialScaleRef.current === null) {
-												initialScaleRef.current = element.transform.scale;
+												initialScaleRef.current = scaleProp.resolvedValue;
 											}
 											const parsed = parseInt(e.target.value, 10);
 											if (!Number.isNaN(parsed)) {
 												const clamped = clamp({ value: parsed, min: 10, max: 500 });
-												updateTransform({
-													updates: { scale: clamped / 100 },
-													pushHistory: false,
-												});
+												scaleWriter.commitValue(clamped / 100, false, () =>
+													updateTransform({
+														updates: { scale: clamped / 100 },
+														pushHistory: false,
+													}),
+												);
 											}
 										}}
 										onBlur={() => {
 											if (initialScaleRef.current !== null) {
+												const initial = initialScaleRef.current;
 												const parsed = parseInt(scaleDraft.current, 10);
 												const clamped = Number.isNaN(parsed)
 													? scalePercent
 													: clamp({ value: parsed, min: 10, max: 500 });
-												updateTransform({
-													updates: { scale: initialScaleRef.current },
-													pushHistory: false,
-												});
-												updateTransform({
-													updates: { scale: clamped / 100 },
-													pushHistory: true,
-												});
+												scaleWriter.commitValue(initial, false, () =>
+													updateTransform({
+														updates: { scale: initial },
+														pushHistory: false,
+													}),
+												);
+												scaleWriter.commitValue(clamped / 100, true, () =>
+													updateTransform({
+														updates: { scale: clamped / 100 },
+														pushHistory: true,
+													}),
+												);
 												initialScaleRef.current = null;
 											}
 											isEditingScale.current = false;
@@ -376,33 +524,52 @@ export function VideoProperties({
 
 						{/* Rotation */}
 						<PropertyItem direction="column">
-							<PropertyItemLabel>{t("Rotation")}</PropertyItemLabel>
+							<PropertyItemLabel className="flex items-center gap-1.5">
+								{t("Rotation")}
+								<KeyframeRow
+									property="rotate"
+									trackId={trackId}
+									elementId={element.id}
+									keyframes={element.keyframes}
+									baseTransform={element.transform}
+									baseOpacity={element.opacity}
+									elementStartTime={element.startTime}
+									elementDuration={element.duration}
+								/>
+							</PropertyItemLabel>
 							<PropertyItemValue>
 								<div className="flex items-center gap-2">
 									<Slider
-										value={[element.transform.rotate]}
+										value={[rotateProp.resolvedValue]}
 										min={-180}
 										max={180}
 										step={1}
 										onValueChange={([value]) => {
 											if (initialRotationRef.current === null) {
-												initialRotationRef.current = element.transform.rotate;
+												initialRotationRef.current = rotateProp.resolvedValue;
 											}
-											updateTransform({
-												updates: { rotate: value },
-												pushHistory: false,
-											});
+											rotateWriter.commitValue(value, false, () =>
+												updateTransform({
+													updates: { rotate: value },
+													pushHistory: false,
+												}),
+											);
 										}}
 										onValueCommit={([value]) => {
 											if (initialRotationRef.current !== null) {
-												updateTransform({
-													updates: { rotate: initialRotationRef.current },
-													pushHistory: false,
-												});
-												updateTransform({
-													updates: { rotate: value },
-													pushHistory: true,
-												});
+												const initial = initialRotationRef.current;
+												rotateWriter.commitValue(initial, false, () =>
+													updateTransform({
+														updates: { rotate: initial },
+														pushHistory: false,
+													}),
+												);
+												rotateWriter.commitValue(value, true, () =>
+													updateTransform({
+														updates: { rotate: value },
+														pushHistory: true,
+													}),
+												);
 												initialRotationRef.current = null;
 											}
 										}}
@@ -416,7 +583,7 @@ export function VideoProperties({
 										onFocus={() => {
 											isEditingRotation.current = true;
 											rotationDraft.current = Math.round(
-												element.transform.rotate,
+												rotateProp.resolvedValue,
 											).toString();
 											forceRender();
 										}}
@@ -424,14 +591,16 @@ export function VideoProperties({
 											rotationDraft.current = e.target.value;
 											forceRender();
 											if (initialRotationRef.current === null) {
-												initialRotationRef.current = element.transform.rotate;
+												initialRotationRef.current = rotateProp.resolvedValue;
 											}
 											const parsed = Number.parseFloat(e.target.value);
 											if (!Number.isNaN(parsed)) {
-												updateTransform({
-													updates: { rotate: parsed },
-													pushHistory: false,
-												});
+												rotateWriter.commitValue(parsed, false, () =>
+													updateTransform({
+														updates: { rotate: parsed },
+														pushHistory: false,
+													}),
+												);
 											}
 										}}
 										onBlur={() => {
@@ -439,14 +608,18 @@ export function VideoProperties({
 												draft: rotationDraft.current,
 												initial: initialRotationRef,
 												apply: (value) => {
-													updateTransform({
-														updates: { rotate: initialRotationRef.current ?? 0 },
-														pushHistory: false,
-													});
-													updateTransform({
-														updates: { rotate: value },
-														pushHistory: true,
-													});
+													rotateWriter.commitValue(initialRotationRef.current ?? 0, false, () =>
+														updateTransform({
+															updates: { rotate: initialRotationRef.current ?? 0 },
+															pushHistory: false,
+														}),
+													);
+													rotateWriter.commitValue(value, true, () =>
+														updateTransform({
+															updates: { rotate: value },
+															pushHistory: true,
+														}),
+													);
 												},
 											});
 											isEditingRotation.current = false;
@@ -465,41 +638,31 @@ export function VideoProperties({
 					<div className="space-y-6">
 						{/* Opacity */}
 						<PropertyItem direction="column">
-							<PropertyItemLabel>{t("Opacity")}</PropertyItemLabel>
+							<PropertyItemLabel className="flex items-center gap-1.5">
+								{t("Opacity")}
+								<KeyframeRow
+									property="opacity"
+									trackId={trackId}
+									elementId={element.id}
+									keyframes={element.keyframes}
+									baseTransform={element.transform}
+									baseOpacity={element.opacity}
+									elementStartTime={element.startTime}
+									elementDuration={element.duration}
+								/>
+							</PropertyItemLabel>
 							<PropertyItemValue>
 								<div className="flex items-center gap-2">
 									<Slider
-										value={[element.opacity * 100]}
+										value={[opacityProp.resolvedValue * 100]}
 										min={0}
 										max={100}
 										step={1}
 										onValueChange={([value]) => {
 											if (initialOpacityRef.current === null) {
-												initialOpacityRef.current = element.opacity;
+												initialOpacityRef.current = opacityProp.resolvedValue;
 											}
-											editor.timeline.updateElements({
-												updates: [
-													{
-														trackId,
-														elementId: element.id,
-														updates: { opacity: value / 100 },
-													},
-												],
-												pushHistory: false,
-											});
-										}}
-										onValueCommit={([value]) => {
-											if (initialOpacityRef.current !== null) {
-												editor.timeline.updateElements({
-													updates: [
-														{
-															trackId,
-															elementId: element.id,
-															updates: { opacity: initialOpacityRef.current },
-														},
-													],
-													pushHistory: false,
-												});
+											opacityWriter.commitValue(value / 100, false, () =>
 												editor.timeline.updateElements({
 													updates: [
 														{
@@ -508,8 +671,36 @@ export function VideoProperties({
 															updates: { opacity: value / 100 },
 														},
 													],
-													pushHistory: true,
-												});
+													pushHistory: false,
+												}),
+											);
+										}}
+										onValueCommit={([value]) => {
+											if (initialOpacityRef.current !== null) {
+												opacityWriter.commitValue(initialOpacityRef.current, false, () =>
+													editor.timeline.updateElements({
+														updates: [
+															{
+																trackId,
+																elementId: element.id,
+																updates: { opacity: initialOpacityRef.current },
+															},
+														],
+														pushHistory: false,
+													}),
+												);
+												opacityWriter.commitValue(value / 100, true, () =>
+													editor.timeline.updateElements({
+														updates: [
+															{
+																trackId,
+																elementId: element.id,
+																updates: { opacity: value / 100 },
+															},
+														],
+														pushHistory: true,
+													}),
+												);
 												initialOpacityRef.current = null;
 											}
 										}}
@@ -523,7 +714,7 @@ export function VideoProperties({
 										onFocus={() => {
 											isEditingOpacity.current = true;
 											opacityDraft.current = Math.round(
-												element.opacity * 100,
+												opacityProp.resolvedValue * 100,
 											).toString();
 											forceRender();
 										}}
@@ -531,49 +722,55 @@ export function VideoProperties({
 											opacityDraft.current = e.target.value;
 											forceRender();
 											if (initialOpacityRef.current === null) {
-												initialOpacityRef.current = element.opacity;
+												initialOpacityRef.current = opacityProp.resolvedValue;
 											}
 											const parsed = parseInt(e.target.value, 10);
 											if (!Number.isNaN(parsed)) {
 												const opacityPercent = clamp({ value: parsed, min: 0, max: 100 });
-												editor.timeline.updateElements({
-													updates: [
-														{
-															trackId,
-															elementId: element.id,
-															updates: { opacity: opacityPercent / 100 },
-														},
-													],
-													pushHistory: false,
-												});
+												opacityWriter.commitValue(opacityPercent / 100, false, () =>
+													editor.timeline.updateElements({
+														updates: [
+															{
+																trackId,
+																elementId: element.id,
+																updates: { opacity: opacityPercent / 100 },
+															},
+														],
+														pushHistory: false,
+													}),
+												);
 											}
 										}}
 										onBlur={() => {
 											if (initialOpacityRef.current !== null) {
 												const parsed = parseInt(opacityDraft.current, 10);
 												const opacityPercent = Number.isNaN(parsed)
-													? Math.round(element.opacity * 100)
+													? Math.round(opacityProp.resolvedValue * 100)
 													: clamp({ value: parsed, min: 0, max: 100 });
-												editor.timeline.updateElements({
-													updates: [
-														{
-															trackId,
-															elementId: element.id,
-															updates: { opacity: initialOpacityRef.current },
-														},
-													],
-													pushHistory: false,
-												});
-												editor.timeline.updateElements({
-													updates: [
-														{
-															trackId,
-															elementId: element.id,
-															updates: { opacity: opacityPercent / 100 },
-														},
-													],
-													pushHistory: true,
-												});
+												opacityWriter.commitValue(initialOpacityRef.current, false, () =>
+													editor.timeline.updateElements({
+														updates: [
+															{
+																trackId,
+																elementId: element.id,
+																updates: { opacity: initialOpacityRef.current },
+															},
+														],
+														pushHistory: false,
+													}),
+												);
+												opacityWriter.commitValue(opacityPercent / 100, true, () =>
+													editor.timeline.updateElements({
+														updates: [
+															{
+																trackId,
+																elementId: element.id,
+																updates: { opacity: opacityPercent / 100 },
+															},
+														],
+														pushHistory: true,
+													}),
+												);
 												initialOpacityRef.current = null;
 											}
 											isEditingOpacity.current = false;

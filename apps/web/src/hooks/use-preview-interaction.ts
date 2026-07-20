@@ -5,6 +5,7 @@ import type {
 	TimelineTrack,
 	TimelineElement,
 	TextElement,
+	ElementKeyframes,
 } from "@/types/timeline";
 import { hitTestElements } from "@/lib/preview/hit-test";
 import { getTextScaleFactor } from "@/constants/text-constants";
@@ -14,6 +15,7 @@ import {
 	type ElementHalfSize,
 } from "@/lib/preview/element-bounds";
 import { computePreviewSnap, type SnapGuide } from "@/lib/preview/snap";
+import { buildAnimatedTransformUpdate } from "@/lib/timeline/keyframe-utils";
 
 type ScaleHandle = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 type ResizeHandle = "left" | "right";
@@ -333,6 +335,37 @@ export function usePreviewInteraction({
 						? widthChangePx / 2
 						: -widthChangePx / 2;
 
+				const nextTransform: Transform = {
+					...state.initialTransform,
+					position: {
+						x:
+							state.initialTransform.position.x +
+							positionOffsetX,
+						y: state.initialTransform.position.y,
+					},
+				};
+				const element = findElement(state.tracksSnapshot, state.elementId);
+				const localTime = element
+					? getElementLocalTime({
+							tracks: state.tracksSnapshot,
+							elements: [
+								{ trackId: state.trackId, elementId: state.elementId },
+							],
+							playbackTime: editor.playback.getCurrentTime(),
+						})
+					: undefined;
+				const transformUpdate =
+					element && "keyframes" in element
+						? buildAnimatedTransformUpdate({
+								element: element as {
+									transform: Transform;
+									keyframes?: ElementKeyframes;
+									duration: number;
+								},
+								nextTransform,
+								localTime,
+							})
+						: { transform: nextTransform };
 				editor.timeline.updateElements({
 					updates: [
 						{
@@ -340,15 +373,7 @@ export function usePreviewInteraction({
 							elementId: state.elementId,
 							updates: {
 								boxWidth: newBoxWidth,
-								transform: {
-									...state.initialTransform,
-									position: {
-										x:
-											state.initialTransform.position.x +
-											positionOffsetX,
-										y: state.initialTransform.position.y,
-									},
-								},
+								...transformUpdate,
 							},
 						},
 					],
@@ -377,17 +402,35 @@ export function usePreviewInteraction({
 					Math.min(5, state.initialTransform.scale * ratio),
 				);
 
+				const nextTransform: Transform = {
+					...state.initialTransform,
+					scale: newScale,
+				};
+				const element = findElement(state.tracksSnapshot, state.elementId);
+				const localTime = element
+					? getElementLocalTime({
+							tracks: state.tracksSnapshot,
+							elements: [{ trackId: state.trackId, elementId: state.elementId }],
+							playbackTime: editor.playback.getCurrentTime(),
+						})
+					: undefined;
 				editor.timeline.updateElements({
 					updates: [
 						{
 							trackId: state.trackId,
 							elementId: state.elementId,
-							updates: {
-								transform: {
-									...state.initialTransform,
-									scale: newScale,
-								},
-							},
+							updates:
+								element && "keyframes" in element
+									? buildAnimatedTransformUpdate({
+											element: element as {
+												transform: Transform;
+												keyframes?: ElementKeyframes;
+												duration: number;
+											},
+											nextTransform,
+											localTime,
+										})
+									: { transform: nextTransform },
 						},
 					],
 					pushHistory: false,
@@ -426,20 +469,41 @@ export function usePreviewInteraction({
 
 			setActiveGuides(newGuides);
 
+			const localTime = getElementLocalTime({
+				tracks: dragStateRef.current.tracksSnapshot,
+				elements: dragStateRef.current.elements,
+				playbackTime: editor.playback.getCurrentTime(),
+			});
 			const updates = dragStateRef.current.elements.map(
-				({ trackId, elementId, initialTransform }) => ({
-					trackId,
-					elementId,
-					updates: {
-						transform: {
-							...initialTransform,
-							position: {
-								x: initialTransform.position.x + deltaX + snapDeltaX,
-								y: initialTransform.position.y + deltaY + snapDeltaY,
-							},
+				({ trackId, elementId, initialTransform }) => {
+					const nextTransform: Transform = {
+						...initialTransform,
+						position: {
+							x: initialTransform.position.x + deltaX + snapDeltaX,
+							y: initialTransform.position.y + deltaY + snapDeltaY,
 						},
-					},
-				}),
+					};
+					const element = findElement(
+						dragStateRef.current!.tracksSnapshot,
+						elementId,
+					);
+					return {
+						trackId,
+						elementId,
+						updates:
+							element && "keyframes" in element
+								? buildAnimatedTransformUpdate({
+										element: element as {
+											transform: Transform;
+											keyframes?: ElementKeyframes;
+											duration: number;
+										},
+										nextTransform,
+										localTime,
+									})
+								: { transform: nextTransform },
+					};
+				},
 			);
 
 			editor.timeline.updateElements({ updates, pushHistory: false });
@@ -478,6 +542,38 @@ export function usePreviewInteraction({
 							: -widthChangePx / 2;
 
 					editor.timeline.updateTracks(state.tracksSnapshot);
+					const nextTransform: Transform = {
+						...state.initialTransform,
+						position: {
+							x:
+								state.initialTransform.position
+									.x + positionOffsetX,
+							y: state.initialTransform.position
+								.y,
+						},
+					};
+					const element = findElement(state.tracksSnapshot, state.elementId);
+					const localTime = element
+						? getElementLocalTime({
+								tracks: state.tracksSnapshot,
+								elements: [
+									{ trackId: state.trackId, elementId: state.elementId },
+								],
+								playbackTime: editor.playback.getCurrentTime(),
+							})
+						: undefined;
+					const transformUpdate =
+						element && "keyframes" in element
+							? buildAnimatedTransformUpdate({
+									element: element as {
+										transform: Transform;
+										keyframes?: ElementKeyframes;
+										duration: number;
+									},
+									nextTransform,
+									localTime,
+								})
+							: { transform: nextTransform };
 					editor.timeline.updateElements({
 						updates: [
 							{
@@ -485,16 +581,7 @@ export function usePreviewInteraction({
 								elementId: state.elementId,
 								updates: {
 									boxWidth: newBoxWidth,
-									transform: {
-										...state.initialTransform,
-										position: {
-											x:
-												state.initialTransform.position
-													.x + positionOffsetX,
-											y: state.initialTransform.position
-												.y,
-										},
-									},
+									...transformUpdate,
 								},
 							},
 						],
@@ -540,17 +627,37 @@ export function usePreviewInteraction({
 					);
 
 					editor.timeline.updateTracks(state.tracksSnapshot);
+					const nextTransform: Transform = {
+						...state.initialTransform,
+						scale: newScale,
+					};
+					const element = findElement(state.tracksSnapshot, state.elementId);
+					const localTime = element
+						? getElementLocalTime({
+								tracks: state.tracksSnapshot,
+								elements: [
+									{ trackId: state.trackId, elementId: state.elementId },
+								],
+								playbackTime: editor.playback.getCurrentTime(),
+							})
+						: undefined;
 					editor.timeline.updateElements({
 						updates: [
 							{
 								trackId: state.trackId,
 								elementId: state.elementId,
-								updates: {
-									transform: {
-										...state.initialTransform,
-										scale: newScale,
-									},
-								},
+								updates:
+									element && "keyframes" in element
+										? buildAnimatedTransformUpdate({
+												element: element as {
+													transform: Transform;
+													keyframes?: ElementKeyframes;
+													duration: number;
+												},
+												nextTransform,
+												localTime,
+											})
+										: { transform: nextTransform },
 							},
 						],
 					});
@@ -616,20 +723,41 @@ export function usePreviewInteraction({
 
 			editor.timeline.updateTracks(dragStateRef.current.tracksSnapshot);
 
+			const localTime = getElementLocalTime({
+				tracks: dragStateRef.current.tracksSnapshot,
+				elements: dragStateRef.current.elements,
+				playbackTime: editor.playback.getCurrentTime(),
+			});
 			const updates = dragStateRef.current.elements.map(
-				({ trackId, elementId, initialTransform }) => ({
-					trackId,
-					elementId,
-					updates: {
-						transform: {
-							...initialTransform,
-							position: {
-								x: initialTransform.position.x + deltaX + snapDeltaX,
-								y: initialTransform.position.y + deltaY + snapDeltaY,
-							},
+				({ trackId, elementId, initialTransform }) => {
+					const nextTransform: Transform = {
+						...initialTransform,
+						position: {
+							x: initialTransform.position.x + deltaX + snapDeltaX,
+							y: initialTransform.position.y + deltaY + snapDeltaY,
 						},
-					},
-				}),
+					};
+					const element = findElement(
+						dragStateRef.current!.tracksSnapshot,
+						elementId,
+					);
+					return {
+						trackId,
+						elementId,
+						updates:
+							element && "keyframes" in element
+								? buildAnimatedTransformUpdate({
+										element: element as {
+											transform: Transform;
+											keyframes?: ElementKeyframes;
+											duration: number;
+										},
+										nextTransform,
+										localTime,
+									})
+								: { transform: nextTransform },
+					};
+				},
 			);
 
 			editor.timeline.updateElements({ updates });
@@ -737,5 +865,37 @@ function buildSnapContext({
 	}
 
 	return { elementHalfSize, otherElementBounds, canvasWidth, canvasHeight };
+}
+
+/** Find an element by id across all tracks. Returns the live element object. */
+function findElement(
+	tracks: TimelineTrack[],
+	elementId: string,
+): TimelineElement | undefined {
+	for (const track of tracks) {
+		const found = track.elements.find((e) => e.id === elementId);
+		if (found) return found;
+	}
+	return undefined;
+}
+
+/**
+ * Compute the element-local time for the primary dragged element at the
+ * current playhead. Used by drag/scale/resize to place keyframes.
+ */
+function getElementLocalTime({
+	tracks,
+	elements,
+	playbackTime,
+}: {
+	tracks: TimelineTrack[];
+	elements: Array<{ trackId: string; elementId: string }>;
+	playbackTime: number;
+}): number | undefined {
+	const primary = elements[0];
+	if (!primary) return undefined;
+	const element = findElement(tracks, primary.elementId);
+	if (!element) return undefined;
+	return playbackTime - element.startTime;
 }
 

@@ -7,6 +7,7 @@ import type {
 	TransitionType,
 	TrackTransition,
 	VideoTrack,
+	ElementKeyframes,
 } from "@/types/timeline";
 import { calculateTotalDuration } from "@/lib/timeline";
 import {
@@ -249,6 +250,28 @@ export class TimelineManager {
 		} else {
 			command.execute();
 		}
+	}
+
+	/**
+	 * Replace an element's entire keyframe set. Thin wrapper over
+	 * updateElements for readability — keyframe edits get undo/redo for free
+	 * via UpdateElementCommand's full-tracks snapshot.
+	 */
+	updateKeyframes({
+		trackId,
+		elementId,
+		keyframes,
+		pushHistory = true,
+	}: {
+		trackId: string;
+		elementId: string;
+		keyframes: ElementKeyframes | undefined;
+		pushHistory?: boolean;
+	}): void {
+		this.updateElements({
+			updates: [{ trackId, elementId, updates: { keyframes } }],
+			pushHistory,
+		});
 	}
 
 	duplicateElements({

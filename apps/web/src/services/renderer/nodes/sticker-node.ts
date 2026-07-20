@@ -50,6 +50,7 @@ export class StickerNode extends VisualNode<StickerNodeParams> {
 			source: this.image,
 			sourceWidth: 200,
 			sourceHeight: 200,
+			time,
 		});
 	}
 }

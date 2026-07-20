@@ -2,6 +2,7 @@ import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
 import type { TextElement } from "@/types/timeline";
 import { getTextScaleFactor } from "@/constants/text-constants";
+import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 
 type RenderContext =
 	| CanvasRenderingContext2D
@@ -94,17 +95,27 @@ export class TextNode extends BaseNode<TextNodeParams> {
 
 		renderer.context.save();
 
-		const x = this.params.transform.position.x + this.params.canvasCenter.x;
-		const y = this.params.transform.position.y + this.params.canvasCenter.y;
+		// Resolve keyframe-animated transform/opacity for this frame. When the
+		// element has keyframes, sample them at the element-local time.
+		const localTime = time - this.params.startTime;
+		const { transform, opacity } = resolveAnimatedProperties({
+			keyframes: this.params.keyframes,
+			time: localTime,
+			baseTransform: this.params.transform,
+			baseOpacity: this.params.opacity,
+		});
+
+		const x = transform.position.x + this.params.canvasCenter.x;
+		const y = transform.position.y + this.params.canvasCenter.y;
 
 		renderer.context.translate(x, y);
-		if (this.params.transform.rotate) {
-			renderer.context.rotate((this.params.transform.rotate * Math.PI) / 180);
+		if (transform.rotate) {
+			renderer.context.rotate((transform.rotate * Math.PI) / 180);
 		}
-		if (this.params.transform.scale !== 1) {
+		if (transform.scale !== 1) {
 			renderer.context.scale(
-				this.params.transform.scale,
-				this.params.transform.scale,
+				transform.scale,
+				transform.scale,
 			);
 		}
 
@@ -122,7 +133,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		renderer.context.fillStyle = this.params.color;
 
 		const prevAlpha = renderer.context.globalAlpha;
-		renderer.context.globalAlpha = this.params.opacity;
+		renderer.context.globalAlpha = opacity;
 
 		const boxWidth = this.params.boxWidth;
 		const hasBoxWidth = boxWidth !== undefined && boxWidth > 0;

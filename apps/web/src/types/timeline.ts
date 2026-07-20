@@ -55,6 +55,45 @@ export interface Transform {
 	flipY?: boolean;
 }
 
+// ---- Keyframe Animation ----
+
+/** Animatable property channels. `flipX`/`flipY` are boolean and not animatable. */
+export type KeyframeProperty =
+	| "position.x"
+	| "position.y"
+	| "scale"
+	| "rotate"
+	| "opacity";
+
+/** Easing curve applied between two consecutive keyframes. */
+export type Easing =
+	| "linear"
+	| "ease-in"
+	| "ease-out"
+	| "ease-in-out"
+	| "bezier";
+
+/**
+ * A single keyframe. `time` is local to the element (seconds from the
+ * element's start, i.e. relative to `startTime`). `bezierP1`/`bezierP2`
+ * are the cubic-bezier control points in normalized [0,1] space and are
+ * only used when `easing === "bezier"`.
+ */
+export interface Keyframe {
+	id: string;
+	time: number;
+	value: number;
+	easing: Easing;
+	bezierP1?: { x: number; y: number };
+	bezierP2?: { x: number; y: number };
+}
+
+/**
+ * Per-channel keyframe arrays for a single element. Absence of a channel
+ * means the property is not animated (its static base value is used).
+ */
+export type ElementKeyframes = Partial<Record<KeyframeProperty, Keyframe[]>>;
+
 // ---- Transitions ----
 
 export type TransitionType =
@@ -117,6 +156,7 @@ export interface VideoElement extends BaseTimelineElement {
 	opacity: number;
 	filter?: ElementFilter;
 	adjustments?: AdjustmentControls;
+	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
 }
@@ -129,6 +169,7 @@ export interface ImageElement extends BaseTimelineElement {
 	opacity: number;
 	filter?: ElementFilter;
 	adjustments?: AdjustmentControls;
+	keyframes?: ElementKeyframes;
 }
 
 export interface TextStroke {
@@ -173,6 +214,7 @@ export interface TextElement extends BaseTimelineElement {
 	hidden?: boolean;
 	transform: Transform;
 	opacity: number;
+	keyframes?: ElementKeyframes;
 	stroke?: TextStroke;
 	shadow?: TextShadow;
 	boxWidth?: number;
@@ -189,6 +231,7 @@ export interface StickerElement extends BaseTimelineElement {
 	transform: Transform;
 	opacity: number;
 	color?: string;
+	keyframes?: ElementKeyframes;
 }
 
 export type TimelineElement =

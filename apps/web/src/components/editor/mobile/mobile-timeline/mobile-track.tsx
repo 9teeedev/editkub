@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, Fragment } from "react";
 import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
 import { TRACK_COLORS } from "@/constants/timeline-constants";
 import { cn } from "@/utils/ui";
@@ -15,6 +15,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMobileDrawerStore } from "../hooks/use-mobile-drawer";
+import { KeyframeDiamonds } from "../../panels/timeline/keyframe-diamonds";
 import type {
 	TimelineTrack,
 	TimelineElement,
@@ -387,14 +388,16 @@ export function MobileTrack({
 	}, [clearLongPressTimer, stopAutoScroll]);
 
 	return (
-		<div className="relative w-full" style={{ height: MOBILE_TRACK_HEIGHT }}>
-			{track.elements.map((element) => {
-				const left = timeToPixels({ time: element.startTime });
-				const width = timeToPixels({ time: element.duration });
-				const selected = isElementSelected({
-					trackId: track.id,
-					elementId: element.id,
-				});
+			<div className="relative w-full" style={{ height: MOBILE_TRACK_HEIGHT }}>
+				{track.elements.map((element) => {
+					const left = timeToPixels({ time: element.startTime });
+					const width = timeToPixels({ time: element.duration });
+					const hasKeyframes =
+						"keyframes" in element && element.keyframes !== undefined;
+					const selected = isElementSelected({
+						trackId: track.id,
+						elementId: element.id,
+					});
 
 				const thumbnailUrl =
 					element.type === "image"
@@ -405,8 +408,8 @@ export function MobileTrack({
 				const isVideoTrack = track.type === "video";
 
 				return (
+					<Fragment key={element.id}>
 					<button
-						key={element.id}
 						ref={(node) => {
 							if (node) {
 								elementRefsMap.current.set(element.id, node);
@@ -464,10 +467,31 @@ export function MobileTrack({
 							handleTouchEnd();
 						}}
 					>
-						<ElementContent element={element} thumbnailUrl={thumbnailUrl} />
-					</button>
+					<ElementContent element={element} thumbnailUrl={thumbnailUrl} />
+						</button>
+
+						{/* Keyframe diamonds overlay (mobile: click-to-seek only). */}
+						{hasKeyframes && (
+							<div
+								className="pointer-events-none absolute top-0"
+								style={{
+									left,
+									width: Math.max(width, 4),
+									height: MOBILE_TRACK_HEIGHT,
+								}}
+							>
+								<KeyframeDiamonds
+									element={element}
+									trackId={track.id}
+									zoomLevel={1}
+									pxPerSecond={timeToPixels({ time: 1 }) - timeToPixels({ time: 0 })}
+									interaction="mobile"
+								/>
+							</div>
+						)}
+					</Fragment>
 				);
-			})}
+				})}
 		</div>
 	);
 }

@@ -135,6 +135,11 @@ export const ACTIONS = {
 		description: "Toggle bookmark at playhead",
 		category: "timeline",
 	},
+	"add-keyframe-at-playhead": {
+		description:
+			"Add a keyframe at the playhead for all animatable channels of the selected element",
+		category: "editing",
+	},
 	undo: {
 		description: "Undo",
 		category: "history",

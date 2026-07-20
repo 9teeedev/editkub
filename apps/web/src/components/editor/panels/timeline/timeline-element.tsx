@@ -57,6 +57,7 @@ import { uppercase } from "@/utils/string";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import type { ComponentProps } from "react";
 import { VideoThumbnailStrip } from "./video-thumbnail-strip";
+import { KeyframeDiamonds } from "./keyframe-diamonds";
 
 function getDisplayShortcut(action: TAction) {
 	const { defaultShortcuts } = getActionDefinition(action);
@@ -348,6 +349,13 @@ function ElementInner({
 					</div>
 				)}
 			</button>
+
+			{/* Keyframe diamonds overlay (click to seek, drag to retime). */}
+			<KeyframeDiamonds
+				element={element}
+				trackId={track.id}
+				zoomLevel={zoomLevel}
+			/>
 
 			{isSelected && (
 				<>

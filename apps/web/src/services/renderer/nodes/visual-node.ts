@@ -1,6 +1,7 @@
 import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
-import type { Transform } from "@/types/timeline";
+import type { ElementKeyframes, Transform } from "@/types/timeline";
+import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 
 const VISUAL_EPSILON = 1 / 1000;
 
@@ -13,6 +14,7 @@ export interface VisualNodeParams {
 	opacity: number;
 	filter?: string;
 	vignette?: number; // 0-100, edge darkening intensity
+	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
 }
@@ -43,11 +45,13 @@ export abstract class VisualNode<
 		source,
 		sourceWidth,
 		sourceHeight,
+		time,
 	}: {
 		renderer: CanvasRenderer;
 		source: CanvasImageSource;
 		sourceWidth: number;
 		sourceHeight: number;
+		time: number;
 	}): void {
 		renderer.context.save();
 
@@ -55,7 +59,17 @@ export abstract class VisualNode<
 			renderer.context.filter = this.params.filter;
 		}
 
-		const { transform, opacity } = this.params;
+		// Resolve the effective transform/opacity for this frame. When the
+		// element has keyframes, sample them at the element-local time;
+		// otherwise use the static base values. `time` here is absolute
+		// (timeline time), and keyframes are stored relative to `timeOffset`.
+		const localTime = time - this.params.timeOffset;
+		const { transform, opacity } = resolveAnimatedProperties({
+			keyframes: this.params.keyframes,
+			time: localTime,
+			baseTransform: this.params.transform,
+			baseOpacity: this.params.opacity,
+		});
 		const containScale = Math.min(
 			renderer.width / sourceWidth,
 			renderer.height / sourceHeight,
