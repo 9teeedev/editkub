@@ -19,6 +19,7 @@ import {
 	validateElementTrackCompatibility,
 	enforceMainTrackStart,
 } from "@/lib/timeline/track-utils";
+import { useTimelineStore } from "@/stores/timeline-store";
 import type { MediaAsset } from "@/types/assets";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 
@@ -330,6 +331,7 @@ export class InsertElementCommand extends Command {
 			tracks,
 			targetTrackId,
 			requestedStartTime: element.startTime,
+			enabled: useTimelineStore.getState().snappingEnabled,
 		});
 		return { ...element, startTime: adjustedStartTime };
 	}

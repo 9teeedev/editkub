@@ -156,6 +156,7 @@ export function computeDropTarget({
 	verticalDragDirection,
 	startTimeOverride,
 	excludeElementId,
+	snappingEnabled = true,
 }: ComputeDropTargetParams): DropTarget {
 	const xPosition =
 		typeof startTimeOverride === "number"
@@ -196,6 +197,7 @@ export function computeDropTarget({
 				targetTrackId: targetTrack.id,
 				requestedStartTime: xPosition,
 				excludeElementId,
+				enabled: snappingEnabled,
 			});
 
 			return {
@@ -261,6 +263,7 @@ export function computeDropTarget({
 			targetTrackId: targetTrack.id,
 			requestedStartTime: xPosition,
 			excludeElementId,
+			enabled: snappingEnabled,
 		});
 
 		return {
@@ -286,6 +289,7 @@ export function computeDropTarget({
 			targetTrackId: fallbackTrack.id,
 			requestedStartTime: xPosition,
 			excludeElementId,
+			enabled: snappingEnabled,
 		});
 
 		return {

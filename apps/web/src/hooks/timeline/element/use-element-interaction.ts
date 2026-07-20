@@ -109,6 +109,7 @@ function getDragDropTarget({
 	zoomLevel,
 	snappedTime,
 	verticalDragDirection,
+	snappingEnabled,
 }: {
 	clientX: number;
 	clientY: number;
@@ -121,6 +122,7 @@ function getDragDropTarget({
 	zoomLevel: number;
 	snappedTime: number;
 	verticalDragDirection?: "up" | "down" | null;
+	snappingEnabled?: boolean;
 }): DropTarget | null {
 	const containerRect = tracksContainerRef.current?.getBoundingClientRect();
 	const scrollContainer = tracksScrollRef.current;
@@ -153,6 +155,7 @@ function getDragDropTarget({
 		startTimeOverride: snappedTime,
 		excludeElementId: movingElement.id,
 		verticalDragDirection,
+		snappingEnabled,
 	});
 }
 
@@ -379,6 +382,7 @@ export function useElementInteraction({
 					zoomLevel,
 					snappedTime,
 					verticalDragDirection,
+					snappingEnabled,
 				});
 				setDragDropTarget(dropTarget?.isNewTrack ? dropTarget : null);
 			}
@@ -439,6 +443,7 @@ export function useElementInteraction({
 					startMouseY: dragState.startMouseY,
 					currentMouseY: clientY,
 				}),
+				snappingEnabled,
 			});
 			if (!dropTarget) {
 				endDrag();

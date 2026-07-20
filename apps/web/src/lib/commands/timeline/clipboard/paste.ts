@@ -13,6 +13,7 @@ import {
 	isMainTrack,
 	enforceMainTrackStart,
 } from "@/lib/timeline/track-utils";
+import { useTimelineStore } from "@/stores/timeline-store";
 
 export class PasteCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
@@ -77,6 +78,7 @@ export class PasteCommand extends Command {
 						tracks: updatedTracks,
 						targetTrackId: targetTrack.id,
 						requestedStartTime: earliestElement.startTime,
+						enabled: useTimelineStore.getState().snappingEnabled,
 					});
 					const delta = adjustedEarliestStartTime - earliestElement.startTime;
 

@@ -13,6 +13,7 @@ import {
 	enforceMainTrackStart,
 } from "@/lib/timeline/track-utils";
 import { cleanupTransitionsForTrack } from "@/lib/timeline/transition-utils";
+import { useTimelineStore } from "@/stores/timeline-store";
 
 export class MoveElementCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
@@ -74,6 +75,7 @@ export class MoveElementCommand extends Command {
 			targetTrackId: this.targetTrackId,
 			requestedStartTime: this.newStartTime,
 			excludeElementId: this.elementId,
+			enabled: useTimelineStore.getState().snappingEnabled,
 		});
 
 		const movedElement: TimelineElement = {

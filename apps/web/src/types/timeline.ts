@@ -295,6 +295,12 @@ export interface ComputeDropTargetParams {
 	verticalDragDirection?: "up" | "down" | null;
 	startTimeOverride?: number;
 	excludeElementId?: string;
+	/**
+	 * Whether the "main track must start at 0" constraint is active. Callers
+	 * pass the Auto Snapping toggle value so the drop preview matches the
+	 * behaviour the move command will apply on drop.
+	 */
+	snappingEnabled?: boolean;
 }
 
 export interface ClipboardItem {

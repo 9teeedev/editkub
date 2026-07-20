@@ -2,6 +2,7 @@ import { Command } from "@/lib/commands/base-command";
 import type { TimelineTrack } from "@/types/timeline";
 import { EditorCore } from "@/core";
 import { enforceMainTrackStart } from "@/lib/timeline/track-utils";
+import { useTimelineStore } from "@/stores/timeline-store";
 
 export class UpdateElementStartTimeCommand extends Command {
 	private savedState: TimelineTrack[] | null = null;
@@ -41,6 +42,7 @@ export class UpdateElementStartTimeCommand extends Command {
 					targetTrackId: track.id,
 					requestedStartTime: baseStartTime,
 					excludeElementId: element.id,
+					enabled: useTimelineStore.getState().snappingEnabled,
 				});
 
 				return { ...element, startTime: adjustedStartTime };

@@ -13,6 +13,7 @@ import {
 } from "@/lib/timeline/element-utils";
 import { computeDropTarget } from "@/lib/timeline/drop-utils";
 import { getDragData, hasDragData } from "@/lib/drag-data";
+import { useTimelineStore } from "@/stores/timeline-store";
 import type { TrackType, DropTarget, ElementType } from "@/types/timeline";
 import type { MediaDragData, StickerDragData } from "@/types/drag";
 
@@ -132,6 +133,7 @@ export function useTimelineDragDrop({
 				elementDuration: duration,
 				pixelsPerSecond: TIMELINE_CONSTANTS.PIXELS_PER_SECOND,
 				zoomLevel,
+				snappingEnabled: useTimelineStore.getState().snappingEnabled,
 			});
 
 			target.xPosition = getSnappedTime({ time: target.xPosition });
@@ -340,6 +342,7 @@ export function useTimelineDragDrop({
 						elementDuration: duration,
 						pixelsPerSecond: TIMELINE_CONSTANTS.PIXELS_PER_SECOND,
 						zoomLevel,
+						snappingEnabled: useTimelineStore.getState().snappingEnabled,
 					});
 
 					const trackType: TrackType =
