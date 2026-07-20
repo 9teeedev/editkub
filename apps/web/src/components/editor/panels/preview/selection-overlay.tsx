@@ -12,6 +12,7 @@ import type {
 import type { MediaAsset } from "@/types/assets";
 import { getTextScaleFactor } from "@/constants/text-constants";
 import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
+import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 
 type ScaleHandle = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 type ResizeHandle = "left" | "right";
@@ -188,18 +189,54 @@ function computeElementBounds({
 	canvasWidth,
 	canvasHeight,
 	displayScale,
+	currentTime,
 }: {
 	element: TimelineElement;
 	media: MediaAsset | undefined;
 	canvasWidth: number;
 	canvasHeight: number;
 	displayScale: number;
+	currentTime: number;
 }): ElementBounds | null {
+	// Resolve the animated transform/opacity at the playhead, mirroring the
+	// renderer so the selection box tracks the same frame the user sees.
+	// `transform` only exists on visual elements; audio is filtered upstream
+	// but we narrow here too to satisfy the union type.
+	type VisualElement = VideoElement | ImageElement | TextElement | StickerElement;
+	const isVisual = (
+		e: TimelineElement,
+	): e is VisualElement & {
+		transform: VisualElement["transform"];
+		opacity: number;
+		keyframes?: VisualElement["keyframes"];
+	} =>
+		e.type === "video" ||
+		e.type === "image" ||
+		e.type === "text" ||
+		e.type === "sticker";
+
+	if (!isVisual(element)) return null;
+
+	const localTime = Math.max(
+		0,
+		Math.min(element.duration, currentTime - element.startTime),
+	);
+	const { transform: resolvedTransform } = resolveAnimatedProperties({
+		keyframes: element.keyframes,
+		time: localTime,
+		baseTransform: element.transform,
+		baseOpacity: element.opacity,
+	});
+	const resolvedElement = {
+		...element,
+		transform: resolvedTransform,
+	} as VisualElement;
+
 	switch (element.type) {
 		case "video":
 		case "image":
 			return computeMediaBounds({
-				element,
+				element: resolvedElement as VideoElement | ImageElement,
 				media,
 				canvasWidth,
 				canvasHeight,
@@ -207,14 +244,14 @@ function computeElementBounds({
 			});
 		case "text":
 			return computeTextBounds({
-				element,
+				element: resolvedElement as TextElement,
 				canvasWidth,
 				canvasHeight,
 				displayScale,
 			});
 		case "sticker":
 			return computeStickerBounds({
-				element,
+				element: resolvedElement as StickerElement,
 				canvasWidth,
 				canvasHeight,
 				displayScale,
@@ -405,6 +442,7 @@ export function SelectionOverlay({
 					canvasWidth,
 					canvasHeight,
 					displayScale,
+					currentTime,
 				});
 
 				if (!bounds) return null;
