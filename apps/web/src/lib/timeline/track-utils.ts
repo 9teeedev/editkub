@@ -222,6 +222,57 @@ export function canElementGoOnTrack({
 	return false;
 }
 
+/**
+ * Detect whether the given element has any visible content (on other tracks)
+ * rendering *below* it in z-order, overlapping the same time range.
+ *
+ * "Below" follows the renderer's stacking: overlay tracks (text/sticker/non-main
+ * video) render above the main track; within a track, earlier elements render
+ * underneath later ones only via transitions. For blend-mode UX we treat
+ * "content below" as: any non-hidden element on any other visible track whose
+ * time range overlaps [start, end). Used by the Blend Mode panel to hint that
+ * blend modes only composite against underlying content (a single clip over the
+ * default black background yields black for multiply/color-burn/hue/etc).
+ */
+export function hasContentBelowElement({
+	tracks,
+	trackId,
+	elementId,
+}: {
+	tracks: TimelineTrack[];
+	trackId: string;
+	elementId: string;
+}): boolean {
+	// Find the source element + validate.
+	let target: TimelineElement | null = null;
+	for (const t of tracks) {
+		const found = t.elements.find((e) => e.id === elementId);
+		if (found) {
+			target = found;
+			break;
+		}
+	}
+	if (!target) return false;
+
+	const targetStart = target.startTime;
+	const targetEnd = target.startTime + target.duration;
+
+	for (const t of tracks) {
+		if ("hidden" in t && t.hidden) continue;
+		for (const e of t.elements) {
+			if (e.id === elementId) continue;
+			if ("hidden" in e && e.hidden) continue;
+			if (e.type === "audio") continue; // audio doesn't render pixels
+			const eEnd = e.startTime + e.duration;
+			// Overlap test (half-open like the renderer's range check).
+			if (e.startTime < targetEnd && eEnd > targetStart) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 export function validateElementTrackCompatibility({
 	element,
 	track,
@@ -274,12 +325,24 @@ export function enforceMainTrackStart({
 	targetTrackId,
 	requestedStartTime,
 	excludeElementId,
+	enabled = true,
 }: {
 	tracks: TimelineTrack[];
 	targetTrackId: string;
 	requestedStartTime: number;
 	excludeElementId?: string;
+	/**
+	 * Whether the "main track must start at 0" constraint should be applied.
+	 * When the Auto Snapping toggle is off, callers pass `enabled: false` so
+	 * the user can drag the first clip away from time 0.
+	 */
+	enabled?: boolean;
 }): number {
+	// When disabled (snapping off), honour the requested start time verbatim.
+	if (!enabled) {
+		return requestedStartTime;
+	}
+
 	const mainTrack = getMainTrack({ tracks });
 	if (!mainTrack || mainTrack.id !== targetTrackId) {
 		return requestedStartTime;

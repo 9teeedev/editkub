@@ -20,6 +20,8 @@ import type { ImageElement, VideoElement, AdjustmentControls } from "@/types/tim
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
 import { BLEND_MODES } from "@/constants/blend-mode-constants";
+import { hasContentBelowElement } from "@/lib/timeline/track-utils";
+import { Info } from "lucide-react";
 import {
 	Select,
 	SelectTrigger,
@@ -1032,6 +1034,22 @@ export function VideoProperties({
 									</SelectContent>
 								</Select>
 							</PropertyItemValue>
+							{element.blendMode &&
+								element.blendMode !== "source-over" &&
+								!hasContentBelowElement({
+									tracks: editor.timeline.getTracks(),
+									trackId,
+									elementId: element.id,
+								}) && (
+									<div className="bg-muted/40 text-muted-foreground mt-2 flex items-start gap-2 rounded-md p-2 text-xs leading-relaxed">
+										<Info className="mt-0.5 size-3.5 shrink-0" />
+										<span>
+											{t(
+												"Blend modes composite against underlying content. Add another clip or image on a track below to see the effect.",
+											)}
+										</span>
+									</div>
+								)}
 						</PropertyItem>
 					</div>
 				</PropertyGroup>

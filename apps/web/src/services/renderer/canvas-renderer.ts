@@ -67,8 +67,11 @@ export class CanvasRenderer {
 	}
 
 	private clear() {
-		this.context.fillStyle = "black";
-		this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		// Transparent clear — lets the scene's own background node (ColorNode /
+		// BlurBackgroundNode) define the base, so blend modes like multiply /
+		// color-burn / hue composite against the real backdrop instead of an
+		// opaque black fill that would darken them to nothing.
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 	}
 
 	async render({ node, time }: { node: BaseNode; time: number }) {
