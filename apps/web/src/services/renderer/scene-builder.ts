@@ -18,7 +18,6 @@ import { TransitionNode } from "./nodes/transition-node";
 import type { BaseNode } from "./nodes/base-node";
 import type { TBackground, TCanvasSize } from "@/types/project";
 import { DEFAULT_BLUR_INTENSITY } from "@/constants/project-constants";
-import { isMainTrack } from "@/lib/timeline";
 import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
 
@@ -100,12 +99,12 @@ export function buildScene(params: BuildSceneParams) {
 		(track) => !("hidden" in track && track.hidden),
 	);
 
-	const orderedTracksTopToBottom = [
-		...visibleTracks.filter((track) => !isMainTrack(track)),
-		...visibleTracks.filter((track) => isMainTrack(track)),
-	];
-
-	const orderedTracksBottomToTop = orderedTracksTopToBottom.slice().reverse();
+	// Honour the user's track order from the timeline UI (top track = top of
+	// canvas). Previously the scene builder partitioned tracks into non-main vs
+	// main and forced main to the bottom regardless of `getTracks()` order,
+	// which meant dragging the main track above an overlay track in the UI had
+	// no visible effect on the canvas.
+	const orderedTracksBottomToTop = visibleTracks.slice().reverse();
 
 	const contentNodes: BaseNode[] = [];
 
