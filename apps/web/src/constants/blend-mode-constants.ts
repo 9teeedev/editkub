@@ -1,0 +1,16 @@
+export const BLEND_MODES = [
+	{ id: "normal", label: "Normal", value: "source-over" },
+	{ id: "multiply", label: "Multiply", value: "multiply" },
+	{ id: "screen", label: "Screen", value: "screen" },
+	{ id: "overlay", label: "Overlay", value: "overlay" },
+	{ id: "soft-light", label: "Soft Light", value: "soft-light" },
+	{ id: "hard-light", label: "Hard Light", value: "hard-light" },
+	{ id: "color-dodge", label: "Color Dodge", value: "color-dodge" },
+	{ id: "color-burn", label: "Color Burn", value: "color-burn" },
+	{ id: "difference", label: "Difference", value: "difference" },
+	{ id: "exclusion", label: "Exclusion", value: "exclusion" },
+	{ id: "hue", label: "Hue", value: "hue" },
+	{ id: "saturation", label: "Saturation", value: "saturation" },
+	{ id: "color", label: "Color", value: "color" },
+	{ id: "luminosity", label: "Luminosity", value: "luminosity" },
+];

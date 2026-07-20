@@ -19,6 +19,7 @@ import { useEditor } from "@/hooks/use-editor";
 import type { ImageElement, VideoElement, AdjustmentControls } from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
+import { BLEND_MODES } from "@/constants/blend-mode-constants";
 import {
 	Select,
 	SelectTrigger,
@@ -991,6 +992,47 @@ export function VideoProperties({
 								</PropertyItem>
 							);
 						})}
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup title={t("Blend Mode")} collapsible={false}>
+					<div className="space-y-6">
+						<PropertyItem direction="column">
+							<PropertyItemLabel>{t("Mode")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Select
+									value={element.blendMode ?? "source-over"}
+									onValueChange={(blendMode) => {
+										editor.timeline.updateElements({
+											updates: [
+												{
+													trackId,
+													elementId: element.id,
+													updates: {
+														blendMode:
+															blendMode === "source-over"
+																? undefined
+																: blendMode,
+													},
+												},
+											],
+											pushHistory: true,
+										});
+									}}
+								>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder={t("Normal")} />
+									</SelectTrigger>
+									<SelectContent>
+										{BLEND_MODES.map((mode) => (
+											<SelectItem key={mode.id} value={mode.value}>
+												{mode.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</PropertyItemValue>
+						</PropertyItem>
 					</div>
 				</PropertyGroup>
 

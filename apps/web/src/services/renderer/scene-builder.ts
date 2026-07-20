@@ -55,6 +55,7 @@ function buildVisualElementNode({
 			transform: element.transform,
 			opacity: element.opacity,
 			filter: computeFilterString(element.filter, element.adjustments),
+			blendMode: element.blendMode,
 			vignette: element.adjustments?.vignette ?? 0,
 			keyframes: element.keyframes,
 			playbackRate: videoElement.playbackRate,
@@ -72,6 +73,7 @@ function buildVisualElementNode({
 			transform: element.transform,
 			opacity: element.opacity,
 			filter: computeFilterString(element.filter, element.adjustments),
+			blendMode: element.blendMode,
 			vignette: element.adjustments?.vignette ?? 0,
 			keyframes: element.keyframes,
 		});

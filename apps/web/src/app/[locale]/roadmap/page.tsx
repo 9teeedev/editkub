@@ -206,7 +206,7 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Overlay & Blend Modes",
 				description:
 					"Layer compositing with blend modes (Normal, Multiply, Screen, Overlay, Soft Light, Color Dodge, Difference, Exclusion, Hue, Saturation, Color, Luminosity). Opacity control per layer. Blend mode preview thumbnails. Useful for light leaks, film grain, texture overlays, double exposure effects.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Audio Mixing",

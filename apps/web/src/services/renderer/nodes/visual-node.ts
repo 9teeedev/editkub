@@ -14,6 +14,7 @@ export interface VisualNodeParams {
 	opacity: number;
 	filter?: string;
 	vignette?: number; // 0-100, edge darkening intensity
+	blendMode?: string;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -54,6 +55,11 @@ export abstract class VisualNode<
 		time: number;
 	}): void {
 		renderer.context.save();
+
+		if (this.params.blendMode) {
+			renderer.context.globalCompositeOperation =
+				this.params.blendMode as GlobalCompositeOperation;
+		}
 
 		if (this.params.filter && this.params.filter !== "none") {
 			renderer.context.filter = this.params.filter;

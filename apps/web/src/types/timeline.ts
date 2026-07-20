@@ -155,6 +155,7 @@ export interface VideoElement extends BaseTimelineElement {
 	transform: Transform;
 	opacity: number;
 	filter?: ElementFilter;
+	blendMode?: string;
 	adjustments?: AdjustmentControls;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
@@ -168,6 +169,7 @@ export interface ImageElement extends BaseTimelineElement {
 	transform: Transform;
 	opacity: number;
 	filter?: ElementFilter;
+	blendMode?: string;
 	adjustments?: AdjustmentControls;
 	keyframes?: ElementKeyframes;
 }
