@@ -127,6 +127,23 @@ export interface TextAnimation {
 	intensity?: number;
 }
 
+/**
+ * Per-element text animations grouped by phase. `in` plays from the element's
+ * start (entrance); `out` plays over the final `out.duration` seconds before
+ * the element ends (exit). Either may be omitted for "no animation in that
+ * phase". Stored as a single object so the whole animation config travels as
+ * one logical unit (e.g. when edited by an AI/MCP tool).
+ */
+export interface TextAnimations {
+	/** Entrance animation, played from element-local time 0. */
+	in?: TextAnimation;
+	/** Exit animation, played over the final seconds of the element. */
+	out?: TextAnimation;
+}
+
+/** The two independent phases a text animation can belong to. */
+export type TextAnimationPhase = "in" | "out";
+
 // ---- Transitions ----
 
 export type TransitionType =
@@ -257,7 +274,7 @@ export interface TextElement extends BaseTimelineElement {
 	backgroundOpacity?: number;
 	backgroundPaddingX?: number;
 	backgroundPaddingY?: number;
-	textAnimation?: TextAnimation;
+	textAnimations?: TextAnimations;
 }
 
 export interface StickerElement extends BaseTimelineElement {

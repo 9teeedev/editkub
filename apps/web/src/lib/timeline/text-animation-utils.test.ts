@@ -1,9 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
 	resolveTextAnimation,
+	resolveTextAnimations,
+	phaseForType,
 	TEXT_ANIMATION_TYPES,
 	DEFAULT_DURATION,
 } from "./text-animation-utils";
+import type { TextAnimations } from "@/types/timeline";
 import type { TextAnimation } from "@/types/timeline";
 
 const FULL = "Hello World";
@@ -466,5 +469,136 @@ describe("resolveTextAnimation integration", () => {
 				}),
 			).not.toThrow();
 		}
+	});
+});
+
+describe("phaseForType", () => {
+	test("exit types route to out", () => {
+		expect(phaseForType("fade-out")).toBe("out");
+		expect(phaseForType("slide-out")).toBe("out");
+	});
+
+	test("entrance/loop/highlight types route to in", () => {
+		expect(phaseForType("typewriter")).toBe("in");
+		expect(phaseForType("fade-in")).toBe("in");
+		expect(phaseForType("slide-in")).toBe("in");
+		expect(phaseForType("scale-in")).toBe("in");
+		expect(phaseForType("bounce")).toBe("in");
+		expect(phaseForType("glitch")).toBe("in");
+		expect(phaseForType("none")).toBe("in");
+	});
+});
+
+describe("resolveTextAnimations (in + out composer)", () => {
+	const ELEMENT_DURATION = 5;
+
+	test("undefined animations returns full text static", () => {
+		const r = resolveTextAnimations({
+			animations: undefined,
+			localTime: 1,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		expect(r.visibleText).toBe(FULL);
+		expect(r.opacity).toBe(1);
+		expect(r.scale).toBe(1);
+		expect(r.offsetX).toBe(0);
+		expect(r.offsetY).toBe(0);
+	});
+
+	test("both phases absent (empty object) returns full text static", () => {
+		const r = resolveTextAnimations({
+			animations: {} as TextAnimations,
+			localTime: 1,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		expect(r.visibleText).toBe(FULL);
+		expect(r.opacity).toBe(1);
+	});
+
+	test("in-phase plays from element start", () => {
+		// fade-in at time 0 → opacity 0; past duration → opacity 1.
+		const atStart = resolveTextAnimations({
+			animations: { in: { type: "fade-in", duration: 1 } },
+			localTime: 0,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		expect(atStart.opacity).toBe(0);
+
+		const afterIn = resolveTextAnimations({
+			animations: { in: { type: "fade-in", duration: 1 } },
+			localTime: 2,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		expect(afterIn.opacity).toBe(1);
+	});
+
+	test("out-phase plays over the element's final seconds", () => {
+		// fade-out duration 1 over a 5s element → window [4, 5].
+		const beforeOut = resolveTextAnimations({
+			animations: { out: { type: "fade-out", duration: 1 } },
+			localTime: 2,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		// Not yet in the out window → opacity 1.
+		expect(beforeOut.opacity).toBe(1);
+
+		const atOutStart = resolveTextAnimations({
+			animations: { out: { type: "fade-out", duration: 1 } },
+			localTime: 4,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		// Start of out window → opacity 1 (fade-out just beginning).
+		expect(atOutStart.opacity).toBe(1);
+
+		const midOut = resolveTextAnimations({
+			animations: { out: { type: "fade-out", duration: 1 } },
+			localTime: 4.5,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		// Mid fade-out → opacity between 0 and 1, strictly less than 1.
+		expect(midOut.opacity).toBeGreaterThan(0);
+		expect(midOut.opacity).toBeLessThan(1);
+
+		const atOutEnd = resolveTextAnimations({
+			animations: { out: { type: "fade-out", duration: 1 } },
+			localTime: 5,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		// End of out window → opacity 0 (fully faded).
+		expect(atOutEnd.opacity).toBe(0);
+	});
+
+	test("in and out compose: opacity multiplies", () => {
+		// fade-in (duration 1) at time 0 → opacity 0; multiply by anything → 0.
+		const r = resolveTextAnimations({
+			animations: {
+				in: { type: "fade-in", duration: 1 },
+				out: { type: "fade-out", duration: 1 },
+			},
+			localTime: 0,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		expect(r.opacity).toBe(0);
+	});
+
+	test("out longer than element still works (outStart clamped to 0)", () => {
+		// out duration 10 on a 5s element → out window starts at max(0, 5-10)=0.
+		const atStart = resolveTextAnimations({
+			animations: { out: { type: "fade-out", duration: 10 } },
+			localTime: 0,
+			elementDuration: ELEMENT_DURATION,
+			fullText: FULL,
+		});
+		// localTime 0 in a fade-out → opacity 1 (start of fade).
+		expect(atStart.opacity).toBe(1);
 	});
 });

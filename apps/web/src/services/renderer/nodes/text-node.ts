@@ -3,7 +3,7 @@ import { BaseNode } from "./base-node";
 import type { TextElement } from "@/types/timeline";
 import { getTextScaleFactor } from "@/constants/text-constants";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
-import { resolveTextAnimation } from "@/lib/timeline/text-animation-utils";
+import { resolveTextAnimations } from "@/lib/timeline/text-animation-utils";
 
 type RenderContext =
 	| CanvasRenderingContext2D
@@ -109,9 +109,10 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		// Resolve per-frame text animation (typewriter, fade, slide, bounce, …).
 		// Offset/scale/opacity compose with the keyframe values; visibleText may
 		// be truncated (typewriter).
-		const textAnim = resolveTextAnimation({
-			animation: this.params.textAnimation,
+		const textAnim = resolveTextAnimations({
+			animations: this.params.textAnimations,
 			localTime,
+			elementDuration: this.params.duration,
 			fullText: this.params.content,
 			baseScale: transform.scale,
 		});

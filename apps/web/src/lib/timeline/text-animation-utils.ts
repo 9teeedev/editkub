@@ -8,7 +8,12 @@
  *
  * Like keyframes, `localTime` is seconds from the element's start.
  */
-import type { TextAnimation, TextAnimationType } from "@/types/timeline";
+import type {
+	TextAnimation,
+	TextAnimationPhase,
+	TextAnimations,
+	TextAnimationType,
+} from "@/types/timeline";
 
 export interface ResolvedTextAnimation {
 	/** Text that should actually be drawn (typewriter truncates to this). */
@@ -269,3 +274,87 @@ export const DEFAULT_DURATION: Partial<Record<TextAnimationType, number>> = {
 	glitch: 0, // loop forever
 	karaoke: 0,
 };
+
+// ---- Phase composer (in + out) ----
+
+/**
+ * Resolve the per-frame render state for an element's combined `in` + `out`
+ * text animations.
+ *
+ * `in` plays from element-local time 0 (entrance). `out` plays over the
+ * element's final `out.duration` seconds (exit). When both are set and the
+ * timelines overlap, the `out` result takes precedence on offset/scale (it is
+ * the "leaving" state) while opacities multiply so a fade-in + fade-out both
+ * dim the text. Visible text uses the shorter of the two (typewriter reveal).
+ *
+ * @param animations       The element's `{ in?, out? }` config.
+ * @param localTime        Seconds from the element's start.
+ * @param elementDuration  Total element duration in seconds (anchors the out phase).
+ * @param fullText         The element's full content string.
+ * @param baseScale        Base scale multiplier for offset magnitudes.
+ */
+export function resolveTextAnimations({
+	animations,
+	localTime,
+	elementDuration,
+	fullText,
+	baseScale = 1,
+}: {
+	animations: TextAnimations | undefined;
+	localTime: number;
+	elementDuration: number;
+	fullText: string;
+	baseScale?: number;
+}): ResolvedTextAnimation {
+	if (!animations || (!animations.in && !animations.out)) {
+		return { ...STATIC, visibleText: fullText };
+	}
+
+	const inResolved = resolveTextAnimation({
+		animation: animations.in,
+		localTime,
+		fullText,
+		baseScale,
+	});
+
+	const outAnim = animations.out;
+	const outDur = outAnim?.duration ?? 0;
+	// The out phase starts at `elementDuration - outDur` (clamped ≥ 0). Remap
+	// localTime into the out phase's own [0, outDur] window.
+	const outStart = Math.max(0, elementDuration - outDur);
+	const outLocal = localTime - outStart;
+	const outResolved = resolveTextAnimation({
+		animation: outAnim,
+		localTime: outLocal,
+		fullText,
+		baseScale,
+	});
+
+	// Whether the out phase is currently active (within its window).
+	const outActive = outAnim != null && outLocal >= 0 && outLocal < outDur;
+
+	// Compose. When out is active it drives offset/scale/visibleText (the
+	// element is "leaving"); otherwise the in result drives them. Opacity
+	// always multiplies so fade-in and fade-out compose naturally.
+	const visibleText =
+		outResolved.visibleText.length <= inResolved.visibleText.length
+			? outResolved.visibleText
+			: inResolved.visibleText;
+
+	return {
+		visibleText,
+		opacity: inResolved.opacity * outResolved.opacity,
+		offsetX: outActive ? outResolved.offsetX : inResolved.offsetX,
+		offsetY: outActive ? outResolved.offsetY : inResolved.offsetY,
+		scale: outActive ? outResolved.scale : inResolved.scale,
+	};
+}
+
+/**
+ * Which phase a given animation type belongs to. Entrance/loop/highlight types
+ * are "in"; exit types are "out". Used by the v5→v6 migration and the UI to
+ * route a single legacy `textAnimation` into the correct phase.
+ */
+export function phaseForType(type: TextAnimationType): TextAnimationPhase {
+	return type === "fade-out" || type === "slide-out" ? "out" : "in";
+}
