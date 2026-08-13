@@ -1,11 +1,18 @@
 import type { TranscriptionResult } from "@/types/transcription";
 import type { RemoteTranscriptionProvider, VerboseJsonResponse } from "./types";
 
+interface SimpleJsonResponse {
+	text: string;
+}
+
+const VERBOSE_MODELS = new Set(["whisper-1"]);
+
 /**
  * OpenAI transcription provider.
  *
- * Uses the `/audio/transcriptions` endpoint with
- * `response_format: "verbose_json"` to get segment-level timestamps.
+ * Uses `/audio/transcriptions` endpoint.
+ * `whisper-1` supports `verbose_json` (segment timestamps).
+ * `gpt-4o-transcribe*` models only support `json` or `text` — use `json`.
  *
  * API keys: https://platform.openai.com/api-keys
  * Docs: https://platform.openai.com/docs/api-reference/audio/createTranscription
@@ -14,8 +21,12 @@ export const openaiProvider: RemoteTranscriptionProvider = {
 	id: "openai",
 	name: "OpenAI (Cloud)",
 	requiresApiKey: true,
-	models: [{ id: "whisper-1", name: "Whisper v1" }],
-	defaultModelId: "whisper-1",
+	models: [
+		{ id: "gpt-4o-transcribe", name: "GPT-4o Transcribe (Best)" },
+		{ id: "gpt-4o-mini-transcribe", name: "GPT-4o Mini Transcribe" },
+		{ id: "whisper-1", name: "Whisper v1 (Legacy)" },
+	],
+	defaultModelId: "gpt-4o-transcribe",
 	apiKeyUrl: "https://platform.openai.com/api-keys",
 
 	async transcribe({
@@ -24,10 +35,12 @@ export const openaiProvider: RemoteTranscriptionProvider = {
 		model,
 		language,
 	}): Promise<TranscriptionResult> {
+		const useVerbose = VERBOSE_MODELS.has(model);
+
 		const formData = new FormData();
 		formData.append("file", audioBlob, "audio.wav");
 		formData.append("model", model);
-		formData.append("response_format", "verbose_json");
+		formData.append("response_format", useVerbose ? "verbose_json" : "json");
 
 		if (language && language !== "auto") {
 			formData.append("language", language);
@@ -51,18 +64,33 @@ export const openaiProvider: RemoteTranscriptionProvider = {
 			);
 		}
 
-		const data = (await response.json()) as VerboseJsonResponse;
+		if (useVerbose) {
+			const data = (await response.json()) as VerboseJsonResponse;
+			return {
+				text: data.text,
+				language: data.language ?? language ?? "unknown",
+				segments: (data.segments ?? []).map((seg) => ({
+					text: seg.text.trim(),
+					start: seg.start,
+					end: seg.end,
+					avgLogprob: seg.avg_logprob,
+					noSpeechProb: seg.no_speech_prob,
+				})),
+			};
+		}
 
+		// gpt-4o-transcribe / gpt-4o-mini-transcribe — json response has no segments
+		const data = (await response.json()) as SimpleJsonResponse;
 		return {
 			text: data.text,
-			language: data.language ?? language ?? "unknown",
-			segments: (data.segments ?? []).map((seg) => ({
-				text: seg.text.trim(),
-				start: seg.start,
-				end: seg.end,
-				avgLogprob: seg.avg_logprob,
-				noSpeechProb: seg.no_speech_prob,
-			})),
+			language: language ?? "unknown",
+			segments: [
+				{
+					text: data.text.trim(),
+					start: 0,
+					end: 0,
+				},
+			],
 		};
 	},
 };
