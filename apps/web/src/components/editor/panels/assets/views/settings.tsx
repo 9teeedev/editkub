@@ -40,6 +40,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useTranscriptionSettingsStore } from "@/stores/transcription-settings-store";
 import { REMOTE_PROVIDERS } from "@/lib/transcription/providers";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { Slider } from "@/components/ui/slider";
+import type { TBackground } from "@/types/project";
 
 export function SettingsView() {
 	return <ProjectSettingsTabs />;
@@ -396,6 +399,16 @@ function BackgroundView() {
 		[editor.project],
 	);
 
+	const handleGradientChange = useCallback(
+		async ({ stops, angle }: { stops: [string, string]; angle: number }) => {
+			const css = `linear-gradient(${angle}deg, #${stops[0]}, #${stops[1]})`;
+			await editor.project.updateSettings({
+				settings: { background: { type: "gradient", css, angle, stops } },
+			});
+		},
+		[editor.project],
+	);
+
 	const currentBlurIntensity =
 		activeProject.settings.background.type === "blur"
 			? activeProject.settings.background.blurIntensity
@@ -408,6 +421,12 @@ function BackgroundView() {
 
 	const isBlurBackground = activeProject.settings.background.type === "blur";
 	const isColorBackground = activeProject.settings.background.type === "color";
+	const isGradientBackground =
+		activeProject.settings.background.type === "gradient";
+	const currentGradient =
+		activeProject.settings.background.type === "gradient"
+			? activeProject.settings.background
+			: null;
 
 	const blurPreviews = useMemo(
 		() =>
@@ -431,6 +450,18 @@ function BackgroundView() {
 
 	return (
 		<div className="flex h-full flex-col">
+			<PropertyGroup
+				title={t("Custom gradient")}
+				hasBorderTop={false}
+				defaultExpanded={false}
+			>
+				<CustomGradientBuilder
+					isActive={isGradientBackground}
+					current={currentGradient}
+					onChange={handleGradientChange}
+				/>
+			</PropertyGroup>
+
 			<PropertyGroup
 				title={t("Blur")}
 				hasBorderTop={false}
@@ -712,3 +743,60 @@ function TranscriptionSettingsSection() {
 	);
 }
 
+function CustomGradientBuilder({
+	isActive,
+	current,
+	onChange,
+}: {
+	isActive: boolean;
+	current: Extract<TBackground, { type: "gradient" }> | null;
+	onChange: (params: { stops: [string, string]; angle: number }) => void;
+}) {
+	const { t } = useTranslation();
+	const stop1 = current?.stops[0] ?? "FF6B6B";
+	const stop2 = current?.stops[1] ?? "4ECDC4";
+	const angle = current?.angle ?? 135;
+
+	const previewCss = `linear-gradient(${angle}deg, #${stop1}, #${stop2})`;
+
+	return (
+		<div className="space-y-3">
+			<div
+				className="h-12 w-full rounded-sm border"
+				style={{ background: previewCss }}
+			/>
+			<div className="flex items-center justify-between gap-3">
+				<ColorPicker
+					value={stop1}
+					onChange={(hex) => onChange({ stops: [hex, stop2], angle })}
+					onChangeEnd={(hex) => onChange({ stops: [hex, stop2], angle })}
+				/>
+				<ColorPicker
+					value={stop2}
+					onChange={(hex) => onChange({ stops: [stop1, hex], angle })}
+					onChangeEnd={(hex) => onChange({ stops: [stop1, hex], angle })}
+				/>
+			</div>
+			<div className="flex items-center gap-2">
+				<span className="text-muted-foreground text-xs">{t("Angle")}</span>
+				<Slider
+					value={[angle]}
+					min={0}
+					max={360}
+					step={1}
+					onValueChange={([v]) => onChange({ stops: [stop1, stop2], angle: v })}
+					onValueCommit={([v]) => onChange({ stops: [stop1, stop2], angle: v })}
+					className="flex-1"
+				/>
+				<span className="text-muted-foreground w-10 text-right text-xs">
+					{angle}°
+				</span>
+			</div>
+			{!isActive && (
+				<p className="text-muted-foreground text-xs">
+					{t("Pick two colors to fill empty canvas areas with a gradient.")}
+				</p>
+			)}
+		</div>
+	);
+}

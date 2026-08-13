@@ -301,8 +301,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Canvas Background Fill",
 				description:
-					"Fill empty canvas area (e.g. horizontal video in a vertical project) with blurred copy of the clip, solid color, or gradient. Auto-fit modes for 9:16, 1:1, and 4:5 exports. Essential for repurposing landscape clips to short-form vertical.",
-				status: { text: "Not started", type: "default" },
+					"Fill empty canvas areas with blur, solid color, or custom gradient. The blur + color modes already existed; this adds a first-class gradient variant to TBackground ({ type: 'gradient', css, angle, stops }) rendered by the existing ColorNode (which already supported CSS gradient strings via drawCssBackground). New CustomGradientBuilder UI in the Background settings panel: two ColorPickers + an angle slider (0-360°), live preview swatch, commits via updateSettings. Preview canvases (desktop + mobile) updated to render the gradient CSS.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Custom Subtitle System",

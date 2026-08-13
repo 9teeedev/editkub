@@ -483,7 +483,9 @@ function PreviewCanvas() {
 						background:
 							activeProject.settings.background.type === "blur"
 								? "transparent"
-								: activeProject?.settings.background.color,
+								: activeProject.settings.background.type === "gradient"
+									? activeProject.settings.background.css
+									: activeProject.settings.background.color,
 					}}
 				/>
 				<PreviewInteractionOverlay

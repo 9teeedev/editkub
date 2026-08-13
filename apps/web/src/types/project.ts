@@ -9,6 +9,15 @@ export type TBackground =
 	| {
 			type: "blur";
 			blurIntensity: number;
+	  }
+	| {
+			type: "gradient";
+			/** CSS gradient string, e.g. "linear-gradient(135deg, #ff0000, #0000ff)". */
+			css: string;
+			/** Angle in degrees for linear gradients (0-360). */
+			angle: number;
+			/** Stop colors (hex without #). */
+			stops: [string, string];
 	  };
 
 export interface TCanvasSize {

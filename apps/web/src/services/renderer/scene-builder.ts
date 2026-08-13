@@ -248,6 +248,11 @@ export function buildScene(params: BuildSceneParams) {
 		for (const node of contentNodes) {
 			rootNode.add(node);
 		}
+	} else if (background.type === "gradient") {
+		rootNode.add(new ColorNode({ color: background.css }));
+		for (const node of contentNodes) {
+			rootNode.add(node);
+		}
 	} else {
 		if (background.type === "color" && background.color !== "transparent") {
 			rootNode.add(new ColorNode({ color: background.color }));
