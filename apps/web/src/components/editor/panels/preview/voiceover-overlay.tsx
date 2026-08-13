@@ -39,7 +39,6 @@ export function VoiceoverOverlay({ displaySize }: VoiceoverOverlayProps) {
 		monitorOriginalAudio,
 		beginRecording,
 		stop,
-		setStartTime,
 	} = useVoiceoverStore();
 	const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	// Saved volume to restore after muting during recording.
@@ -75,7 +74,6 @@ export function VoiceoverOverlay({ displaySize }: VoiceoverOverlayProps) {
 	};
 
 	const {
-		isRecording,
 		recordingTime,
 		startRecording,
 		stopRecording,

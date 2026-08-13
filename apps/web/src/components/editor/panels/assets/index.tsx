@@ -5,6 +5,7 @@ import { type Tab, useAssetsPanelStore } from "@/stores/assets-panel-store";
 import { TabBar } from "./tabbar";
 import { AIView } from "./views/ai";
 import { Captions } from "./views/captions";
+import { SubtitlesView } from "./views/subtitles";
 import { MediaView } from "./views/media";
 import { SettingsView } from "./views/settings";
 import { SoundsView } from "./views/sounds";
@@ -25,6 +26,7 @@ export function AssetsPanel() {
 		effects: <EffectsView />,
 		transitions: <TransitionsView />,
 		captions: <Captions />,
+		subtitles: <SubtitlesView />,
 		filters: <FiltersView />,
 		ai: <AIView />,
 		settings: <SettingsView />,

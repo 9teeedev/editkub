@@ -28,6 +28,7 @@ export function TabBar() {
 		t("Effects");
 		t("Transitions");
 		t("Captions");
+		t("Subtitles");
 		t("Filters");
 		t("Adjustment");
 		t("AI");
