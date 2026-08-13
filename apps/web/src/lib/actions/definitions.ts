@@ -131,6 +131,10 @@ export const ACTIONS = {
 		description: "Enhance and denoise audio in selected clip",
 		category: "editing",
 	},
+	"change-voice": {
+		description: "Apply voice changer preset to selected clip",
+		category: "editing",
+	},
 	"convert-to-speech": {
 		description: "Convert text to speech",
 		category: "editing",

@@ -295,8 +295,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Voice Changer",
 				description:
-					"Real-time pitch and formant shifting with presets: Robot, Chipmunk, Deep, Echo, Telephone, Alien. Powered by Rubber Band or SoundTouch (WASM builds), all local. Per-clip effect, undoable.",
-				status: { text: "Not started", type: "default" },
+					"Pitch + character-effect presets, fully local (no WASM). changeVoice renders the source via OfflineAudioContext at a preset playbackRate (offline length scales by 1/pitch so tempo is preserved) plus filter/effect chains: Chipmunk (×1.6), Deep (×0.65), Robot (50 Hz ring mod), Telephone (300–3400 Hz bandpass), Alien (×0.8 + 800 Hz bandpass + delay feedback), Echo (250 ms delay, 0.4 feedback). Encodes to WAV, registers new asset, swaps mediaId. Arg-taking action ('change-voice', { preset }) surfaced as a toolbar dropdown (VoiceIcon). Non-destructive, undoable.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Canvas Background Fill",

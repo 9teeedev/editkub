@@ -22,6 +22,7 @@ import {
 import type { ElementKeyframes, KeyframeProperty } from "@/types/timeline";
 import { enhanceVoice } from "@/lib/audio/voice-enhance";
 import { encodeWav } from "@/lib/audio/wav-encoder";
+import { changeVoice, type VoicePreset } from "@/lib/audio/voice-changer";
 import { processMediaAssets } from "@/lib/media/processing";
 
 export function useEditorActions() {
@@ -355,6 +356,102 @@ export function useEditorActions() {
 				} else {
 					toast.success(
 						i18next.t("Enhanced {{count}} clip(s)", { count: processed }),
+						{ id: toastId },
+					);
+				}
+			})();
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"change-voice",
+		(args) => {
+			if (!args?.preset) return;
+			const { preset } = args;
+			void (async () => {
+				const resolved = editor.timeline.getElementsWithTracks({
+					elements: selectedElements,
+				});
+				const targets = resolved
+					.map(({ track, element }) => ({ track, element }))
+					.filter(({ element }) => {
+						if (element.type === "audio") {
+							return element.sourceType === "upload";
+						}
+						return element.type === "video";
+					});
+
+				if (targets.length === 0) {
+					toast.info(i18next.t("Select an audio or video clip"));
+					return;
+				}
+
+				const assets = editor.media.getAssets();
+				const activeProject = editor.project.getActive();
+				if (!activeProject) return;
+				const projectId = activeProject.metadata.id;
+				const toastId = "change-voice";
+				toast.loading(i18next.t("Changing voice..."), { id: toastId });
+
+				let processed = 0;
+				for (const { track, element } of targets) {
+					const mediaId =
+						element.type === "audio" && element.sourceType === "upload"
+							? element.mediaId
+							: element.type === "video"
+								? element.mediaId
+								: null;
+					if (!mediaId) continue;
+					const file = assets.find((a) => a.id === mediaId)?.file;
+					if (!file) continue;
+
+					const changed = await changeVoice(file, preset as VoicePreset);
+					if (!changed) {
+						toast.error(
+							i18next.t("Could not process {{name}}", { name: element.name }),
+							{ id: toastId },
+						);
+						continue;
+					}
+
+					const wavBlob = encodeWav(changed.samples, changed.sampleRate);
+					const changedFile = new File(
+						[wavBlob],
+						`${element.name} (${preset}).wav`,
+						{ type: "audio/wav" },
+					);
+					const [processedAsset] = await processMediaAssets({
+						files: [changedFile],
+					});
+					if (!processedAsset) continue;
+
+					const newMediaId = await editor.media.addMediaAsset({
+						projectId,
+						asset: processedAsset,
+					});
+
+					editor.timeline.updateElements({
+						updates: [
+							{
+								trackId: track.id,
+								elementId: element.id,
+								updates: { mediaId: newMediaId },
+							},
+						],
+						pushHistory: processed === 0,
+					});
+					processed++;
+				}
+
+				if (processed === 0) {
+					toast.info(i18next.t("Voice change failed"), { id: toastId });
+				} else {
+					toast.success(
+						i18next.t("Applied {{preset}} to {{count}} clip(s)", {
+							preset,
+							count: processed,
+						}),
 						{ id: toastId },
 					);
 				}
