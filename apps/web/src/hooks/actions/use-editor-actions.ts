@@ -24,6 +24,8 @@ import { enhanceVoice } from "@/lib/audio/voice-enhance";
 import { encodeWav } from "@/lib/audio/wav-encoder";
 import { changeVoice, type VoicePreset } from "@/lib/audio/voice-changer";
 import { processMediaAssets } from "@/lib/media/processing";
+import { decodeAudioToFloat32 } from "@/lib/media/audio";
+import { detectSilence, invertSegments } from "@/lib/audio/silence-detection";
 
 export function useEditorActions() {
 	const editor = useEditor();
@@ -452,6 +454,117 @@ export function useEditorActions() {
 							preset,
 							count: processed,
 						}),
+						{ id: toastId },
+					);
+				}
+			})();
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"remove-silence",
+		() => {
+			void (async () => {
+				const resolved = editor.timeline.getElementsWithTracks({
+					elements: selectedElements,
+				});
+				// Audio-bearing elements: upload audio (mediaId) or video.
+				const targets = resolved
+					.map(({ track, element }) => ({ track, element }))
+					.filter(({ element }) => {
+						if (element.type === "audio") {
+							return element.sourceType === "upload";
+						}
+						return element.type === "video";
+					});
+
+				if (targets.length === 0) {
+					toast.info(i18next.t("Select an audio or video clip"));
+					return;
+				}
+
+				const assets = editor.media.getAssets();
+				const toastId = "remove-silence";
+				toast.loading(i18next.t("Analyzing audio..."), { id: toastId });
+
+				let totalRemoved = 0;
+				let processed = 0;
+				const threshold = -40; // dBFS
+				const minDuration = 0.3; // seconds
+
+				for (const { track, element } of targets) {
+					const mediaId =
+						element.type === "audio" && element.sourceType === "upload"
+							? element.mediaId
+							: element.type === "video"
+								? element.mediaId
+								: null;
+					if (!mediaId) continue;
+					const file = assets.find((a) => a.id === mediaId)?.file;
+					if (!file) continue;
+
+					let samples: Float32Array;
+					let sampleRate: number;
+					try {
+						const decoded = await decodeAudioToFloat32({
+							audioBlob: file,
+							targetSampleRate: 16000,
+						});
+						samples = decoded.samples;
+						sampleRate = decoded.sampleRate;
+					} catch {
+						toast.error(
+							i18next.t("Could not decode audio for {{name}}", {
+								name: element.name,
+							}),
+							{ id: toastId },
+						);
+						continue;
+					}
+
+					// Source-local range to analyze: [trimStart, trimEnd].
+					const sourceDuration = element.trimEnd - element.trimStart;
+					const startSample = Math.floor(element.trimStart * sampleRate);
+					const endSample = Math.min(
+						samples.length,
+						Math.floor((element.trimStart + sourceDuration) * sampleRate),
+					);
+					const slice = samples.subarray(startSample, endSample);
+
+					const silence = detectSilence(slice, sampleRate, {
+						threshold,
+						minDuration,
+						pad: 0.05,
+					});
+					const kept = invertSegments(silence, sourceDuration);
+
+					if (silence.length === 0 || kept.length === 1) {
+						continue;
+					}
+
+					editor.timeline.removeSilence({
+						target: { trackId: track.id, elementId: element.id },
+						keptSegments: kept,
+					});
+
+					const removed =
+						sourceDuration - kept.reduce((s, k) => s + (k.end - k.start), 0);
+					totalRemoved += removed;
+					processed++;
+				}
+
+				if (processed === 0) {
+					toast.info(i18next.t("No silence detected"), { id: toastId });
+				} else {
+					toast.success(
+						i18next.t(
+							"Removed {{seconds}}s of silence from {{count}} clip(s)",
+							{
+								seconds: totalRemoved.toFixed(1),
+								count: processed,
+							},
+						),
 						{ id: toastId },
 					);
 				}

@@ -283,8 +283,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Auto Silence Removal",
 				description:
-					"Detect and cut silent gaps automatically. Web Audio API analyzes RMS/peak amplitude; segments below a configurable threshold are marked for removal. Optional preview-then-confirm flow before cuts are applied. Great for podcasts, talking-head, and screencasts.",
-				status: { text: "Not started", type: "default" },
+					"Detect silent segments in an audio/video clip and cut them out, compacting the clip. Decodes the source File via Web Audio API (decodeAudioToFloat32 @ 16kHz mono), slides a 50ms RMS window, thresholds at −40 dBFS, merges runs ≥ 300ms into silence segments, pads edges by 50ms. A new RemoveSilenceCommand splits the element into kept sub-segments and repositions them back-to-back (single undo). Threshold/min-duration are fixed defaults; surfaced as a toolbar button (MuteIcon).",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "AI Voice Enhancement & Denoise",

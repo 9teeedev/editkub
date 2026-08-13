@@ -43,6 +43,7 @@ import {
 	MusicNote03Icon,
 	AiAudioIcon,
 	VoiceIcon,
+	MuteIcon,
 	StopCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -151,6 +152,14 @@ function ToolbarLeftSection() {
 					tooltip={t("Detach audio")}
 					onClick={({ event }) =>
 						handleAction({ action: "detach-audio", event })
+					}
+				/>
+
+				<ToolbarButton
+					icon={<HugeiconsIcon icon={MuteIcon} />}
+					tooltip={t("Remove silence")}
+					onClick={({ event }) =>
+						handleAction({ action: "remove-silence", event })
 					}
 				/>
 

@@ -135,6 +135,10 @@ export const ACTIONS = {
 		description: "Apply voice changer preset to selected clip",
 		category: "editing",
 	},
+	"remove-silence": {
+		description: "Detect and remove silent segments from selected clip",
+		category: "editing",
+	},
 	"convert-to-speech": {
 		description: "Convert text to speech",
 		category: "editing",
