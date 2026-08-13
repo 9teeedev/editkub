@@ -253,8 +253,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Preview Fit / Zoom Dropdown",
 				description:
-					"Zoom dropdown on the preview player transport bar: Fit, 25%, 50%, 75%, 100%, 150%, 200%. Controls canvas magnification for precise keyframe/adjustment work without changing the export resolution.",
-				status: { text: "Not started", type: "default" },
+					"Zoom dropdown on the preview player transport bar: Fit, 25%, 50%, 75%, 100%, 150%, 200%. Controls canvas magnification for precise keyframe/adjustment work without changing the export resolution. Persisted in a preview-zoom store; Fit letterboxes, explicit % scrolls when overflowing.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Chroma Key / Green Screen",
