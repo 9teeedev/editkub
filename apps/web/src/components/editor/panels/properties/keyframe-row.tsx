@@ -15,9 +15,16 @@ import {
 } from "@/lib/timeline/keyframe-utils";
 import type {
 	ElementKeyframes,
+	Keyframe,
 	KeyframeProperty,
 	Transform,
 } from "@/types/timeline";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { KeyframeCurveEditor } from "./keyframe-curve-editor";
 
 /**
  * A small keyframe toggle + add button rendered inline next to an animatable
@@ -160,6 +167,74 @@ export function KeyframeRow({
 					+
 				</button>
 			)}
+			{active && atPlayhead && (
+				<CurveEditorButton
+					property={property}
+					trackId={trackId}
+					elementId={elementId}
+					keyframes={keyframes}
+					targetKeyframe={atPlayhead}
+				/>
+			)}
 		</div>
+	);
+}
+
+/**
+ * Curve/easing editor trigger for the keyframe currently at the playhead.
+ * Renders a tiny "∿" button; opens a popover with the visual bezier editor.
+ * Patches the single target keyframe's easing fields.
+ */
+function CurveEditorButton({
+	property,
+	trackId,
+	elementId,
+	keyframes,
+	targetKeyframe,
+}: {
+	property: KeyframeProperty;
+	trackId: string;
+	elementId: string;
+	keyframes: ElementKeyframes | undefined;
+	targetKeyframe: Keyframe;
+}) {
+	const editor = useEditor();
+	const { t } = useTranslation();
+
+	const handlePatch = (patch: Partial<Keyframe>) => {
+		const channel = keyframes?.[property] ?? [];
+		const updated = channel.map((kf) =>
+			kf.id === targetKeyframe.id ? { ...kf, ...patch } : kf,
+		);
+		editor.timeline.updateKeyframes({
+			trackId,
+			elementId,
+			keyframes: setChannel(keyframes, property, updated),
+		});
+	};
+
+	return (
+		<Popover>
+			<PopoverTrigger asChild>
+				<button
+					type="button"
+					title={t("Edit easing curve")}
+					className="flex size-4 items-center justify-center rounded-sm text-[11px] leading-none text-muted-foreground transition-colors hover:text-foreground"
+				>
+					∿
+				</button>
+			</PopoverTrigger>
+			<PopoverContent
+				className="w-48 p-3"
+				side="bottom"
+				align="start"
+				sideOffset={4}
+			>
+				<div className="mb-2 text-[11px] font-medium text-muted-foreground">
+					{t("Easing curve")}
+				</div>
+				<KeyframeCurveEditor keyframe={targetKeyframe} onChange={handlePatch} />
+			</PopoverContent>
+		</Popover>
 	);
 }

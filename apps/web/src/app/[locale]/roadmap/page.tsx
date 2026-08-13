@@ -241,8 +241,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Keyframe Curve Editor",
 				description:
-					"Per-keyframe easing curve editor. 'Select a keyframe to edit its curve' panel lets the user pick an individual keyframe and adjust its interpolation (linear, ease-in, ease-out, custom bezier) via a visual curve handle editor. Extends the existing Keyframe Animation system.",
-				status: { text: "Not started", type: "default" },
+					"Per-keyframe easing curve editor. A '∿' button appears on the keyframe-at-playhead row; opens a popover with 4 named easing presets (linear, ease-in, ease-out, ease-in-out) and a draggable cubic-bezier handle editor (SVG plot, two control points, keyboard-nudgeable). Patches the keyframe's easing/bezierP1/bezierP2 fields. Full undo/redo.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Quick Add Keyframe Button",
