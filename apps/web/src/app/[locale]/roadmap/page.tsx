@@ -223,14 +223,14 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Background Removal",
 				description:
-					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU). Per-clip toggle removes the background so lower tracks show through. Runs locally — privacy-first. (Chroma key, blur, and background replace are planned.)",
+					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU). Per-clip toggle removes the background so lower tracks show through. Runs locally — privacy-first. Chroma Key is available separately; full segmentation remains planned.",
 				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Auto-Captions",
 				description:
-					"Auto-detect speech, generate timed subtitle clips, style presets (TikTok-style, broadcast, minimal). Multi-language caption support.",
-				status: { text: "Not started", type: "default" },
+					"Transcribe timeline audio locally or through configured remote providers, then generate timed caption clips with language, model, and style-template controls.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Extract Audio from Clip",
@@ -259,13 +259,13 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Chroma Key / Green Screen",
 				description:
-					"Per-frame chroma keyer on the CPU (Canvas2D ImageData pixel loop). Pick green, blue, or red, then adjust threshold, smoothness, and spill suppression. Privacy-first — runs locally in the browser.",
+					"Per-frame Canvas2D chroma keyer. Pick green, blue, red, or any color directly from the preview with the eyedropper, then adjust threshold, smoothness, and spill suppression. Privacy-first — runs locally in the browser.",
 				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Video Effects Library (VFX)",
 				description:
-					"Per-frame Canvas2D pixel effects: Glitch, VHS, Pixelate, RGB Split, and Halftone. Each clip has an effect selector and intensity control; processing stays local in the browser.",
+					"Left-side Effects panel with live preview cards for Glitch, VHS, Pixelate, RGB Split, Halftone, and None. Click a preset to apply it to selected video/image clips; processing stays local in the browser.",
 				status: { text: "Completed", type: "complete" },
 			},
 			{
@@ -350,19 +350,13 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Voiceover Recording",
 				description:
 					"In-browser microphone capture via `getUserMedia()`. Countdown overlay (3·2·1), real-time playback while recording, optional original-audio monitoring, auto-insert to timeline at playhead.",
-				status: { text: "Not started", type: "default" },
-			},
-			{
-				title: "Voiceover Recording",
-				description:
-					"In-browser microphone capture via `getUserMedia()`. Countdown overlay (3·2·1), real-time playback while recording, optional original-audio monitoring, auto-insert to timeline at playhead.",
 				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Project Sharing",
 				description:
 					"Export/import project bundles (.cutia) — self-contained JSON with embedded media. Share a file, open it anywhere, fully local.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 		],
 	},
@@ -451,7 +445,7 @@ export default function RoadmapPage() {
 	return (
 		<BasePage
 			title="Roadmap"
-			description="The path to becoming the best free CapCut alternative (last updated: July 2026)"
+			description="The path to becoming the best free CapCut alternative (last updated: August 2026)"
 		>
 			<div className="mx-auto flex max-w-4xl flex-col gap-16">
 				{roadmapPhases.map((phase) => (
