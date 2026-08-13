@@ -1,9 +1,19 @@
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import {
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { useEditor } from "@/hooks/use-editor";
+import { CHROMA_DEFAULT, rgbToHex } from "@/lib/renderer/chroma-key";
+import { useChromaPickerStore } from "@/stores/chroma-picker-store";
 import type {
 	Transform,
 	TimelineTrack,
 	TimelineElement,
+	VideoElement,
+	ImageElement,
 	TextElement,
 	BlurEffectElement,
 	ElementKeyframes,
@@ -20,6 +30,12 @@ import { buildAnimatedTransformUpdate } from "@/lib/timeline/keyframe-utils";
 
 type ScaleHandle = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 type ResizeHandle = "left" | "right" | "top" | "bottom";
+
+interface ChromaPreview {
+	color: string;
+	x: number;
+	y: number;
+}
 
 interface SnapContext {
 	elementHalfSize: ElementHalfSize;
@@ -83,6 +99,9 @@ export function usePreviewInteraction({
 	const [isDragging, setIsDragging] = useState(false);
 	const [isScaling, setIsScaling] = useState(false);
 	const [activeGuides, setActiveGuides] = useState<SnapGuide[]>([]);
+	const [chromaPreview, setChromaPreview] = useState<ChromaPreview | null>(
+		null,
+	);
 	const dragStateRef = useRef<DragState | null>(null);
 	const scaleStateRef = useRef<ScaleState | null>(null);
 	const resizeStateRef = useRef<ResizeState | null>(null);
@@ -93,6 +112,12 @@ export function usePreviewInteraction({
 		(listener) => editor.selection.subscribe(listener),
 		() => editor.selection.getSelectedElements(),
 	);
+	const isPickingChroma = useChromaPickerStore((state) => state.isPicking);
+	const setChromaPicking = useChromaPickerStore((state) => state.setPicking);
+
+	useEffect(() => {
+		if (!isPickingChroma) setChromaPreview(null);
+	}, [isPickingChroma]);
 
 	const getCanvasCoordinates = useCallback(
 		({ clientX, clientY }: { clientX: number; clientY: number }) => {
@@ -112,8 +137,64 @@ export function usePreviewInteraction({
 		[canvasRef],
 	);
 
+	const handleChromaPick = useCallback(
+		(event: React.PointerEvent) => {
+			const canvas = canvasRef.current;
+			if (!canvas) return;
+
+			const { x, y } = getCanvasCoordinates({
+				clientX: event.clientX,
+				clientY: event.clientY,
+			});
+			const pixel = sampleCanvasColor({ canvas, x, y });
+			if (!pixel) return;
+			const updates = editor.timeline
+				.getElementsWithTracks({ elements: selectedElements })
+				.filter(
+					({ element }) => element.type === "video" || element.type === "image",
+				)
+				.map(({ track, element }) => {
+					const visualElement = element as VideoElement | ImageElement;
+					return {
+						trackId: track.id,
+						elementId: element.id,
+						updates: {
+							chromaKey: {
+								...(visualElement.chromaKey ?? CHROMA_DEFAULT),
+								keyColor: [pixel[0], pixel[1], pixel[2]] as [
+									number,
+									number,
+									number,
+								],
+							},
+						},
+					};
+				});
+
+			if (updates.length > 0) {
+				editor.timeline.updateElements({ updates, pushHistory: true });
+			}
+			setChromaPreview(null);
+			setChromaPicking(false);
+			event.preventDefault();
+			event.stopPropagation();
+		},
+		[
+			canvasRef,
+			editor,
+			getCanvasCoordinates,
+			selectedElements,
+			setChromaPicking,
+		],
+	);
+
 	const handlePointerDown = useCallback(
 		(event: React.PointerEvent) => {
+			if (isPickingChroma) {
+				handleChromaPick(event);
+				return;
+			}
+
 			const startPos = getCanvasCoordinates({
 				clientX: event.clientX,
 				clientY: event.clientY,
@@ -218,7 +299,14 @@ export function usePreviewInteraction({
 			setIsDragging(true);
 			event.currentTarget.setPointerCapture(event.pointerId);
 		},
-		[selectedElements, editor, getCanvasCoordinates, canvasRef],
+		[
+			selectedElements,
+			editor,
+			getCanvasCoordinates,
+			canvasRef,
+			isPickingChroma,
+			handleChromaPick,
+		],
 	);
 
 	const handleScaleStart = useCallback(
@@ -342,6 +430,27 @@ export function usePreviewInteraction({
 
 	const handlePointerMove = useCallback(
 		(event: React.PointerEvent) => {
+			if (isPickingChroma) {
+				const canvas = canvasRef.current;
+				const overlay = overlayRef.current;
+				if (!canvas || !overlay) return;
+
+				const { x, y } = getCanvasCoordinates({
+					clientX: event.clientX,
+					clientY: event.clientY,
+				});
+				const pixel = sampleCanvasColor({ canvas, x, y });
+				if (!pixel) return;
+
+				const rect = overlay.getBoundingClientRect();
+				setChromaPreview({
+					color: `#${rgbToHex(pixel)}`,
+					x: event.clientX - rect.left + 14,
+					y: event.clientY - rect.top + 14,
+				});
+				return;
+			}
+
 			const currentPos = getCanvasCoordinates({
 				clientX: event.clientX,
 				clientY: event.clientY,
@@ -552,8 +661,20 @@ export function usePreviewInteraction({
 
 			editor.timeline.updateElements({ updates, pushHistory: false });
 		},
-		[isDragging, isScaling, getCanvasCoordinates, editor],
+		[
+			isDragging,
+			isScaling,
+			isPickingChroma,
+			getCanvasCoordinates,
+			editor,
+			canvasRef,
+			overlayRef,
+		],
 	);
+
+	const clearChromaPreview = useCallback(() => {
+		if (isPickingChroma) setChromaPreview(null);
+	}, [isPickingChroma]);
 
 	const handlePointerUp = useCallback(
 		(event: React.PointerEvent) => {
@@ -830,7 +951,36 @@ export function usePreviewInteraction({
 		onResizeStart: handleResizeStart,
 		isTransforming: isDragging || isScaling || isResizing,
 		activeGuides,
+		chromaPreview,
+		clearChromaPreview,
 	};
+}
+
+function sampleCanvasColor({
+	canvas,
+	x,
+	y,
+}: {
+	canvas: HTMLCanvasElement;
+	x: number;
+	y: number;
+}): [number, number, number] | null {
+	if (canvas.width === 0 || canvas.height === 0) return null;
+
+	try {
+		const pixel = canvas
+			.getContext("2d")
+			?.getImageData(
+				Math.max(0, Math.min(canvas.width - 1, Math.floor(x))),
+				Math.max(0, Math.min(canvas.height - 1, Math.floor(y))),
+				1,
+				1,
+			)
+			.data;
+		return pixel ? [pixel[0], pixel[1], pixel[2]] : null;
+	} catch {
+		return null;
+	}
 }
 
 function buildSnapContext({
@@ -948,5 +1098,3 @@ function getElementLocalTime({
 	if (!element) return undefined;
 	return playbackTime - element.startTime;
 }
-
-
