@@ -5,9 +5,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DraggableItem } from "@/components/editor/panels/assets/draggable-item";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { BlurIcon } from "@hugeicons/core-free-icons";
+import { useEditor } from "@/hooks/use-editor";
+import { buildBlurEffectElement } from "@/lib/timeline/element-utils";
 
 export function EffectsView() {
 	const { t } = useTranslation();
+	const editor = useEditor();
 
 	return (
 		<div className="flex h-full flex-col">
@@ -31,6 +34,15 @@ export function EffectsView() {
 						preview={<BlurPreview />}
 						shouldShowLabel={true}
 						containerClassName="w-full"
+						onAddToTimeline={({ currentTime }) => {
+							const element = buildBlurEffectElement({
+								startTime: currentTime,
+							});
+							editor.timeline.insertElement({
+								element,
+								placement: { mode: "auto" },
+							});
+						}}
 					/>
 				</div>
 			</ScrollArea>
