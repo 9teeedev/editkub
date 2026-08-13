@@ -289,8 +289,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "AI Voice Enhancement & Denoise",
 				description:
-					"Remove background noise and enhance speech from any clip's audio track. Runs locally via RNNoise (Mozilla's neural denoiser compiled to WASM, ~500KB) — real-time, no cloud. Optional fallback to the browser's built-in WebRTC noise suppression for lower-end devices.",
-				status: { text: "Not started", type: "default" },
+					"Enhance and denoise a clip's audio locally — no WASM binary, no cloud. Renders the source through an OfflineAudioContext chain: 80 Hz high-pass (rumble/hum removal), +2.5 dB presence peaking at 3 kHz (speech intelligibility), 4:1 dynamics compressor (leveler + noise suppression), +1.4 makeup gain. Encodes the result to 16-bit mono WAV, registers it as a new media asset, and swaps the element's mediaId. Non-destructive (original asset kept), undoable. Surfaced as a toolbar button (AiAudioIcon).",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Voice Changer",

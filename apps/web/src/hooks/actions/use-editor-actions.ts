@@ -20,6 +20,9 @@ import {
 	upsertKeyframe,
 } from "@/lib/timeline/keyframe-utils";
 import type { ElementKeyframes, KeyframeProperty } from "@/types/timeline";
+import { enhanceVoice } from "@/lib/audio/voice-enhance";
+import { encodeWav } from "@/lib/audio/wav-encoder";
+import { processMediaAssets } from "@/lib/media/processing";
 
 export function useEditorActions() {
 	const editor = useEditor();
@@ -265,6 +268,97 @@ export function useEditorActions() {
 		() => {
 			if (selectedElements.length === 0) return;
 			editor.timeline.detachAudio({ elements: selectedElements });
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"enhance-voice",
+		() => {
+			void (async () => {
+				const resolved = editor.timeline.getElementsWithTracks({
+					elements: selectedElements,
+				});
+				const targets = resolved
+					.map(({ track, element }) => ({ track, element }))
+					.filter(({ element }) => {
+						if (element.type === "audio") {
+							return element.sourceType === "upload";
+						}
+						return element.type === "video";
+					});
+
+				if (targets.length === 0) {
+					toast.info(i18next.t("Select an audio or video clip"));
+					return;
+				}
+
+				const assets = editor.media.getAssets();
+				const activeProject = editor.project.getActive();
+				if (!activeProject) return;
+				const projectId = activeProject.metadata.id;
+				const toastId = "enhance-voice";
+				toast.loading(i18next.t("Enhancing audio..."), { id: toastId });
+
+				let processed = 0;
+				for (const { track, element } of targets) {
+					const mediaId =
+						element.type === "audio" && element.sourceType === "upload"
+							? element.mediaId
+							: element.type === "video"
+								? element.mediaId
+								: null;
+					if (!mediaId) continue;
+					const file = assets.find((a) => a.id === mediaId)?.file;
+					if (!file) continue;
+
+					const enhanced = await enhanceVoice(file);
+					if (!enhanced) {
+						toast.error(
+							i18next.t("Could not enhance {{name}}", { name: element.name }),
+							{ id: toastId },
+						);
+						continue;
+					}
+
+					const wavBlob = encodeWav(enhanced.samples, enhanced.sampleRate);
+					const enhancedFile = new File(
+						[wavBlob],
+						`${element.name} (enhanced).wav`,
+						{ type: "audio/wav" },
+					);
+					const [processedAsset] = await processMediaAssets({
+						files: [enhancedFile],
+					});
+					if (!processedAsset) continue;
+
+					const newMediaId = await editor.media.addMediaAsset({
+						projectId,
+						asset: processedAsset,
+					});
+
+					editor.timeline.updateElements({
+						updates: [
+							{
+								trackId: track.id,
+								elementId: element.id,
+								updates: { mediaId: newMediaId },
+							},
+						],
+						pushHistory: processed === 0,
+					});
+					processed++;
+				}
+
+				if (processed === 0) {
+					toast.info(i18next.t("Audio enhancement failed"), { id: toastId });
+				} else {
+					toast.success(
+						i18next.t("Enhanced {{count}} clip(s)", { count: processed }),
+						{ id: toastId },
+					);
+				}
+			})();
 		},
 		undefined,
 	);

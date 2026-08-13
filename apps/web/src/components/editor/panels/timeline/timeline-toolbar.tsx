@@ -33,6 +33,7 @@ import {
 	KeyframeAddIcon,
 	Mic01Icon,
 	MusicNote03Icon,
+	AiAudioIcon,
 	StopCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -141,6 +142,14 @@ function ToolbarLeftSection() {
 					tooltip={t("Detach audio")}
 					onClick={({ event }) =>
 						handleAction({ action: "detach-audio", event })
+					}
+				/>
+
+				<ToolbarButton
+					icon={<HugeiconsIcon icon={AiAudioIcon} />}
+					tooltip={t("Enhance voice")}
+					onClick={({ event }) =>
+						handleAction({ action: "enhance-voice", event })
 					}
 				/>
 

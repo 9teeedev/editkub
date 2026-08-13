@@ -127,6 +127,10 @@ export const ACTIONS = {
 		description: "Detach audio from video",
 		category: "editing",
 	},
+	"enhance-voice": {
+		description: "Enhance and denoise audio in selected clip",
+		category: "editing",
+	},
 	"convert-to-speech": {
 		description: "Convert text to speech",
 		category: "editing",
