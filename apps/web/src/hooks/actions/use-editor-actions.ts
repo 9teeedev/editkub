@@ -19,13 +19,26 @@ import {
 	setChannel,
 	upsertKeyframe,
 } from "@/lib/timeline/keyframe-utils";
-import type { ElementKeyframes, KeyframeProperty } from "@/types/timeline";
+import type {
+	AdjustmentControls,
+	ElementKeyframes,
+	ImageElement,
+	KeyframeProperty,
+	Transform,
+	VideoElement,
+} from "@/types/timeline";
 import { enhanceVoice } from "@/lib/audio/voice-enhance";
 import { encodeWav } from "@/lib/audio/wav-encoder";
 import { changeVoice, type VoicePreset } from "@/lib/audio/voice-changer";
 import { processMediaAssets } from "@/lib/media/processing";
 import { decodeAudioToFloat32 } from "@/lib/media/audio";
 import { detectSilence, invertSegments } from "@/lib/audio/silence-detection";
+import { ADJUSTMENT_DEFAULTS } from "@/constants/adjustment-constants";
+import {
+	isPatchSignificant,
+	matchStats,
+	sampleElementStats,
+} from "@/lib/color-match";
 
 export function useEditorActions() {
 	const editor = useEditor();
@@ -574,6 +587,116 @@ export function useEditorActions() {
 	);
 
 	useActionHandler(
+		"match-color",
+		() => {
+			// Fire-and-forget: TActionFunc returns void, but sampling is async.
+			void (async () => {
+				const resolved = editor.timeline.getElementsWithTracks({
+					elements: selectedElements,
+				});
+				// Visual elements only (video/image carry adjustments + mediaId).
+				const visuals = resolved.filter(
+					({ element }) => element.type === "video" || element.type === "image",
+				) as {
+					track: { id: string };
+					element: VideoElement | ImageElement;
+				}[];
+
+				if (visuals.length < 2) {
+					toast.info(
+						i18next.t(
+							"Select a target clip and a reference clip (Shift-click)",
+						),
+					);
+					return;
+				}
+
+				// Convention: first selected = reference, rest = targets.
+				const [reference, ...targets] = visuals;
+				const assets = editor.media.getAssets();
+				const refFile = assets.find(
+					(a) => a.id === reference.element.mediaId,
+				)?.file;
+				if (!refFile) {
+					toast.error(i18next.t("Reference media not found"));
+					return;
+				}
+
+				const currentTime = editor.playback.getCurrentTime();
+				const toastId = "match-color";
+				toast.loading(i18next.t("Matching color..."), { id: toastId });
+
+				const refStats = await sampleElementStats({
+					element: reference.element,
+					file: refFile,
+					currentTime,
+				});
+				if (!refStats) {
+					toast.error(i18next.t("Could not read reference frame"), {
+						id: toastId,
+					});
+					return;
+				}
+
+				let applied = 0;
+				for (const { track, element } of targets) {
+					const file = assets.find((a) => a.id === element.mediaId)?.file;
+					if (!file) continue;
+
+					const srcStats = await sampleElementStats({
+						element,
+						file,
+						currentTime,
+					});
+					if (!srcStats) continue;
+
+					const patch = matchStats({ source: srcStats, reference: refStats });
+					if (!isPatchSignificant(patch)) continue;
+
+					// Merge over existing adjustments (defaults if absent).
+					const base = element.adjustments ?? ADJUSTMENT_DEFAULTS;
+					const merged: AdjustmentControls = {
+						brightness: patch.brightness * base.brightness,
+						contrast: patch.contrast * base.contrast,
+						saturation: patch.saturation * base.saturation,
+						temperature: clampAdjust(
+							base.temperature + patch.temperature,
+							-100,
+							100,
+						),
+						tint: clampAdjust(base.tint + patch.tint, -100, 100),
+						hue: base.hue, // untouched
+						vignette: base.vignette,
+						sharpen: base.sharpen,
+					};
+
+					editor.timeline.updateElements({
+						updates: [
+							{
+								trackId: track.id,
+								elementId: element.id,
+								updates: { adjustments: merged },
+							},
+						],
+						pushHistory: applied === 0, // single history entry
+					});
+					applied++;
+				}
+
+				if (applied === 0) {
+					toast.info(i18next.t("No color change needed"), { id: toastId });
+				} else {
+					toast.success(
+						i18next.t("Color matched {{count}} clip(s)", { count: applied }),
+						{ id: toastId },
+					);
+				}
+			})();
+		},
+		undefined,
+	);
+
+	useActionHandler(
 		"toggle-bookmark",
 		() => {
 			editor.scenes.toggleBookmark({ time: editor.playback.getCurrentTime() });
@@ -815,4 +938,9 @@ export function useEditorActions() {
 		},
 		undefined,
 	);
+}
+
+/** Clamp a color-match temperature/tint delta into its valid range. */
+function clampAdjust(n: number, lo: number, hi: number): number {
+	return Math.max(lo, Math.min(hi, n));
 }

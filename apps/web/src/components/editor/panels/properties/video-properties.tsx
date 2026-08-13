@@ -19,6 +19,7 @@ import { useEditor } from "@/hooks/use-editor";
 import type { ImageElement, VideoElement, AdjustmentControls } from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
+import { invokeAction } from "@/lib/actions";
 import { BLEND_MODES } from "@/constants/blend-mode-constants";
 import { hasContentBelowElement } from "@/lib/timeline/track-utils";
 import { Info } from "lucide-react";
@@ -889,6 +890,16 @@ export function VideoProperties({
 
 				<PropertyGroup title={t("Adjustments")} collapsible={false}>
 					<div className="space-y-6">
+						<button
+							type="button"
+							onClick={() => invokeAction("match-color")}
+							title={t(
+								"Match this clip's color to the first selected reference clip",
+							)}
+							className="hover:bg-accent text-muted-foreground flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed py-1.5 text-xs transition-colors hover:text-foreground"
+						>
+							{t("Match Color")}
+						</button>
 						{([
 							{
 								key: "brightness" as const,

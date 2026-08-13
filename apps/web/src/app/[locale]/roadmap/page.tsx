@@ -277,8 +277,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Color Match",
 				description:
-					"Match one clip's color to another automatically. Histogram-matching algorithm maps the source clip's color distribution to a chosen reference frame. One-click, non-destructive, undoable.",
-				status: { text: "Not started", type: "default" },
+					"Match one clip's color to a reference clip automatically. Shift-click to select target + reference (first selected = reference, rest = targets), click 'Match Color' in the Adjustments group. Samples both frames via mediabunny, builds luma/RGB histograms + HSL saturation/warmth/tint stats, fits the deltas to the 6-knob AdjustmentControls model (brightness/contrast/saturation/temperature/tint), merges over existing adjustments. Non-destructive, undoable in a single history entry.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Auto Silence Removal",
