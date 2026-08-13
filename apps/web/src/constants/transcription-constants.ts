@@ -15,6 +15,7 @@ const SUPPORTED_TRANSCRIPTION_LANGS: ReadonlyArray<LanguageCode> = [
 	"ru",
 	"ja",
 	"zh",
+	"th",
 ];
 
 export const TRANSCRIPTION_LANGUAGES = LANGUAGES.filter((language) =>

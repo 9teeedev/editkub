@@ -8,4 +8,5 @@ export const LANGUAGES = [
 	{ code: "ru", name: "Русский" },
 	{ code: "ja", name: "日本語" },
 	{ code: "zh", name: "中文" },
+	{ code: "th", name: "ไทย" },
 ] as const;
