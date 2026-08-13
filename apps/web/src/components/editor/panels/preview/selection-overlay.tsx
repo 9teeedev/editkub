@@ -16,7 +16,7 @@ import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 
 type ScaleHandle = "top-left" | "top-right" | "bottom-left" | "bottom-right";
-type ResizeHandle = "left" | "right";
+type ResizeHandle = "left" | "right" | "top" | "bottom";
 
 const HANDLE_SIZE = 10;
 const RESIZE_HANDLE_WIDTH = 6;
@@ -198,8 +198,9 @@ function computeBlurEffectBounds({
 	// scale=1 → full canvas, scale=0.5 → half canvas
 	// boxWidth narrows the width independently (default 1 = proportional)
 	const boxWidth = element.boxWidth ?? 1;
+	const boxHeight = element.boxHeight ?? 1;
 	const regionWidth = canvasWidth * element.transform.scale * boxWidth;
-	const regionHeight = canvasHeight * element.transform.scale;
+	const regionHeight = canvasHeight * element.transform.scale * boxHeight;
 
 	const centerX = canvasWidth / 2 + element.transform.position.x;
 	const centerY = canvasHeight / 2 + element.transform.position.y;
@@ -398,6 +399,44 @@ function ElementOverlay({
 						onPointerDown={(event) => {
 							event.stopPropagation();
 							onResizeStart({ event, handle: "right" });
+						}}
+					/>
+				</>
+			)}
+
+			{/* Top/bottom handles for blur-effect height resize */}
+			{elementType === "blur-effect" && onResizeStart && (
+				<>
+					{/* Top handle */}
+					<div
+						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						style={{
+							width: RESIZE_HANDLE_HEIGHT,
+							height: RESIZE_HANDLE_WIDTH,
+							cursor: "ns-resize",
+							top: -RESIZE_HANDLE_WIDTH / 2,
+							left: "50%",
+							transform: "translateX(-50%)",
+						}}
+						onPointerDown={(event) => {
+							event.stopPropagation();
+							onResizeStart({ event, handle: "top" });
+						}}
+					/>
+					{/* Bottom handle */}
+					<div
+						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						style={{
+							width: RESIZE_HANDLE_HEIGHT,
+							height: RESIZE_HANDLE_WIDTH,
+							cursor: "ns-resize",
+							bottom: -RESIZE_HANDLE_WIDTH / 2,
+							left: "50%",
+							transform: "translateX(-50%)",
+						}}
+						onPointerDown={(event) => {
+							event.stopPropagation();
+							onResizeStart({ event, handle: "bottom" });
 						}}
 					/>
 				</>

@@ -19,7 +19,7 @@ import { computePreviewSnap, type SnapGuide } from "@/lib/preview/snap";
 import { buildAnimatedTransformUpdate } from "@/lib/timeline/keyframe-utils";
 
 type ScaleHandle = "top-left" | "top-right" | "bottom-left" | "bottom-right";
-type ResizeHandle = "left" | "right";
+type ResizeHandle = "left" | "right" | "top" | "bottom";
 
 interface SnapContext {
 	elementHalfSize: ElementHalfSize;
@@ -65,8 +65,10 @@ interface ResizeState {
 	trackId: string;
 	elementId: string;
 	initialBoxWidth: number;
+	initialBoxHeight: number;
 	initialTransform: Transform;
 	scaleFactor: number;
+	scaleFactorY: number;
 	resizeType: "text" | "blur-effect";
 }
 
@@ -303,14 +305,18 @@ export function usePreviewInteraction({
 					trackId,
 					elementId: element.id,
 					initialBoxWidth,
+					initialBoxHeight: 0,
 					initialTransform: textElement.transform,
 					scaleFactor,
+					scaleFactorY: 1,
 					resizeType: "text",
 				};
 			} else {
 				const blurElement = element as BlurEffectElement;
 				const scaleFactor =
 					canvasWidth > 0 ? canvasWidth * blurElement.transform.scale : 1;
+				const scaleFactorY =
+					canvasHeight > 0 ? canvasHeight * blurElement.transform.scale : 1;
 
 				resizeStateRef.current = {
 					startX: startPos.x,
@@ -320,8 +326,10 @@ export function usePreviewInteraction({
 					trackId,
 					elementId: element.id,
 					initialBoxWidth: blurElement.boxWidth ?? 1,
+					initialBoxHeight: blurElement.boxHeight ?? 1,
 					initialTransform: blurElement.transform,
 					scaleFactor,
+					scaleFactorY,
 					resizeType: "blur-effect",
 				};
 			}
@@ -341,29 +349,48 @@ export function usePreviewInteraction({
 
 			if (resizeStateRef.current) {
 				const state = resizeStateRef.current;
-				const { scaleFactor } = state;
-
-				const rawDeltaX = currentPos.x - state.startX;
-				const initialWidthPx = state.initialBoxWidth * scaleFactor;
-
-				const directedDelta = state.handle === "right" ? rawDeltaX : -rawDeltaX;
-				const newWidthPx = Math.max(20, initialWidthPx + directedDelta);
-				const newBoxWidth = newWidthPx / scaleFactor;
-
-				const widthChangePx =
-					(newBoxWidth - state.initialBoxWidth) * scaleFactor;
-				const positionOffsetX =
-					state.handle === "right" ? widthChangePx / 2 : -widthChangePx / 2;
+				const isVertical = state.handle === "top" || state.handle === "bottom";
 
 				const nextTransform: Transform = {
 					...state.initialTransform,
-					position: {
-						x:
-							state.initialTransform.position.x +
-							positionOffsetX,
-						y: state.initialTransform.position.y,
-					},
+					position: { ...state.initialTransform.position },
 				};
+				let updates: Record<string, unknown> = {};
+
+				if (isVertical) {
+					const { scaleFactorY } = state;
+					const rawDeltaY = currentPos.y - state.startY;
+					const initialHeightPx = state.initialBoxHeight * scaleFactorY;
+					const directedDelta =
+						state.handle === "bottom" ? rawDeltaY : -rawDeltaY;
+					const newHeightPx = Math.max(20, initialHeightPx + directedDelta);
+					const newBoxHeight = newHeightPx / scaleFactorY;
+					const heightChangePx =
+						(newBoxHeight - state.initialBoxHeight) * scaleFactorY;
+					nextTransform.position.y =
+						state.initialTransform.position.y +
+						(state.handle === "bottom"
+							? heightChangePx / 2
+							: -heightChangePx / 2);
+					updates = { boxHeight: newBoxHeight };
+				} else {
+					const { scaleFactor } = state;
+					const rawDeltaX = currentPos.x - state.startX;
+					const initialWidthPx = state.initialBoxWidth * scaleFactor;
+					const directedDelta =
+						state.handle === "right" ? rawDeltaX : -rawDeltaX;
+					const newWidthPx = Math.max(20, initialWidthPx + directedDelta);
+					const newBoxWidth = newWidthPx / scaleFactor;
+					const widthChangePx =
+						(newBoxWidth - state.initialBoxWidth) * scaleFactor;
+					nextTransform.position.x =
+						state.initialTransform.position.x +
+						(state.handle === "right"
+							? widthChangePx / 2
+							: -widthChangePx / 2);
+					updates = { boxWidth: newBoxWidth };
+				}
+
 				const element = findElement(state.tracksSnapshot, state.elementId);
 				const localTime = element
 					? getElementLocalTime({
@@ -391,10 +418,7 @@ export function usePreviewInteraction({
 						{
 							trackId: state.trackId,
 							elementId: state.elementId,
-							updates: {
-								boxWidth: newBoxWidth,
-								...transformUpdate,
-							},
+							updates: { ...updates, ...transformUpdate },
 						},
 					],
 					pushHistory: false,
@@ -540,33 +564,52 @@ export function usePreviewInteraction({
 					clientY: event.clientY,
 				});
 
-				const rawDeltaX = currentPos.x - state.startX;
-				const hasResized = Math.abs(rawDeltaX) > 1;
+				const isVertical = state.handle === "top" || state.handle === "bottom";
+				const rawDelta = isVertical
+					? currentPos.y - state.startY
+					: currentPos.x - state.startX;
+				const hasResized = Math.abs(rawDelta) > 1;
 
 				if (hasResized) {
-					const { scaleFactor } = state;
-					const initialWidthPx = state.initialBoxWidth * scaleFactor;
-					const directedDelta =
-						state.handle === "right" ? rawDeltaX : -rawDeltaX;
-					const newWidthPx = Math.max(20, initialWidthPx + directedDelta);
-					const newBoxWidth = newWidthPx / scaleFactor;
-
-					const widthChangePx =
-						(newBoxWidth - state.initialBoxWidth) * scaleFactor;
-					const positionOffsetX =
-						state.handle === "right" ? widthChangePx / 2 : -widthChangePx / 2;
-
 					editor.timeline.updateTracks(state.tracksSnapshot);
 					const nextTransform: Transform = {
 						...state.initialTransform,
-						position: {
-							x:
-								state.initialTransform.position
-									.x + positionOffsetX,
-							y: state.initialTransform.position
-								.y,
-						},
+						position: { ...state.initialTransform.position },
 					};
+					let updates: Record<string, unknown> = {};
+
+					if (isVertical) {
+						const { scaleFactorY } = state;
+						const initialHeightPx = state.initialBoxHeight * scaleFactorY;
+						const directedDelta =
+							state.handle === "bottom" ? rawDelta : -rawDelta;
+						const newHeightPx = Math.max(20, initialHeightPx + directedDelta);
+						const newBoxHeight = newHeightPx / scaleFactorY;
+						const heightChangePx =
+							(newBoxHeight - state.initialBoxHeight) * scaleFactorY;
+						nextTransform.position.y =
+							state.initialTransform.position.y +
+							(state.handle === "bottom"
+								? heightChangePx / 2
+								: -heightChangePx / 2);
+						updates = { boxHeight: newBoxHeight };
+					} else {
+						const { scaleFactor } = state;
+						const initialWidthPx = state.initialBoxWidth * scaleFactor;
+						const directedDelta =
+							state.handle === "right" ? rawDelta : -rawDelta;
+						const newWidthPx = Math.max(20, initialWidthPx + directedDelta);
+						const newBoxWidth = newWidthPx / scaleFactor;
+						const widthChangePx =
+							(newBoxWidth - state.initialBoxWidth) * scaleFactor;
+						nextTransform.position.x =
+							state.initialTransform.position.x +
+							(state.handle === "right"
+								? widthChangePx / 2
+								: -widthChangePx / 2);
+						updates = { boxWidth: newBoxWidth };
+					}
+
 					const element = findElement(state.tracksSnapshot, state.elementId);
 					const localTime = element
 						? getElementLocalTime({
@@ -594,10 +637,7 @@ export function usePreviewInteraction({
 							{
 								trackId: state.trackId,
 								elementId: state.elementId,
-								updates: {
-									boxWidth: newBoxWidth,
-									...transformUpdate,
-								},
+								updates: { ...updates, ...transformUpdate },
 							},
 						],
 					});

@@ -6,6 +6,7 @@ import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 export type BlurEffectNodeParams = {
 	blurIntensity: number;
 	boxWidth?: number;
+	boxHeight?: number;
 	duration: number;
 	timeOffset: number;
 	trimStart: number;
@@ -63,8 +64,9 @@ export class BlurEffectNode extends BaseNode<BlurEffectNodeParams> {
 		// scale=1 → full canvas, scale=0.5 → half canvas
 		// boxWidth narrows the width independently (default 1 = proportional)
 		const boxWidth = this.params.boxWidth ?? 1;
+		const boxHeight = this.params.boxHeight ?? 1;
 		const regionWidth = renderer.width * transform.scale * boxWidth;
-		const regionHeight = renderer.height * transform.scale;
+		const regionHeight = renderer.height * transform.scale * boxHeight;
 
 		// Region center: position is offset from canvas center
 		const centerX = renderer.width / 2 + transform.position.x;
