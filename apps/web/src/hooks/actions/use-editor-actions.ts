@@ -536,8 +536,13 @@ export function useEditorActions() {
 						continue;
 					}
 
-					// Source-local range to analyze: [trimStart, trimEnd].
-					const sourceDuration = element.trimEnd - element.trimStart;
+					// trimEnd=0 means full source in timeline elements.
+					const playbackRate =
+						"playbackRate" in element ? (element.playbackRate ?? 1) : 1;
+					const sourceDuration =
+						element.trimEnd > element.trimStart
+							? element.trimEnd - element.trimStart
+							: element.duration * playbackRate;
 					const startSample = Math.floor(element.trimStart * sampleRate);
 					const endSample = Math.min(
 						samples.length,

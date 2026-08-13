@@ -9,14 +9,6 @@ import {
 	TooltipContent,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { Slider } from "@/components/ui/slider";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
@@ -41,8 +33,6 @@ import {
 	KeyframeAddIcon,
 	Mic01Icon,
 	MusicNote03Icon,
-	AiAudioIcon,
-	VoiceIcon,
 	MuteIcon,
 	StopCircleIcon,
 } from "@hugeicons/core-free-icons";
@@ -162,48 +152,6 @@ function ToolbarLeftSection() {
 						handleAction({ action: "remove-silence", event })
 					}
 				/>
-
-				<ToolbarButton
-					icon={<HugeiconsIcon icon={AiAudioIcon} />}
-					tooltip={t("Enhance voice")}
-					onClick={({ event }) =>
-						handleAction({ action: "enhance-voice", event })
-					}
-				/>
-
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<button
-							type="button"
-							title={t("Voice changer")}
-							onMouseDown={(event) => event.preventDefault()}
-							className="text-muted-foreground hover:text-foreground hover:bg-accent flex size-7 items-center justify-center rounded-sm transition-colors"
-						>
-							<HugeiconsIcon icon={VoiceIcon} className="size-4" />
-						</button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="start" side="bottom">
-						<DropdownMenuLabel>{t("Voice changer")}</DropdownMenuLabel>
-						<DropdownMenuSeparator />
-						{(
-							[
-								"chipmunk",
-								"deep",
-								"robot",
-								"telephone",
-								"alien",
-								"echo",
-							] as const
-						).map((preset) => (
-							<DropdownMenuItem
-								key={preset}
-								onClick={() => invokeAction("change-voice", { preset })}
-							>
-								{voicePresetLabel(preset, t)}
-							</DropdownMenuItem>
-						))}
-					</DropdownMenuContent>
-				</DropdownMenu>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Copy01Icon} />}
@@ -374,24 +322,4 @@ function ToolbarButton({
 			<TooltipContent>{tooltip}</TooltipContent>
 		</Tooltip>
 	);
-}
-
-function voicePresetLabel(
-	preset: "chipmunk" | "deep" | "robot" | "telephone" | "alien" | "echo",
-	t: (key: string) => string,
-): string {
-	switch (preset) {
-		case "chipmunk":
-			return t("Chipmunk");
-		case "deep":
-			return t("Deep");
-		case "robot":
-			return t("Robot");
-		case "telephone":
-			return t("Telephone");
-		case "alien":
-			return t("Alien");
-		case "echo":
-			return t("Echo");
-	}
 }

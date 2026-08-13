@@ -91,6 +91,8 @@ function EditorLayout() {
 				}}
 			>
 				<ResizablePanel
+					id="vertical-left"
+					order={1}
 					defaultSize={leftDefault}
 					minSize={30}
 					className="min-w-0"
@@ -104,6 +106,8 @@ function EditorLayout() {
 						}}
 					>
 						<ResizablePanel
+							id="vertical-main-content"
+							order={1}
 							defaultSize={panels.mainContent}
 							minSize={30}
 							maxSize={85}
@@ -118,6 +122,8 @@ function EditorLayout() {
 								}}
 							>
 								<ResizablePanel
+									id="vertical-tools"
+									order={1}
 									defaultSize={panels.tools}
 									minSize={15}
 									maxSize={40}
@@ -129,6 +135,8 @@ function EditorLayout() {
 								<ResizableHandle withHandle />
 
 								<ResizablePanel
+									id="vertical-properties"
+									order={2}
 									defaultSize={panels.properties}
 									minSize={15}
 									maxSize={40}
@@ -142,6 +150,8 @@ function EditorLayout() {
 						<ResizableHandle withHandle />
 
 						<ResizablePanel
+							id="vertical-timeline"
+							order={2}
 							defaultSize={panels.timeline}
 							minSize={15}
 							maxSize={70}
@@ -155,6 +165,8 @@ function EditorLayout() {
 				<ResizableHandle withHandle />
 
 				<ResizablePanel
+					id="vertical-preview"
+					order={2}
 					defaultSize={panels.preview}
 					minSize={30}
 					className="min-w-0"
@@ -166,6 +178,8 @@ function EditorLayout() {
 					<>
 						<ResizableHandle withHandle />
 						<ResizablePanel
+							id="vertical-agent"
+							order={3}
 							defaultSize={panels.agent}
 							minSize={15}
 							maxSize={35}
@@ -191,6 +205,8 @@ function EditorLayout() {
 			}}
 		>
 			<ResizablePanel
+				id="landscape-main"
+				order={1}
 				defaultSize={isAgentOpen ? 100 - panels.agent : 100}
 				minSize={50}
 				className="min-w-0"
@@ -204,6 +220,8 @@ function EditorLayout() {
 					}}
 				>
 					<ResizablePanel
+						id="landscape-main-content"
+						order={1}
 						defaultSize={panels.mainContent}
 						minSize={30}
 						maxSize={85}
@@ -219,6 +237,8 @@ function EditorLayout() {
 							}}
 						>
 							<ResizablePanel
+								id="landscape-tools"
+								order={1}
 								defaultSize={panels.tools}
 								minSize={15}
 								maxSize={40}
@@ -230,6 +250,8 @@ function EditorLayout() {
 							<ResizableHandle withHandle />
 
 							<ResizablePanel
+								id="landscape-preview"
+								order={2}
 								defaultSize={panels.preview}
 								minSize={30}
 								className="min-h-0 min-w-0 flex-1"
@@ -240,6 +262,8 @@ function EditorLayout() {
 							<ResizableHandle withHandle />
 
 							<ResizablePanel
+								id="landscape-properties"
+								order={3}
 								defaultSize={panels.properties}
 								minSize={15}
 								maxSize={40}
@@ -253,6 +277,8 @@ function EditorLayout() {
 					<ResizableHandle withHandle />
 
 					<ResizablePanel
+						id="landscape-timeline"
+						order={2}
 						defaultSize={panels.timeline}
 						minSize={15}
 						maxSize={70}
@@ -267,6 +293,8 @@ function EditorLayout() {
 				<>
 					<ResizableHandle withHandle />
 					<ResizablePanel
+						id="landscape-agent"
+						order={2}
 						defaultSize={panels.agent}
 						minSize={15}
 						maxSize={35}
