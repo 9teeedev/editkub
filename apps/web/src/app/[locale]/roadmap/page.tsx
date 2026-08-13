@@ -235,8 +235,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Extract Audio from Clip",
 				description:
-					"Replace the 'Split into equal parts' toolbar action with an Extract Audio action. When a clip is selected in the timeline, the button detaches/separates the audio track from that clip onto its own audio track (non-destructive). Mirrors CapCut's extract-audio flow.",
-				status: { text: "Not started", type: "default" },
+					"Detach/separate the audio track from a selected clip onto its own audio track (non-destructive). Toolbar button mutes the source clip and adds a linked audio element sharing the same media — full undo/redo. Mirrors CapCut's extract-audio flow.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Keyframe Curve Editor",

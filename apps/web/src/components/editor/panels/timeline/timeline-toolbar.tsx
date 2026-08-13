@@ -9,7 +9,6 @@ import {
 	TooltipContent,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { SplitSquareHorizontal } from "lucide-react";
 
 import { Slider } from "@/components/ui/slider";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
@@ -33,6 +32,7 @@ import {
 	AlignRightIcon,
 	KeyframeAddIcon,
 	Mic01Icon,
+	MusicNote03Icon,
 	StopCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -137,10 +137,11 @@ function ToolbarLeftSection() {
 				/>
 
 				<ToolbarButton
-					icon={<SplitSquareHorizontal />}
-					tooltip={t("Coming soon")}
-					disabled={true}
-					onClick={({ event: _event }) => {}}
+					icon={<HugeiconsIcon icon={MusicNote03Icon} />}
+					tooltip={t("Detach audio")}
+					onClick={({ event }) =>
+						handleAction({ action: "detach-audio", event })
+					}
 				/>
 
 				<ToolbarButton
