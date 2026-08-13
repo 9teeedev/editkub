@@ -25,13 +25,25 @@ import type {
 	TranscriptionLanguage,
 	TranscriptionModelId,
 	TranscriptionProgress,
+	TranscriptionResult,
 } from "@/types/transcription";
 import { transcriptionService } from "@/services/transcription/service";
 import { decodeAudioToFloat32 } from "@/lib/media/audio";
+import { transcribeRemote } from "@/lib/transcription/remote-transcribe";
 import { buildCaptionChunks } from "@/lib/transcription/caption";
 import { Spinner } from "@/components/ui/spinner";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import {
+	TRANSCRIPTION_PROVIDERS,
+	getRemoteProvider,
+	isRemoteProvider,
+} from "@/lib/transcription/providers";
+import { useTranscriptionSettingsStore } from "@/stores/transcription-settings-store";
+import { useAssetsPanelStore } from "@/stores/assets-panel-store";
+import { Cloud, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export function Captions() {
 	const { t } = useTranslation();
@@ -62,6 +74,23 @@ export function Captions() {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const editor = useEditor();
 
+	// Remote provider settings
+	const {
+		providerId,
+		apiKey,
+		remoteModelId,
+		customModelText,
+		setProviderId,
+		setRemoteModelId,
+		setCustomModelText,
+	} = useTranscriptionSettingsStore();
+	const remoteProvider = getRemoteProvider(providerId);
+	const isRemote = isRemoteProvider(providerId);
+	const needsApiKey = isRemote && (!apiKey || apiKey.trim().length === 0);
+	const setActiveTab = useAssetsPanelStore((s) => s.setActiveTab);
+	const effectiveRemoteModel =
+		remoteModelId === "__custom__" ? customModelText : remoteModelId;
+
 	const handleProgress = (progress: TranscriptionProgress) => {
 		if (progress.status === "loading-model") {
 			setProgressValue(progress.progress);
@@ -81,6 +110,15 @@ export function Captions() {
 	};
 
 	const handleGenerateTranscript = async () => {
+		// Validate API key for remote providers before starting
+		if (isRemote && needsApiKey) {
+			toast.error(
+				t("API key required. Add it in Settings → AI → Transcription."),
+			);
+			setActiveTab("settings");
+			return;
+		}
+
 		try {
 			setIsProcessing(true);
 			setError(null);
@@ -93,18 +131,61 @@ export function Captions() {
 				totalDuration: editor.timeline.getTotalDuration(),
 			});
 
-			setProcessingStep(t("Preparing audio..."));
-			const { samples } = await decodeAudioToFloat32({
-				audioBlob,
-				targetSampleRate: 16000,
-			});
+			let result: TranscriptionResult;
 
-			const result = await transcriptionService.transcribe({
-				audioData: samples,
-				language: selectedLanguage,
-				modelId: selectedModelId,
-				onProgress: handleProgress,
-			});
+			if (isRemote && remoteProvider) {
+				// Remote (cloud) transcription — decode to 16 kHz mono, then
+				// send in 5-min chunks to stay under API size limits and
+				// support arbitrarily long clips.
+				setProcessingStep(t("Preparing audio..."));
+				const { samples } = await decodeAudioToFloat32({
+					audioBlob,
+					targetSampleRate: 16000,
+				});
+
+				setProcessingStep(
+					t("Transcribing via {{provider}}...", {
+						provider: remoteProvider.name,
+					}),
+				);
+				result = await transcribeRemote({
+					provider: remoteProvider,
+					samples,
+					apiKey,
+					model: effectiveRemoteModel,
+					language: selectedLanguage,
+					onChunkProgress: (done, total) => {
+						if (total > 1) {
+							setProgressValue(Math.round((done / total) * 100));
+							setProcessingStep(
+								t("Transcribing {{done}}/{{total}}...", {
+									done,
+									total,
+								}),
+							);
+						}
+					},
+				});
+			} else {
+				// Local (in-browser Whisper) transcription
+				setProcessingStep(t("Preparing audio..."));
+				const { samples } = await decodeAudioToFloat32({
+					audioBlob,
+					targetSampleRate: 16000,
+				});
+
+				result = await transcriptionService.transcribe({
+					audioData: samples,
+					language: selectedLanguage,
+					modelId: selectedModelId,
+					onProgress: handleProgress,
+				});
+			}
+
+			if (result.segments.length === 0) {
+				setError(t("No speech detected in the timeline audio."));
+				return;
+			}
 
 			setProcessingStep(t("Generating captions..."));
 			const captionChunks = buildCaptionChunks({ segments: result.segments });
@@ -134,6 +215,10 @@ export function Captions() {
 					},
 				});
 			}
+
+			toast.success(
+				t("Generated {{count}} captions", { count: captionChunks.length }),
+			);
 		} catch (error) {
 			console.error("Transcription failed:", error);
 			setError(
@@ -176,33 +261,130 @@ export function Captions() {
 			className="flex h-full flex-col justify-between"
 		>
 			<div className="flex flex-col gap-5">
+				{/* Provider selection */}
 				<div className="flex flex-col gap-3">
-					<Label>{t("Model")}</Label>
+					<Label>{t("Provider")}</Label>
 					<Select
-						value={selectedModelId}
-					onValueChange={(value) =>
-						setSelectedModelId({
-							value: value as TranscriptionModelId,
-						})
-					}
+						value={providerId}
+						onValueChange={(value) => {
+							setProviderId(value);
+							// Set default model for newly selected provider
+							const provider = getRemoteProvider(value);
+							if (provider) {
+								setRemoteModelId(provider.defaultModelId);
+							}
+						}}
 						disabled={isProcessing}
 					>
 						<SelectTrigger>
-							<SelectValue placeholder={t("Select a model")} />
+							<SelectValue placeholder={t("Select a provider")} />
 						</SelectTrigger>
 						<SelectContent>
-							{TRANSCRIPTION_MODELS.map((model) => (
-								<SelectItem key={model.id} value={model.id}>
-									{model.name}
+							{TRANSCRIPTION_PROVIDERS.map((provider) => (
+								<SelectItem key={provider.id} value={provider.id}>
+									{provider.id === "local" ? (
+										<span className="flex items-center gap-1.5">
+											<ShieldCheck className="h-3.5 w-3.5 text-green-500" />
+											{provider.name}
+										</span>
+									) : (
+										<span className="flex items-center gap-1.5">
+											<Cloud className="h-3.5 w-3.5 text-blue-500" />
+											{provider.name}
+										</span>
+									)}
 								</SelectItem>
 							))}
 						</SelectContent>
 					</Select>
-					<p className="text-muted-foreground text-xs">
-						{TRANSCRIPTION_MODELS.find((m) => m.id === selectedModelId)
-							?.description ?? ""}
-					</p>
+					{isRemote && (
+						<div className="flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-2.5">
+							<AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-500" />
+							<p className="text-muted-foreground text-xs">
+								{t(
+									"Cloud providers send your audio to a remote server. Audio is processed by the provider and not stored by us.",
+								)}
+							</p>
+						</div>
+					)}
+					{isRemote && needsApiKey && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setActiveTab("settings")}
+						>
+							{t("Add API key in Settings")}
+						</Button>
+					)}
 				</div>
+
+				{/* Model selection — local models or remote models depending on provider */}
+				{isRemote && remoteProvider ? (
+					<div className="flex flex-col gap-3">
+						<Label>{t("Model")}</Label>
+						<Select
+							value={remoteModelId}
+							onValueChange={(value) => setRemoteModelId(value)}
+							disabled={isProcessing}
+						>
+							<SelectTrigger>
+								<SelectValue placeholder={t("Select a model")} />
+							</SelectTrigger>
+							<SelectContent>
+								{remoteProvider.models.map((model) => (
+									<SelectItem key={model.id} value={model.id}>
+										{model.name}
+									</SelectItem>
+								))}
+								{remoteProvider.supportsCustomModel && (
+									<SelectItem value="__custom__">
+										{t("Custom…")}
+									</SelectItem>
+								)}
+							</SelectContent>
+						</Select>
+						{remoteProvider.supportsCustomModel &&
+							remoteModelId === "__custom__" && (
+								<Input
+									placeholder={t("Enter model id (e.g. openai/whisper-1)")}
+									value={customModelText}
+									onChange={(e) => setCustomModelText(e.target.value)}
+								/>
+							)}
+						<p className="text-muted-foreground text-xs">
+							{remoteProvider.name} —{" "}
+							{t("Cloud transcription is faster than local.")}
+						</p>
+					</div>
+				) : (
+					<div className="flex flex-col gap-3">
+						<Label>{t("Model")}</Label>
+						<Select
+							value={selectedModelId}
+							onValueChange={(value) =>
+								setSelectedModelId({
+									value: value as TranscriptionModelId,
+								})
+							}
+							disabled={isProcessing}
+						>
+							<SelectTrigger>
+								<SelectValue placeholder={t("Select a model")} />
+							</SelectTrigger>
+							<SelectContent>
+								{TRANSCRIPTION_MODELS.map((model) => (
+									<SelectItem key={model.id} value={model.id}>
+										{model.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<p className="text-muted-foreground text-xs">
+							{TRANSCRIPTION_MODELS.find((m) => m.id === selectedModelId)
+								?.description ?? ""}
+						</p>
+					</div>
+				)}
 
 				<div className="flex flex-col gap-3">
 					<Label>{t("Language")}</Label>

@@ -26,6 +26,8 @@ export interface RemoteTranscriptionProvider {
 	defaultModelId: string;
 	/** URL to obtain an API key */
 	apiKeyUrl: string;
+	/** Whether this provider allows entering a custom model id */
+	supportsCustomModel?: boolean;
 	/**
 	 * Transcribe audio using this provider's cloud API.
 	 * Throws on HTTP error or invalid response.

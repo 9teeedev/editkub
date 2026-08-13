@@ -38,6 +38,8 @@ import {
 import { isDevPlaceholderAvailable } from "@/lib/ai/placeholder";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useTranscriptionSettingsStore } from "@/stores/transcription-settings-store";
+import { REMOTE_PROVIDERS } from "@/lib/transcription/providers";
 
 export function SettingsView() {
 	return <ProjectSettingsTabs />;
@@ -561,6 +563,13 @@ function AISettingsView() {
 				</PropertyItem>
 			</div>
 
+			<div className="border-foreground/10 flex flex-col gap-3 border-t pt-4">
+				<span className="text-foreground text-xs font-medium">
+					{t("Transcription")}
+				</span>
+				<TranscriptionSettingsSection />
+			</div>
+
 			{isDevPlaceholderAvailable() && (
 				<div className="border-foreground/10 flex flex-col gap-3 border-t pt-4">
 					<span className="text-foreground text-xs font-medium">
@@ -584,7 +593,122 @@ function AISettingsView() {
 						/>
 					</div>
 				</div>
+				)}
+			</div>
+		);
+}
+
+function TranscriptionSettingsSection() {
+	const { t } = useTranslation();
+	const {
+		providerId,
+		apiKey,
+		remoteModelId,
+		customModelText,
+		setProviderId,
+		setApiKey,
+		setRemoteModelId,
+		setCustomModelText,
+	} = useTranscriptionSettingsStore();
+	const selectedProvider = REMOTE_PROVIDERS.find((p) => p.id === providerId);
+
+	return (
+		<div className="flex flex-col gap-3">
+			<PropertyItem direction="column">
+				<PropertyItemLabel>{t("Provider")}</PropertyItemLabel>
+				<PropertyItemValue>
+					<Select
+						value={providerId}
+						onValueChange={(v) => {
+							setProviderId(v);
+							const p = REMOTE_PROVIDERS.find((x) => x.id === v);
+							if (p) setRemoteModelId(p.defaultModelId);
+						}}
+					>
+						<SelectTrigger>
+							<SelectValue placeholder={t("Select a provider")} />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="local">
+								{t("Local (Private — In-browser)")}
+							</SelectItem>
+							{REMOTE_PROVIDERS.map((p) => (
+								<SelectItem key={p.id} value={p.id}>
+									{p.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</PropertyItemValue>
+			</PropertyItem>
+			{selectedProvider && (
+				<>
+					<PropertyItem direction="column">
+						<PropertyItemLabel>{t("Model")}</PropertyItemLabel>
+						<PropertyItemValue>
+							<Select
+								value={remoteModelId}
+								onValueChange={setRemoteModelId}
+							>
+								<SelectTrigger>
+									<SelectValue placeholder={t("Select a model")} />
+								</SelectTrigger>
+								<SelectContent>
+									{selectedProvider.models.map((m) => (
+										<SelectItem key={m.id} value={m.id}>
+											{m.name}
+										</SelectItem>
+									))}
+									{selectedProvider.supportsCustomModel && (
+										<SelectItem value="__custom__">
+											{t("Custom…")}
+										</SelectItem>
+									)}
+								</SelectContent>
+							</Select>
+						</PropertyItemValue>
+					</PropertyItem>
+					{selectedProvider.supportsCustomModel &&
+						remoteModelId === "__custom__" && (
+							<PropertyItem direction="column">
+								<PropertyItemLabel>
+									{t("Custom Model")}
+								</PropertyItemLabel>
+								<PropertyItemValue>
+									<Input
+										placeholder={t(
+											"Enter model id (e.g. openai/whisper-1)",
+										)}
+										value={customModelText}
+										onChange={(e) =>
+											setCustomModelText(e.target.value)
+										}
+									/>
+								</PropertyItemValue>
+							</PropertyItem>
+						)}
+					<PropertyItem direction="column">
+						<PropertyItemLabel>{t("API Key")}</PropertyItemLabel>
+						<PropertyItemValue>
+							<Input
+								type="password"
+								placeholder={t("Enter API key")}
+								value={apiKey}
+								onChange={(e) => setApiKey(e.target.value)}
+							/>
+						</PropertyItemValue>
+					</PropertyItem>
+					<a
+						href={selectedProvider.apiKeyUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="text-primary hover:underline text-xs"
+					>
+						{t("Get an API key")} →
+					</a>
+				</>
 			)}
 		</div>
 	);
 }
+

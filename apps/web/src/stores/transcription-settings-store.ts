@@ -2,16 +2,19 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface TranscriptionSettingsState {
-	/** "local" (default, private) | "groq" | "openai" */
+	/** "local" (default, private) | "groq" | "openai" | "openrouter" */
 	providerId: string;
 	/** API key for the selected remote provider (stored in localStorage). */
 	apiKey: string;
-	/** Selected remote model id. */
+	/** Selected remote model id (preset id or "__custom__" sentinel). */
 	remoteModelId: string;
+	/** Free-text model id when remoteModelId === "__custom__". */
+	customModelText: string;
 	// Setters
 	setProviderId: (id: string) => void;
 	setApiKey: (key: string) => void;
 	setRemoteModelId: (id: string) => void;
+	setCustomModelText: (text: string) => void;
 }
 
 /**
@@ -29,9 +32,11 @@ export const useTranscriptionSettingsStore =
 				providerId: "local",
 				apiKey: "",
 				remoteModelId: "whisper-large-v3-turbo",
+				customModelText: "",
 				setProviderId: (providerId) => set({ providerId }),
 				setApiKey: (apiKey) => set({ apiKey }),
 				setRemoteModelId: (remoteModelId) => set({ remoteModelId }),
+				setCustomModelText: (customModelText) => set({ customModelText }),
 			}),
 			{ name: "transcription-settings" },
 		),

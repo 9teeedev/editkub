@@ -20,7 +20,7 @@ export function buildCaptionChunks({
 		const words = segment.text.trim().split(/\s+/);
 		if (words.length === 0 || (words.length === 1 && words[0] === "")) continue;
 
-		const segmentDuration = segment.end - segment.start;
+		const segmentDuration = Math.max(0.1, segment.end - segment.start);
 		const wordsPerSecond = words.length / segmentDuration;
 
 		const chunks: string[] = [];

@@ -1,5 +1,6 @@
 import { groqProvider } from "./groq";
 import { openaiProvider } from "./openai";
+import { openrouterProvider } from "./openrouter";
 import type { RemoteTranscriptionProvider } from "./types";
 
 /**
@@ -18,12 +19,14 @@ export const TRANSCRIPTION_PROVIDERS = [
 	LOCAL_PROVIDER,
 	groqProvider,
 	openaiProvider,
+	openrouterProvider,
 ] as const;
 
 /** Remote-only providers (those with a `transcribe()` method). */
 export const REMOTE_PROVIDERS: RemoteTranscriptionProvider[] = [
 	groqProvider,
 	openaiProvider,
+	openrouterProvider,
 ];
 
 /** Look up a remote provider by id. Returns undefined if not found or local. */

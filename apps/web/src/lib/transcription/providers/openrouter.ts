@@ -6,26 +6,33 @@ interface SimpleJsonResponse {
 }
 
 /**
- * OpenAI transcription provider.
+ * OpenRouter transcription provider.
  *
- * Uses `/audio/transcriptions` endpoint.
- * `whisper-1` supports `verbose_json` (segment timestamps).
- * `gpt-4o-transcribe*` models only support `json` or `text` — use `json`.
+ * Uses the OpenAI-compatible `/audio/transcriptions` endpoint.
+ * `whisper-*` models support `verbose_json` (segment timestamps).
+ * `gpt-4o-transcribe*` models only support `json` — use `json`.
  *
- * API keys: https://platform.openai.com/api-keys
- * Docs: https://platform.openai.com/docs/api-reference/audio/createTranscription
+ * Supports custom model ids — users can enter any OpenRouter STT model.
+ *
+ * API keys: https://openrouter.ai/keys
+ * Docs: https://openrouter.ai/docs/guides/overview/multimodal/stt
  */
-export const openaiProvider: RemoteTranscriptionProvider = {
-	id: "openai",
-	name: "OpenAI (Cloud)",
+export const openrouterProvider: RemoteTranscriptionProvider = {
+	id: "openrouter",
+	name: "OpenRouter (Cloud)",
 	requiresApiKey: true,
 	models: [
-		{ id: "gpt-4o-transcribe", name: "GPT-4o Transcribe (Best)" },
-		{ id: "gpt-4o-mini-transcribe", name: "GPT-4o Mini Transcribe" },
-		{ id: "whisper-1", name: "Whisper v1 (Legacy)" },
+		{ id: "openai/gpt-transcribe", name: "GPT Transcribe (Best)" },
+		{ id: "openai/gpt-4o-transcribe", name: "GPT-4o Transcribe" },
+		{ id: "openai/gpt-4o-mini-transcribe", name: "GPT-4o Mini Transcribe" },
+		{
+			id: "openai/whisper-large-v3-turbo",
+			name: "Whisper Large v3 Turbo",
+		},
 	],
-	defaultModelId: "gpt-4o-transcribe",
-	apiKeyUrl: "https://platform.openai.com/api-keys",
+	defaultModelId: "openai/gpt-transcribe",
+	apiKeyUrl: "https://openrouter.ai/keys",
+	supportsCustomModel: true,
 
 	async transcribe({
 		audioBlob,
@@ -33,6 +40,9 @@ export const openaiProvider: RemoteTranscriptionProvider = {
 		model,
 		language,
 	}): Promise<TranscriptionResult> {
+		// Only whisper models support verbose_json (segment timestamps).
+		// GPT transcribe models (gpt-transcribe, gpt-4o-transcribe, etc.)
+		// only support json.
 		const useVerbose = model.includes("whisper");
 
 		const formData = new FormData();
@@ -45,7 +55,7 @@ export const openaiProvider: RemoteTranscriptionProvider = {
 		}
 
 		const response = await fetch(
-			"https://api.openai.com/v1/audio/transcriptions",
+			"https://openrouter.ai/api/v1/audio/transcriptions",
 			{
 				method: "POST",
 				headers: {
@@ -58,7 +68,7 @@ export const openaiProvider: RemoteTranscriptionProvider = {
 		if (!response.ok) {
 			const errorText = await response.text().catch(() => "");
 			throw new Error(
-				`OpenAI API error (${response.status}): ${errorText || response.statusText}`,
+				`OpenRouter API error (${response.status}): ${errorText || response.statusText}`,
 			);
 		}
 
@@ -77,18 +87,12 @@ export const openaiProvider: RemoteTranscriptionProvider = {
 			};
 		}
 
-		// gpt-4o-transcribe / gpt-4o-mini-transcribe — json response has no segments
+		// gpt-4o-transcribe — json response has no segment data
 		const data = (await response.json()) as SimpleJsonResponse;
 		return {
 			text: data.text,
 			language: language ?? "unknown",
-			segments: [
-				{
-					text: data.text.trim(),
-					start: 0,
-					end: 0,
-				},
-			],
+			segments: [{ text: data.text.trim(), start: 0, end: 0 }],
 		};
 	},
 };
