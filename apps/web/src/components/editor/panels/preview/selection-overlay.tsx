@@ -7,6 +7,7 @@ import type {
 	ImageElement,
 	TextElement,
 	StickerElement,
+	BlurEffectElement,
 	ElementType,
 } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
@@ -183,6 +184,33 @@ function computeStickerBounds({
 	};
 }
 
+function computeBlurEffectBounds({
+	element,
+	canvasWidth,
+	canvasHeight,
+	displayScale,
+}: {
+	element: BlurEffectElement;
+	canvasWidth: number;
+	canvasHeight: number;
+	displayScale: number;
+}): ElementBounds {
+	// scale=1 → full canvas, scale=0.5 → half canvas
+	const regionWidth = canvasWidth * element.transform.scale;
+	const regionHeight = canvasHeight * element.transform.scale;
+
+	const centerX = canvasWidth / 2 + element.transform.position.x;
+	const centerY = canvasHeight / 2 + element.transform.position.y;
+
+	return {
+		left: (centerX - regionWidth / 2) * displayScale,
+		top: (centerY - regionHeight / 2) * displayScale,
+		width: regionWidth * displayScale,
+		height: regionHeight * displayScale,
+		rotate: element.transform.rotate,
+	};
+}
+
 function computeElementBounds({
 	element,
 	media,
@@ -202,18 +230,24 @@ function computeElementBounds({
 	// renderer so the selection box tracks the same frame the user sees.
 	// `transform` only exists on visual elements; audio is filtered upstream
 	// but we narrow here too to satisfy the union type.
-	type VisualElement = VideoElement | ImageElement | TextElement | StickerElement;
+	type VisualElement =
+		| VideoElement
+		| ImageElement
+		| TextElement
+		| StickerElement
+		| BlurEffectElement;
 	const isVisual = (
 		e: TimelineElement,
 	): e is VisualElement & {
-		transform: VisualElement["transform"];
-		opacity: number;
-		keyframes?: VisualElement["keyframes"];
-	} =>
+			transform: VisualElement["transform"];
+			opacity: number;
+			keyframes?: VisualElement["keyframes"];
+		} =>
 		e.type === "video" ||
 		e.type === "image" ||
 		e.type === "text" ||
-		e.type === "sticker";
+		e.type === "sticker" ||
+		e.type === "blur-effect";
 
 	if (!isVisual(element)) return null;
 
@@ -252,6 +286,13 @@ function computeElementBounds({
 		case "sticker":
 			return computeStickerBounds({
 				element: resolvedElement as StickerElement,
+				canvasWidth,
+				canvasHeight,
+				displayScale,
+			});
+		case "blur-effect":
+			return computeBlurEffectBounds({
+				element: resolvedElement as BlurEffectElement,
 				canvasWidth,
 				canvasHeight,
 				displayScale,
