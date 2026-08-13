@@ -148,11 +148,27 @@ class TranscriptionService {
 
 				switch (response.type) {
 					case "init-progress":
-						onProgress?.({
-							status: "loading-model",
-							progress: response.progress,
-							message: `Loading ${model.name} model...`,
-						});
+						if (response.progress === -2) {
+							// Signal from worker: WebGPU unavailable, fell back to WASM
+							onProgress?.({
+								status: "loading-model",
+								progress: 0,
+								message: `WebGPU unavailable, using CPU (WASM). Slower but works...`,
+							});
+						} else if (response.progress === -1) {
+							// Signal from worker: fp16 not supported, downgraded to fp32
+							onProgress?.({
+								status: "loading-model",
+								progress: 0,
+								message: `GPU doesn't support fp16, using fp32 (slower but functional)...`,
+							});
+						} else {
+							onProgress?.({
+								status: "loading-model",
+								progress: response.progress,
+								message: `Loading ${model.name} model...`,
+							});
+						}
 						break;
 
 					case "init-complete":
