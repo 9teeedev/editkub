@@ -16,3 +16,14 @@ export const PANEL_CONFIG = {
 		agent: 20,
 	},
 };
+
+export const VERTICAL_PANEL_CONFIG = {
+	panels: {
+		tools: 20,
+		preview: 55,
+		properties: 25,
+		mainContent: 50,
+		timeline: 50,
+		agent: 20,
+	},
+};

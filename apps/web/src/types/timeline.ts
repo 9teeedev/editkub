@@ -8,7 +8,7 @@ export interface TScene {
 	updatedAt: Date;
 }
 
-export type TrackType = "video" | "text" | "audio" | "sticker";
+export type TrackType = "video" | "text" | "audio" | "sticker" | "effect";
 
 interface BaseTrack {
 	id: string;
@@ -42,7 +42,18 @@ export interface StickerTrack extends BaseTrack {
 	hidden: boolean;
 }
 
-export type TimelineTrack = VideoTrack | TextTrack | AudioTrack | StickerTrack;
+export interface EffectTrack extends BaseTrack {
+	type: "effect";
+	elements: BlurEffectElement[];
+	hidden: boolean;
+}
+
+export type TimelineTrack =
+	| VideoTrack
+	| TextTrack
+	| AudioTrack
+	| StickerTrack
+	| EffectTrack;
 
 export interface Transform {
 	scale: number;
@@ -93,6 +104,56 @@ export interface Keyframe {
  * means the property is not animated (its static base value is used).
  */
 export type ElementKeyframes = Partial<Record<KeyframeProperty, Keyframe[]>>;
+
+// ---- Text Animation ----
+
+/**
+ * Built-in text entrance/exit/loop animation presets. These animate
+ * properties of the text rendering (visibility, opacity, offset, scale)
+ * that are orthogonal to keyframe-driven transform/opacity animation.
+ */
+export type TextAnimationType =
+	| "none"
+	| "typewriter"
+	| "glitch"
+	| "bounce"
+	| "slide-in"
+	| "slide-out"
+	| "fade-in"
+	| "fade-out"
+	| "scale-in"
+	| "karaoke";
+
+/**
+ * Per-element text animation config. `duration` is how long (seconds) the
+ * animation takes from the element's start; `0` means it runs across the
+ * element's whole lifetime. `intensity` (0–1) scales visual jitter for
+ * effects like glitch/bounce.
+ */
+export interface TextAnimation {
+	type: TextAnimationType;
+	/** Seconds from element start over which the animation runs. 0 = full element. */
+	duration: number;
+	/** 0–1 multiplier on effect strength (glitch jitter, bounce height). */
+	intensity?: number;
+}
+
+/**
+ * Per-element text animations grouped by phase. `in` plays from the element's
+ * start (entrance); `out` plays over the final `out.duration` seconds before
+ * the element ends (exit). Either may be omitted for "no animation in that
+ * phase". Stored as a single object so the whole animation config travels as
+ * one logical unit (e.g. when edited by an AI/MCP tool).
+ */
+export interface TextAnimations {
+	/** Entrance animation, played from element-local time 0. */
+	in?: TextAnimation;
+	/** Exit animation, played over the final seconds of the element. */
+	out?: TextAnimation;
+}
+
+/** The two independent phases a text animation can belong to. */
+export type TextAnimationPhase = "in" | "out";
 
 // ---- Transitions ----
 
@@ -157,6 +218,9 @@ export interface VideoElement extends BaseTimelineElement {
 	filter?: ElementFilter;
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
+	chromaKey?: ChromaKeyConfig;
+	videoEffect?: VideoEffectConfig;
+	shapeMask?: ShapeMaskConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -171,6 +235,9 @@ export interface ImageElement extends BaseTimelineElement {
 	filter?: ElementFilter;
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
+	chromaKey?: ChromaKeyConfig;
+	videoEffect?: VideoEffectConfig;
+	shapeMask?: ShapeMaskConfig;
 	keyframes?: ElementKeyframes;
 }
 
@@ -189,6 +256,57 @@ export interface TextShadow {
 export interface ElementFilter {
 	presetId: string;
 	intensity: number; // 0-1, multiplier on the filter strength
+}
+
+/** Chroma key (green/blue screen) configuration. */
+export interface ChromaKeyConfig {
+	/** Key color as [r, g, b] (0-255 each). */
+	keyColor: [number, number, number];
+	/** Color-distance threshold (0-1). */
+	threshold: number;
+	/** Edge softness (0-1). */
+	smoothness: number;
+	/** Spill suppression strength (0-1). */
+	spillSuppression: number;
+}
+
+/**
+ * Video effect (VFX) overlay — per-frame pixel effects that CSS filters
+ * cannot express (glitch, VHS, pixelate, etc.).
+ */
+export interface VideoEffectConfig {
+	effect: VideoEffectId;
+	/** 0-1 strength multiplier. */
+	intensity: number;
+}
+
+export type VideoEffectId =
+	| "none"
+	| "glitch"
+	| "vhs"
+	| "pixelate"
+	| "rgb-split"
+	| "halftone";
+
+/** Shape mask types for visual elements. */
+export type MaskShape = "circle" | "rect" | "star" | "inverted-circle";
+
+/**
+ * Shape mask configuration. Clips the element to a geometric shape with
+ * feathered edges. Coordinates are normalized [0,1] relative to the frame.
+ */
+export interface ShapeMaskConfig {
+	shape: MaskShape;
+	centerX: number;
+	centerY: number;
+	/** Size relative to the shorter frame edge (0-1). */
+	size: number;
+	/** Rotation in degrees. */
+	rotation: number;
+	/** Edge feather in pixels. */
+	feather: number;
+	/** Cut a hole instead of keeping the shape. */
+	invert: boolean;
 }
 
 export interface AdjustmentControls {
@@ -224,6 +342,7 @@ export interface TextElement extends BaseTimelineElement {
 	backgroundOpacity?: number;
 	backgroundPaddingX?: number;
 	backgroundPaddingY?: number;
+	textAnimations?: TextAnimations;
 }
 
 export interface StickerElement extends BaseTimelineElement {
@@ -236,12 +355,28 @@ export interface StickerElement extends BaseTimelineElement {
 	keyframes?: ElementKeyframes;
 }
 
+export interface BlurEffectElement extends BaseTimelineElement {
+	type: "blur-effect";
+	/** Blur strength, 0–100. */
+	blurIntensity: number;
+	/** Width as a fraction of canvas (1 = full width). */
+	boxWidth?: number;
+	/** Height as a fraction of canvas (1 = full height). */
+	boxHeight?: number;
+	hidden?: boolean;
+	transform: Transform;
+	opacity: number;
+	keyframes?: ElementKeyframes;
+}
+
+
 export type TimelineElement =
 	| AudioElement
 	| VideoElement
 	| ImageElement
 	| TextElement
-	| StickerElement;
+	| StickerElement
+	| BlurEffectElement;
 
 export type ElementType = TimelineElement["type"];
 
@@ -254,12 +389,14 @@ export type CreateVideoElement = Omit<VideoElement, "id">;
 export type CreateImageElement = Omit<ImageElement, "id">;
 export type CreateTextElement = Omit<TextElement, "id">;
 export type CreateStickerElement = Omit<StickerElement, "id">;
+export type CreateBlurEffectElement = Omit<BlurEffectElement, "id">;
 export type CreateTimelineElement =
 	| CreateAudioElement
 	| CreateVideoElement
 	| CreateImageElement
 	| CreateTextElement
-	| CreateStickerElement;
+	| CreateStickerElement
+	| CreateBlurEffectElement;
 
 // ---- Drag State ----
 

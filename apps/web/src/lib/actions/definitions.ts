@@ -127,6 +127,22 @@ export const ACTIONS = {
 		description: "Detach audio from video",
 		category: "editing",
 	},
+	"enhance-voice": {
+		description: "Enhance and denoise audio in selected clip",
+		category: "editing",
+	},
+	"change-voice": {
+		description: "Apply voice changer preset to selected clip",
+		category: "editing",
+	},
+	"remove-silence": {
+		description: "Detect and remove silent segments from selected clip",
+		category: "editing",
+	},
+	"match-color": {
+		description: "Match color of selected clip to reference clip",
+		category: "editing",
+	},
 	"convert-to-speech": {
 		description: "Convert text to speech",
 		category: "editing",

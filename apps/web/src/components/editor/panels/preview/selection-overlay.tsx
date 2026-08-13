@@ -7,6 +7,7 @@ import type {
 	ImageElement,
 	TextElement,
 	StickerElement,
+	BlurEffectElement,
 	ElementType,
 } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
@@ -15,7 +16,7 @@ import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 
 type ScaleHandle = "top-left" | "top-right" | "bottom-left" | "bottom-right";
-type ResizeHandle = "left" | "right";
+type ResizeHandle = "left" | "right" | "top" | "bottom";
 
 const HANDLE_SIZE = 10;
 const RESIZE_HANDLE_WIDTH = 6;
@@ -183,6 +184,36 @@ function computeStickerBounds({
 	};
 }
 
+function computeBlurEffectBounds({
+	element,
+	canvasWidth,
+	canvasHeight,
+	displayScale,
+}: {
+	element: BlurEffectElement;
+	canvasWidth: number;
+	canvasHeight: number;
+	displayScale: number;
+}): ElementBounds {
+	// scale=1 → full canvas, scale=0.5 → half canvas
+	// boxWidth narrows the width independently (default 1 = proportional)
+	const boxWidth = element.boxWidth ?? 1;
+	const boxHeight = element.boxHeight ?? 1;
+	const regionWidth = canvasWidth * element.transform.scale * boxWidth;
+	const regionHeight = canvasHeight * element.transform.scale * boxHeight;
+
+	const centerX = canvasWidth / 2 + element.transform.position.x;
+	const centerY = canvasHeight / 2 + element.transform.position.y;
+
+	return {
+		left: (centerX - regionWidth / 2) * displayScale,
+		top: (centerY - regionHeight / 2) * displayScale,
+		width: regionWidth * displayScale,
+		height: regionHeight * displayScale,
+		rotate: element.transform.rotate,
+	};
+}
+
 function computeElementBounds({
 	element,
 	media,
@@ -202,18 +233,24 @@ function computeElementBounds({
 	// renderer so the selection box tracks the same frame the user sees.
 	// `transform` only exists on visual elements; audio is filtered upstream
 	// but we narrow here too to satisfy the union type.
-	type VisualElement = VideoElement | ImageElement | TextElement | StickerElement;
+	type VisualElement =
+		| VideoElement
+		| ImageElement
+		| TextElement
+		| StickerElement
+		| BlurEffectElement;
 	const isVisual = (
 		e: TimelineElement,
 	): e is VisualElement & {
-		transform: VisualElement["transform"];
-		opacity: number;
-		keyframes?: VisualElement["keyframes"];
-	} =>
+			transform: VisualElement["transform"];
+			opacity: number;
+			keyframes?: VisualElement["keyframes"];
+		} =>
 		e.type === "video" ||
 		e.type === "image" ||
 		e.type === "text" ||
-		e.type === "sticker";
+		e.type === "sticker" ||
+		e.type === "blur-effect";
 
 	if (!isVisual(element)) return null;
 
@@ -256,6 +293,13 @@ function computeElementBounds({
 				canvasHeight,
 				displayScale,
 			});
+		case "blur-effect":
+			return computeBlurEffectBounds({
+				element: resolvedElement as BlurEffectElement,
+				canvasWidth,
+				canvasHeight,
+				displayScale,
+			});
 		default:
 			return null;
 	}
@@ -280,7 +324,8 @@ function ElementOverlay({
 		handle,
 	}: { event: React.PointerEvent; handle: ResizeHandle }) => void;
 }) {
-	const showResizeHandles = elementType === "text" && onResizeStart;
+	const showResizeHandles =
+		(elementType === "text" || elementType === "blur-effect") && onResizeStart;
 
 	return (
 		<div
@@ -354,6 +399,44 @@ function ElementOverlay({
 						onPointerDown={(event) => {
 							event.stopPropagation();
 							onResizeStart({ event, handle: "right" });
+						}}
+					/>
+				</>
+			)}
+
+			{/* Top/bottom handles for blur-effect height resize */}
+			{elementType === "blur-effect" && onResizeStart && (
+				<>
+					{/* Top handle */}
+					<div
+						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						style={{
+							width: RESIZE_HANDLE_HEIGHT,
+							height: RESIZE_HANDLE_WIDTH,
+							cursor: "ns-resize",
+							top: -RESIZE_HANDLE_WIDTH / 2,
+							left: "50%",
+							transform: "translateX(-50%)",
+						}}
+						onPointerDown={(event) => {
+							event.stopPropagation();
+							onResizeStart({ event, handle: "top" });
+						}}
+					/>
+					{/* Bottom handle */}
+					<div
+						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						style={{
+							width: RESIZE_HANDLE_HEIGHT,
+							height: RESIZE_HANDLE_WIDTH,
+							cursor: "ns-resize",
+							bottom: -RESIZE_HANDLE_WIDTH / 2,
+							left: "50%",
+							transform: "translateX(-50%)",
+						}}
+						onPointerDown={(event) => {
+							event.stopPropagation();
+							onResizeStart({ event, handle: "bottom" });
 						}}
 					/>
 				</>

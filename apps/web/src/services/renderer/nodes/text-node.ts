@@ -3,6 +3,7 @@ import { BaseNode } from "./base-node";
 import type { TextElement } from "@/types/timeline";
 import { getTextScaleFactor } from "@/constants/text-constants";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
+import { resolveTextAnimations } from "@/lib/timeline/text-animation-utils";
 
 type RenderContext =
 	| CanvasRenderingContext2D
@@ -105,18 +106,28 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			baseOpacity: this.params.opacity,
 		});
 
+		// Resolve per-frame text animation (typewriter, fade, slide, bounce, …).
+		// Offset/scale/opacity compose with the keyframe values; visibleText may
+		// be truncated (typewriter).
+		const textAnim = resolveTextAnimations({
+			animations: this.params.textAnimations,
+			localTime,
+			elementDuration: this.params.duration,
+			fullText: this.params.content,
+			baseScale: transform.scale,
+		});
+		const effectiveContent = textAnim.visibleText || this.params.content;
+
 		const x = transform.position.x + this.params.canvasCenter.x;
 		const y = transform.position.y + this.params.canvasCenter.y;
 
-		renderer.context.translate(x, y);
+		renderer.context.translate(x + textAnim.offsetX, y + textAnim.offsetY);
 		if (transform.rotate) {
 			renderer.context.rotate((transform.rotate * Math.PI) / 180);
 		}
-		if (transform.scale !== 1) {
-			renderer.context.scale(
-				transform.scale,
-				transform.scale,
-			);
+		const effectiveScale = transform.scale * textAnim.scale;
+		if (effectiveScale !== 1) {
+			renderer.context.scale(effectiveScale, effectiveScale);
 		}
 
 		const fontWeight = this.params.fontWeight === "bold" ? "bold" : "normal";
@@ -133,7 +144,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		renderer.context.fillStyle = this.params.color;
 
 		const prevAlpha = renderer.context.globalAlpha;
-		renderer.context.globalAlpha = opacity;
+		renderer.context.globalAlpha = opacity * textAnim.opacity;
 
 		const boxWidth = this.params.boxWidth;
 		const hasBoxWidth = boxWidth !== undefined && boxWidth > 0;
@@ -149,16 +160,18 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			this.renderMultiline({
 				context: renderer.context,
 				scaledFontSize,
-				scaledBoxWidth,
-				textBaseline,
-			});
-		} else {
+			scaledBoxWidth,
+			textBaseline,
+			contentOverride: effectiveContent,
+		});
+	} else {
 			this.renderSingleLine({
 				context: renderer.context,
-				scaledFontSize,
-				textBaseline,
-			});
-		}
+			scaledFontSize,
+			textBaseline,
+			contentOverride: effectiveContent,
+		});
+	}
 
 		renderer.context.globalAlpha = prevAlpha;
 		renderer.context.restore();
@@ -168,13 +181,16 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		context,
 		scaledFontSize,
 		textBaseline,
+		contentOverride,
 	}: {
 		context: RenderContext;
 		scaledFontSize: number;
 		textBaseline: CanvasTextBaseline;
+		contentOverride?: string;
 	}) {
+		const content = contentOverride ?? this.params.content;
 		if (this.params.backgroundColor && this.params.backgroundColor !== "transparent") {
-			const metrics = context.measureText(this.params.content);
+			const metrics = context.measureText(content);
 			const ascent = metrics.actualBoundingBoxAscent ?? scaledFontSize * 0.8;
 			const descent =
 				metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2;
@@ -222,7 +238,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			context.strokeStyle = this.params.stroke.color;
 			context.lineWidth = this.params.stroke.width * 2;
 			context.lineJoin = "round";
-			context.strokeText(this.params.content, 0, 0);
+			context.strokeText(content, 0, 0);
 		}
 
 		if (this.params.shadow) {
@@ -232,7 +248,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			context.shadowOffsetY = 0;
 		}
 
-		context.fillText(this.params.content, 0, 0);
+		context.fillText(content, 0, 0);
 	}
 
 	private renderMultiline({
@@ -240,15 +256,18 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		scaledFontSize,
 		scaledBoxWidth,
 		textBaseline,
+		contentOverride,
 	}: {
 		context: RenderContext;
 		scaledFontSize: number;
 		scaledBoxWidth: number;
 		textBaseline: CanvasTextBaseline;
+		contentOverride?: string;
 	}) {
+		const content = contentOverride ?? this.params.content;
 		const lines = wrapText({
 			context,
-			text: this.params.content,
+			text: content,
 			maxWidth: scaledBoxWidth,
 		});
 

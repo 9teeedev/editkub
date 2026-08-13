@@ -16,12 +16,30 @@ import { useAnimatedProperty } from "./use-animated-property";
 import { useAnimatedValueWriter } from "./use-animated-value-writer";
 import { clamp } from "@/utils/math";
 import { useEditor } from "@/hooks/use-editor";
-import type { ImageElement, VideoElement, AdjustmentControls } from "@/types/timeline";
+import type {
+	ChromaKeyConfig,
+	ImageElement,
+	MaskShape,
+	ShapeMaskConfig,
+	VideoElement,
+	AdjustmentControls,
+} from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
+import { invokeAction } from "@/lib/actions";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { Button } from "@/components/ui/button";
+import {
+	CHROMA_DEFAULT,
+	CHROMA_PRESETS,
+	hexToRgb,
+	rgbToHex,
+} from "@/lib/renderer/chroma-key";
+import { MASK_DEFAULT, MASK_PRESETS } from "@/lib/renderer/shape-mask";
 import { BLEND_MODES } from "@/constants/blend-mode-constants";
 import { hasContentBelowElement } from "@/lib/timeline/track-utils";
-import { Info } from "lucide-react";
+import { Info, Pipette } from "lucide-react";
+import { useChromaPickerStore } from "@/stores/chroma-picker-store";
 import {
 	Select,
 	SelectTrigger,
@@ -29,6 +47,7 @@ import {
 	SelectContent,
 	SelectItem,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 export function VideoProperties({
 	_element: element,
@@ -39,6 +58,8 @@ export function VideoProperties({
 }) {
 	const { t } = useTranslation();
 	const editor = useEditor();
+	const isPickingChroma = useChromaPickerStore((state) => state.isPicking);
+	const setChromaPicking = useChromaPickerStore((state) => state.setPicking);
 	const [, forceRender] = useReducer((x: number) => x + 1, 0);
 
 	const isEditingScale = useRef(false);
@@ -266,6 +287,74 @@ export function VideoProperties({
 				},
 			],
 			pushHistory,
+		});
+	};
+
+	const chroma: ChromaKeyConfig | undefined = element.chromaKey;
+
+	const updateChroma = (
+		patch: Partial<ChromaKeyConfig>,
+		pushHistory: boolean,
+	) => {
+		const current = chroma ?? { ...CHROMA_DEFAULT };
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { chromaKey: { ...current, ...patch } },
+				},
+			],
+			pushHistory,
+		});
+	};
+
+	const toggleChroma = (enabled: boolean) => {
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: {
+						chromaKey: enabled ? { ...CHROMA_DEFAULT } : undefined,
+					},
+				},
+			],
+			pushHistory: true,
+		});
+	};
+
+	const mask: ShapeMaskConfig | undefined = element.shapeMask;
+
+	const updateMask = (
+		patch: Partial<ShapeMaskConfig>,
+		pushHistory: boolean,
+	) => {
+		const current = mask ?? { ...MASK_DEFAULT };
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { shapeMask: { ...current, ...patch } },
+				},
+			],
+			pushHistory,
+		});
+	};
+
+	const toggleMask = (enabled: boolean) => {
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: {
+						shapeMask: enabled ? { ...MASK_DEFAULT } : undefined,
+					},
+				},
+			],
+			pushHistory: true,
 		});
 	};
 
@@ -889,6 +978,16 @@ export function VideoProperties({
 
 				<PropertyGroup title={t("Adjustments")} collapsible={false}>
 					<div className="space-y-6">
+						<button
+							type="button"
+							onClick={() => invokeAction("match-color")}
+							title={t(
+								"Match this clip's color to the first selected reference clip",
+							)}
+							className="hover:bg-accent text-muted-foreground flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed py-1.5 text-xs transition-colors hover:text-foreground"
+						>
+							{t("Match Color")}
+						</button>
 						{([
 							{
 								key: "brightness" as const,
@@ -1054,6 +1153,188 @@ export function VideoProperties({
 					</div>
 				</PropertyGroup>
 
+				<PropertyGroup title={t("Chroma Key")} collapsible={false}>
+					<div className="space-y-4">
+						<PropertyItem>
+							<PropertyItemLabel>{t("Enable chroma key")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<div className="flex items-center gap-2">
+									<Switch
+										checked={chroma !== undefined}
+										onCheckedChange={toggleChroma}
+									/>
+									<Button
+										variant="outline"
+										size="sm"
+										className="h-7 gap-1 px-2 text-xs"
+										onClick={() => setChromaPicking(true)}
+									>
+										<Pipette className="size-3.5" />
+										{isPickingChroma
+											? t("Click the preview")
+											: t("Pick from preview")}
+									</Button>
+								</div>
+							</PropertyItemValue>
+						</PropertyItem>
+						{chroma && (
+							<>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Key color")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<ColorPicker
+												value={rgbToHex(chroma.keyColor)}
+												onChange={(hex) =>
+													updateChroma({ keyColor: hexToRgb(hex) }, false)
+												}
+												onChangeEnd={(hex) =>
+													updateChroma({ keyColor: hexToRgb(hex) }, true)
+												}
+											/>
+											<div className="flex flex-wrap gap-1">
+												{CHROMA_PRESETS.map((preset) => (
+													<button
+														key={preset.id}
+														type="button"
+														onClick={() =>
+															updateChroma(
+																{ keyColor: hexToRgb(preset.hex) },
+																true,
+															)
+														}
+														className="size-5 rounded-sm border"
+														style={{ backgroundColor: `#${preset.hex}` }}
+														title={t(preset.label)}
+													/>
+												))}
+											</div>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+								{(
+									[
+										["Threshold", "threshold", 0, 0.6],
+										["Smoothness", "smoothness", 0, 1],
+										["Spill suppression", "spillSuppression", 0, 1],
+									] as const
+								).map(([label, key, min, max]) => (
+									<PropertyItem key={key} direction="column">
+										<PropertyItemLabel>{t(label)}</PropertyItemLabel>
+										<PropertyItemValue>
+											<div className="flex items-center gap-2">
+												<Slider
+													value={[chroma[key]]}
+													min={min}
+													max={max}
+													step={0.01}
+													onValueChange={([value]) =>
+														updateChroma({ [key]: value }, false)
+													}
+													onValueCommit={([value]) =>
+														updateChroma({ [key]: value }, true)
+													}
+													className="flex-1"
+												/>
+												<span className="text-muted-foreground w-10 text-right text-xs">
+													{chroma[key].toFixed(2)}
+												</span>
+											</div>
+										</PropertyItemValue>
+									</PropertyItem>
+								))}
+								<p className="text-muted-foreground text-xs">
+									{t(
+										"Keys out a color (green/blue screen). Per-frame, works with any clip.",
+									)}
+								</p>
+							</>
+						)}
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup title={t("Mask")} collapsible={false}>
+					<div className="space-y-4">
+						<PropertyItem>
+							<PropertyItemLabel>{t("Enable mask")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Switch checked={mask !== undefined} onCheckedChange={toggleMask} />
+							</PropertyItemValue>
+						</PropertyItem>
+						{mask && (
+							<>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Shape")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Select
+											value={mask.shape}
+											onValueChange={(shape) =>
+												updateMask({ shape: shape as MaskShape }, true)
+											}
+										>
+											<SelectTrigger className="w-full">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												{MASK_PRESETS.map((preset) => (
+													<SelectItem key={preset.id} value={preset.id}>
+														{maskPresetLabel(preset.id, t)}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</PropertyItemValue>
+								</PropertyItem>
+								{(
+									[
+										["Size", "size", 0.05, 1.5],
+										["Feather", "feather", 0, 50],
+										["Rotation", "rotation", -180, 180],
+									] as const
+								).map(([label, key, min, max]) => (
+									<PropertyItem key={key} direction="column">
+										<PropertyItemLabel>{t(label)}</PropertyItemLabel>
+										<PropertyItemValue>
+											<div className="flex items-center gap-2">
+												<Slider
+													value={[mask[key]]}
+													min={min}
+													max={max}
+													step={1}
+													onValueChange={([value]) =>
+														updateMask({ [key]: value }, false)
+													}
+													onValueCommit={([value]) =>
+														updateMask({ [key]: value }, true)
+													}
+													className="flex-1"
+												/>
+												<span className="text-muted-foreground w-10 text-right text-xs">
+													{mask[key].toFixed(key === "size" ? 2 : 0)}
+												</span>
+											</div>
+										</PropertyItemValue>
+									</PropertyItem>
+								))}
+								<PropertyItem>
+									<PropertyItemLabel>{t("Invert")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Switch
+											checked={mask.invert}
+											onCheckedChange={(value) => updateMask({ invert: value }, true)}
+										/>
+									</PropertyItemValue>
+								</PropertyItem>
+								<p className="text-muted-foreground text-xs">
+									{t(
+										"Clip to a shape (circle/rect/star/vignette) with feathered edges.",
+									)}
+								</p>
+							</>
+						)}
+					</div>
+				</PropertyGroup>
+
 				{isVideoElement && (
 <PropertyGroup title={t("Speed")} collapsible={false}>
 								<div className="space-y-6">
@@ -1161,4 +1442,17 @@ export function VideoProperties({
 				</PanelBaseView>
 		</div>
 	);
+}
+
+function maskPresetLabel(id: MaskShape, t: (key: string) => string): string {
+	switch (id) {
+		case "circle":
+			return t("Circle");
+		case "rect":
+			return t("Rectangle");
+		case "star":
+			return t("Star");
+		case "inverted-circle":
+			return t("Vignette");
+	}
 }

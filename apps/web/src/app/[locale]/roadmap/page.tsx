@@ -223,26 +223,26 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Background Removal",
 				description:
-					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU). Per-clip toggle removes the background so lower tracks show through. Runs locally — privacy-first. (Chroma key, blur, and background replace are planned.)",
+					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU). Per-clip toggle removes the background so lower tracks show through. Runs locally — privacy-first. Chroma Key is available separately; full segmentation remains planned.",
 				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Auto-Captions",
 				description:
-					"Auto-detect speech, generate timed subtitle clips, style presets (TikTok-style, broadcast, minimal). Multi-language caption support.",
-				status: { text: "Not started", type: "default" },
+					"Transcribe timeline audio locally or through configured remote providers, then generate timed caption clips with language, model, and style-template controls.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Extract Audio from Clip",
 				description:
-					"Replace the 'Split into equal parts' toolbar action with an Extract Audio action. When a clip is selected in the timeline, the button detaches/separates the audio track from that clip onto its own audio track (non-destructive). Mirrors CapCut's extract-audio flow.",
-				status: { text: "Not started", type: "default" },
+					"Detach/separate the audio track from a selected clip onto its own audio track (non-destructive). Toolbar button mutes the source clip and adds a linked audio element sharing the same media — full undo/redo. Mirrors CapCut's extract-audio flow.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Keyframe Curve Editor",
 				description:
-					"Per-keyframe easing curve editor. 'Select a keyframe to edit its curve' panel lets the user pick an individual keyframe and adjust its interpolation (linear, ease-in, ease-out, custom bezier) via a visual curve handle editor. Extends the existing Keyframe Animation system.",
-				status: { text: "Not started", type: "default" },
+					"Per-keyframe easing curve editor. A '∿' button appears on the keyframe-at-playhead row; opens a popover with 4 named easing presets (linear, ease-in, ease-out, ease-in-out) and a draggable cubic-bezier handle editor (SVG plot, two control points, keyboard-nudgeable). Patches the keyframe's easing/bezierP1/bezierP2 fields. Full undo/redo.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Quick Add Keyframe Button",
@@ -253,56 +253,56 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Preview Fit / Zoom Dropdown",
 				description:
-					"Zoom dropdown on the preview player transport bar: Fit, 25%, 50%, 75%, 100%, 150%, 200%. Controls canvas magnification for precise keyframe/adjustment work without changing the export resolution.",
-				status: { text: "Not started", type: "default" },
+					"Zoom dropdown on the preview player transport bar: Fit, 25%, 50%, 75%, 100%, 150%, 200%. Controls canvas magnification for precise keyframe/adjustment work without changing the export resolution. Persisted in a preview-zoom store; Fit letterboxes, explicit % scrolls when overflowing.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Chroma Key / Green Screen",
 				description:
-					"WebGL fragment-shader chroma keyer. Pick key color (green/blue/custom) with eyedropper, adjust similarity threshold and spill suppression edge softness. Real-time preview on canvas. Privacy-first — all GPU-local, no server.",
-				status: { text: "Not started", type: "default" },
+					"Per-frame Canvas2D chroma keyer. Pick green, blue, red, or any color directly from the preview with the eyedropper, then adjust threshold, smoothness, and spill suppression. Privacy-first — runs locally in the browser.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Video Effects Library (VFX)",
 				description:
-					"Time-based overlay effects rendered as WebGL shaders: Glitch, VHS, RGB Split, Shake, Light Leak, Sparkle, Film Burn, Edge Glow. Separate from color filters — these are animated pixel effects. Per-clip intensity and duration. Live thumbnail previews in the effects panel.",
-				status: { text: "Not started", type: "default" },
+					"Left-side Effects panel with live preview cards for Glitch, VHS, Pixelate, RGB Split, Halftone, and None. Click a preset to apply it to selected video/image clips; processing stays local in the browser.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Masking",
 				description:
-					"Shape masks (circle, rectangle, star, gradient, custom path) applied per clip. Invert option, feathered edges, animated mask position via keyframes. Enables advanced split-screen, spotlight, and reveal transitions.",
-				status: { text: "Not started", type: "default" },
+					"Shape masks for visual clips: circle, rectangle, star, and vignette, with size, rotation, feather, and invert controls. Runs per frame locally in the Canvas2D renderer.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Color Match",
 				description:
-					"Match one clip's color to another automatically. Histogram-matching algorithm maps the source clip's color distribution to a chosen reference frame. One-click, non-destructive, undoable.",
-				status: { text: "Not started", type: "default" },
+					"Match one clip's color to a reference clip automatically. Shift-click to select target + reference (first selected = reference, rest = targets), click 'Match Color' in the Adjustments group. Samples both frames via mediabunny, builds luma/RGB histograms + HSL saturation/warmth/tint stats, fits the deltas to the 6-knob AdjustmentControls model (brightness/contrast/saturation/temperature/tint), merges over existing adjustments. Non-destructive, undoable in a single history entry.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Auto Silence Removal",
 				description:
-					"Detect and cut silent gaps automatically. Web Audio API analyzes RMS/peak amplitude; segments below a configurable threshold are marked for removal. Optional preview-then-confirm flow before cuts are applied. Great for podcasts, talking-head, and screencasts.",
-				status: { text: "Not started", type: "default" },
+					"Detect silent segments in an audio/video clip and cut them out, compacting the clip. Decodes the source File via Web Audio API (decodeAudioToFloat32 @ 16kHz mono), slides a 50ms RMS window, thresholds at −40 dBFS, merges runs ≥ 300ms into silence segments, pads edges by 50ms. A new RemoveSilenceCommand splits the element into kept sub-segments and repositions them back-to-back (single undo). Threshold/min-duration are fixed defaults; surfaced as a toolbar button (MuteIcon).",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "AI Voice Enhancement & Denoise",
 				description:
-					"Remove background noise and enhance speech from any clip's audio track. Runs locally via RNNoise (Mozilla's neural denoiser compiled to WASM, ~500KB) — real-time, no cloud. Optional fallback to the browser's built-in WebRTC noise suppression for lower-end devices.",
-				status: { text: "Not started", type: "default" },
+					"Enhance and denoise a clip's audio locally — no WASM binary, no cloud. Renders the source through an OfflineAudioContext chain: 80 Hz high-pass (rumble/hum removal), +2.5 dB presence peaking at 3 kHz (speech intelligibility), 4:1 dynamics compressor (leveler + noise suppression), +1.4 makeup gain. Encodes the result to 16-bit mono WAV, registers it as a new media asset, and swaps the element's mediaId. Non-destructive (original asset kept), undoable. Surfaced as a toolbar button (AiAudioIcon).",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Voice Changer",
 				description:
-					"Real-time pitch and formant shifting with presets: Robot, Chipmunk, Deep, Echo, Telephone, Alien. Powered by Rubber Band or SoundTouch (WASM builds), all local. Per-clip effect, undoable.",
-				status: { text: "Not started", type: "default" },
+					"Pitch + character-effect presets, fully local (no WASM). changeVoice renders the source via OfflineAudioContext at a preset playbackRate (offline length scales by 1/pitch so tempo is preserved) plus filter/effect chains: Chipmunk (×1.6), Deep (×0.65), Robot (50 Hz ring mod), Telephone (300–3400 Hz bandpass), Alien (×0.8 + 800 Hz bandpass + delay feedback), Echo (250 ms delay, 0.4 feedback). Encodes to WAV, registers new asset, swaps mediaId. Arg-taking action ('change-voice', { preset }) surfaced as a toolbar dropdown (VoiceIcon). Non-destructive, undoable.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Canvas Background Fill",
 				description:
-					"Fill empty canvas area (e.g. horizontal video in a vertical project) with blurred copy of the clip, solid color, or gradient. Auto-fit modes for 9:16, 1:1, and 4:5 exports. Essential for repurposing landscape clips to short-form vertical.",
-				status: { text: "Not started", type: "default" },
+					"Fill empty canvas areas with blur, solid color, or custom gradient. The blur + color modes already existed; this adds a first-class gradient variant to TBackground ({ type: 'gradient', css, angle, stops }) rendered by the existing ColorNode (which already supported CSS gradient strings via drawCssBackground). New CustomGradientBuilder UI in the Background settings panel: two ColorPickers + an angle slider (0-360°), live preview swatch, commits via updateSettings. Preview canvases (desktop + mobile) updated to render the gradient CSS.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Custom Subtitle System",
@@ -332,7 +332,7 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Advanced Text Animations",
 				description:
 					"Typewriter, glitch, bounce, slide-in, karaoke-style highlight. Animated text presets library. Per-word timing.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Drawing & Annotation",
@@ -350,13 +350,13 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Voiceover Recording",
 				description:
 					"In-browser microphone capture via `getUserMedia()`. Countdown overlay (3·2·1), real-time playback while recording, optional original-audio monitoring, auto-insert to timeline at playhead.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Project Sharing",
 				description:
 					"Export/import project bundles (.cutia) — self-contained JSON with embedded media. Share a file, open it anywhere, fully local.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 		],
 	},
@@ -445,7 +445,7 @@ export default function RoadmapPage() {
 	return (
 		<BasePage
 			title="Roadmap"
-			description="The path to becoming the best free CapCut alternative (last updated: July 2026)"
+			description="The path to becoming the best free CapCut alternative (last updated: August 2026)"
 		>
 			<div className="mx-auto flex max-w-4xl flex-col gap-16">
 				{roadmapPhases.map((phase) => (

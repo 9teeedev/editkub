@@ -37,6 +37,8 @@ export const BLUR_INTENSITY_PRESETS: { label: string; value: number }[] = [
 ] as const;
 
 export const DEFAULT_CANVAS_SIZE: TCanvasSize = { width: 1920, height: 1080 };
+export const LANDSCAPE_CANVAS_SIZE: TCanvasSize = { width: 1920, height: 1080 };
+export const VERTICAL_CANVAS_SIZE: TCanvasSize = { width: 1080, height: 1920 };
 export const DEFAULT_FPS = 30;
 export const DEFAULT_BLUR_INTENSITY = 8;
 export const DEFAULT_COLOR = "#000000";

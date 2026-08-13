@@ -1,5 +1,6 @@
 import type { MutableRefObject } from "react";
 import type { TAction } from "./definitions";
+import type { VoicePreset } from "@/lib/audio/voice-changer";
 
 export type { TAction };
 
@@ -8,6 +9,7 @@ export type TActionArgsMap = {
 	"seek-backward": { seconds: number } | undefined;
 	"jump-forward": { seconds: number } | undefined;
 	"jump-backward": { seconds: number } | undefined;
+	"change-voice": { preset: VoicePreset } | undefined;
 };
 
 type TKeysWithValueUndefined<T> = {

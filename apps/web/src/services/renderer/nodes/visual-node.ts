@@ -1,7 +1,20 @@
 import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
-import type { ElementKeyframes, Transform } from "@/types/timeline";
+import type {
+	ChromaKeyConfig,
+	ElementKeyframes,
+	ShapeMaskConfig,
+	Transform,
+	VideoEffectConfig,
+} from "@/types/timeline";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
+import {
+	applyChromaKey,
+	ensureChromaTarget,
+	type DrawableCanvas,
+} from "@/lib/renderer/chroma-key";
+import { applyVideoEffect } from "@/lib/renderer/video-effects";
+import { applyShapeMask } from "@/lib/renderer/shape-mask";
 
 const VISUAL_EPSILON = 1 / 1000;
 
@@ -15,6 +28,9 @@ export interface VisualNodeParams {
 	filter?: string;
 	vignette?: number; // 0-100, edge darkening intensity
 	blendMode?: string;
+	chromaKey?: ChromaKeyConfig;
+	videoEffect?: VideoEffectConfig;
+	shapeMask?: ShapeMaskConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -23,6 +39,80 @@ export interface VisualNodeParams {
 export abstract class VisualNode<
 	Params extends VisualNodeParams = VisualNodeParams,
 > extends BaseNode<Params> {
+	private chromaTarget?: DrawableCanvas;
+	private vfxTarget?: DrawableCanvas;
+	private shapeMaskTarget?: DrawableCanvas;
+
+	protected getMaskedSource({
+		source,
+		sourceWidth,
+		sourceHeight,
+	}: {
+		source: CanvasImageSource;
+		sourceWidth: number;
+		sourceHeight: number;
+	}): {
+		source: CanvasImageSource;
+		sourceWidth: number;
+		sourceHeight: number;
+	} {
+		let currentSource: CanvasImageSource = source;
+
+		if (this.params.chromaKey) {
+			this.chromaTarget = ensureChromaTarget({
+				existing: this.chromaTarget,
+				width: sourceWidth,
+				height: sourceHeight,
+			});
+			applyChromaKey({
+				source: currentSource,
+				sourceWidth,
+				sourceHeight,
+				config: this.params.chromaKey,
+				target: this.chromaTarget,
+			});
+			currentSource = this.chromaTarget;
+		}
+
+		if (
+			this.params.videoEffect &&
+			this.params.videoEffect.effect !== "none" &&
+			this.params.videoEffect.intensity > 0
+		) {
+			this.vfxTarget = ensureChromaTarget({
+				existing: this.vfxTarget,
+				width: sourceWidth,
+				height: sourceHeight,
+			});
+			applyVideoEffect({
+				source: currentSource,
+				sourceWidth,
+				sourceHeight,
+				config: this.params.videoEffect,
+				target: this.vfxTarget,
+			});
+			currentSource = this.vfxTarget;
+		}
+
+		if (this.params.shapeMask) {
+			this.shapeMaskTarget = ensureChromaTarget({
+				existing: this.shapeMaskTarget,
+				width: sourceWidth,
+				height: sourceHeight,
+			});
+			applyShapeMask({
+				source: currentSource,
+				sourceWidth,
+				sourceHeight,
+				config: this.params.shapeMask,
+				target: this.shapeMaskTarget,
+			});
+			currentSource = this.shapeMaskTarget;
+		}
+
+		return { source: currentSource, sourceWidth, sourceHeight };
+	}
+
 	protected getLocalTime(time: number): number {
 		const rate = this.params.playbackRate ?? 1;
 		const elapsed = time - this.params.timeOffset;

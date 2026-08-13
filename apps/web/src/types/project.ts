@@ -9,6 +9,15 @@ export type TBackground =
 	| {
 			type: "blur";
 			blurIntensity: number;
+	  }
+	| {
+			type: "gradient";
+			/** CSS gradient string, e.g. "linear-gradient(135deg, #ff0000, #0000ff)". */
+			css: string;
+			/** Angle in degrees for linear gradients (0-360). */
+			angle: number;
+			/** Stop colors (hex without #). */
+			stops: [string, string];
 	  };
 
 export interface TCanvasSize {
@@ -38,6 +47,8 @@ export interface TTimelineViewState {
 	playheadTime: number;
 }
 
+export type TEditorLayoutMode = "landscape" | "vertical";
+
 export interface TProject {
 	metadata: TProjectMetadata;
 	scenes: TScene[];
@@ -45,6 +56,7 @@ export interface TProject {
 	settings: TProjectSettings;
 	version: number;
 	timelineViewState?: TTimelineViewState;
+	layoutMode?: TEditorLayoutMode;
 	agentMessages?: AgentMessage[];
 }
 

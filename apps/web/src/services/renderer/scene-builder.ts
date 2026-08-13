@@ -14,6 +14,7 @@ import { TextNode } from "./nodes/text-node";
 import { StickerNode } from "./nodes/sticker-node";
 import { ColorNode } from "./nodes/color-node";
 import { BlurBackgroundNode } from "./nodes/blur-background-node";
+import { BlurEffectNode } from "./nodes/blur-effect-node";
 import { TransitionNode } from "./nodes/transition-node";
 import type { BaseNode } from "./nodes/base-node";
 import type { TBackground, TCanvasSize } from "@/types/project";
@@ -56,6 +57,9 @@ function buildVisualElementNode({
 			filter: computeFilterString(element.filter, element.adjustments),
 			blendMode: element.blendMode,
 			vignette: element.adjustments?.vignette ?? 0,
+			chromaKey: element.chromaKey,
+			videoEffect: element.videoEffect,
+			shapeMask: element.shapeMask,
 			keyframes: element.keyframes,
 			playbackRate: videoElement.playbackRate,
 			reversed: videoElement.reversed,
@@ -74,6 +78,9 @@ function buildVisualElementNode({
 			filter: computeFilterString(element.filter, element.adjustments),
 			blendMode: element.blendMode,
 			vignette: element.adjustments?.vignette ?? 0,
+			chromaKey: element.chromaKey,
+			videoEffect: element.videoEffect,
+			shapeMask: element.shapeMask,
 			keyframes: element.keyframes,
 		});
 	}
@@ -217,6 +224,23 @@ export function buildScene(params: BuildSceneParams) {
 					}),
 				);
 			}
+
+			if (element.type === "blur-effect") {
+				contentNodes.push(
+					new BlurEffectNode({
+						blurIntensity: element.blurIntensity,
+						boxWidth: element.boxWidth,
+						boxHeight: element.boxHeight,
+						duration: element.duration,
+						timeOffset: element.startTime,
+						trimStart: element.trimStart,
+						trimEnd: element.trimEnd,
+						transform: element.transform,
+						opacity: element.opacity,
+						keyframes: element.keyframes,
+					}),
+				);
+			}
 		}
 	}
 
@@ -227,6 +251,11 @@ export function buildScene(params: BuildSceneParams) {
 				contentNodes,
 			}),
 		);
+		for (const node of contentNodes) {
+			rootNode.add(node);
+		}
+	} else if (background.type === "gradient") {
+		rootNode.add(new ColorNode({ color: background.css }));
 		for (const node of contentNodes) {
 			rootNode.add(node);
 		}
@@ -275,6 +304,9 @@ function computeFilterString(
 						scaled = round(num * filter.intensity);
 					} else if (func === "sepia" || func === "grayscale") {
 						// amount-based: neutral at 0
+						scaled = round(num * filter.intensity);
+					} else if (func === "blur") {
+						// blur radius: neutral at 0
 						scaled = round(num * filter.intensity);
 					} else {
 						// saturate, contrast, brightness — neutral at 1

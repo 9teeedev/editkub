@@ -9,13 +9,12 @@ import {
 	TooltipContent,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { SplitSquareHorizontal } from "lucide-react";
 
 import { Slider } from "@/components/ui/slider";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import { sliderToZoom, zoomToSlider } from "@/lib/timeline/zoom-utils";
 
-import { type TAction, invokeAction } from "@/lib/actions";
+import { type TActionWithNoArgs, invokeAction } from "@/lib/actions";
 import { cn } from "@/utils/ui";
 import { useTimelineStore } from "@/stores/timeline-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,8 +31,14 @@ import {
 	AlignLeftIcon,
 	AlignRightIcon,
 	KeyframeAddIcon,
+	Mic01Icon,
+	MusicNote03Icon,
+	MuteIcon,
+	StopCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useVoiceoverStore } from "@/stores/voiceover-store";
+import { toast } from "sonner";
 
 export function TimelineToolbar({
 	zoomLevel,
@@ -76,16 +81,37 @@ function ToolbarLeftSection() {
 	const editor = useEditor();
 	const currentTime = editor.playback.getCurrentTime();
 	const currentBookmarked = editor.scenes.isBookmarked({ time: currentTime });
+	const voiceoverMode = useVoiceoverStore((s) => s.mode);
+	const startCountdown = useVoiceoverStore((s) => s.startCountdown);
+	const voiceoverStop = useVoiceoverStore((s) => s.stop);
+	const isVoiceoverActive = voiceoverMode !== "idle";
 
 	const handleAction = ({
 		action,
 		event,
 	}: {
-		action: TAction;
+		action: TActionWithNoArgs;
 		event: React.MouseEvent;
 	}) => {
 		event.stopPropagation();
 		invokeAction(action);
+	};
+
+	const handleVoiceoverToggle = () => {
+		if (isVoiceoverActive) {
+			// Already armed/recording — the overlay's Stop button handles the
+			// actual stop. Clicking the toolbar icon cancels the countdown.
+			voiceoverStop();
+			return;
+		}
+		// Arm: capture current playhead position, then the overlay takes over.
+		const startTime = editor.playback.getCurrentTime();
+		const duration = editor.timeline.getTotalDuration();
+		if (duration <= 0) {
+			toast.error(t("Add a clip to the timeline first"));
+			return;
+		}
+		startCountdown(startTime);
 	};
 
 	return (
@@ -93,34 +119,43 @@ function ToolbarLeftSection() {
 			<TooltipProvider delayDuration={500}>
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={ScissorIcon} />}
-					tooltip={t('Split element')}
+					tooltip={t("Split element")}
 					onClick={({ event }) => handleAction({ action: "split", event })}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={AlignLeftIcon} />}
-					tooltip={t('Split left')}
+					tooltip={t("Split left")}
 					onClick={({ event }) => handleAction({ action: "split-left", event })}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={AlignRightIcon} />}
-					tooltip={t('Split right')}
+					tooltip={t("Split right")}
 					onClick={({ event }) =>
 						handleAction({ action: "split-right", event })
 					}
 				/>
 
 				<ToolbarButton
-					icon={<SplitSquareHorizontal />}
-					tooltip={t('Coming soon')}
-					disabled={true}
-					onClick={({ event: _event }) => {}}
+					icon={<HugeiconsIcon icon={MusicNote03Icon} />}
+					tooltip={t("Detach audio")}
+					onClick={({ event }) =>
+						handleAction({ action: "detach-audio", event })
+					}
+				/>
+
+				<ToolbarButton
+					icon={<HugeiconsIcon icon={MuteIcon} />}
+					tooltip={t("Remove silence")}
+					onClick={({ event }) =>
+						handleAction({ action: "remove-silence", event })
+					}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Copy01Icon} />}
-					tooltip={t('Duplicate element')}
+					tooltip={t("Duplicate element")}
 					onClick={({ event }) =>
 						handleAction({ action: "duplicate-selected", event })
 					}
@@ -128,14 +163,14 @@ function ToolbarLeftSection() {
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={SnowIcon} />}
-					tooltip={t('Coming soon')}
+					tooltip={t("Coming soon")}
 					disabled={true}
 					onClick={({ event: _event }) => {}}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Delete02Icon} />}
-					tooltip={t('Delete element')}
+					tooltip={t("Delete element")}
 					onClick={({ event }) =>
 						handleAction({ action: "delete-selected", event })
 					}
@@ -155,12 +190,30 @@ function ToolbarLeftSection() {
 					<ToolbarButton
 						icon={<HugeiconsIcon icon={Bookmark02Icon} />}
 						isActive={currentBookmarked}
-						tooltip={currentBookmarked ? t('Remove bookmark') : t('Add bookmark')}
+						tooltip={
+							currentBookmarked ? t("Remove bookmark") : t("Add bookmark")
+						}
 						onClick={({ event }) =>
 							handleAction({ action: "toggle-bookmark", event })
 						}
 					/>
 				</Tooltip>
+
+				<div className="bg-border mx-1 h-6 w-px" />
+
+				<ToolbarButton
+					icon={
+						<HugeiconsIcon
+							icon={isVoiceoverActive ? StopCircleIcon : Mic01Icon}
+							className={isVoiceoverActive ? "text-red-500" : ""}
+						/>
+					}
+					isActive={isVoiceoverActive}
+					tooltip={
+						isVoiceoverActive ? t("Cancel voiceover") : t("Record voiceover")
+					}
+					onClick={() => handleVoiceoverToggle()}
+				/>
 			</TooltipProvider>
 		</div>
 	);
@@ -191,14 +244,14 @@ function ToolbarRightSection({
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={MagnetIcon} />}
 					isActive={snappingEnabled}
-					tooltip={t('Auto snapping')}
+					tooltip={t("Auto snapping")}
 					onClick={() => toggleSnapping()}
 				/>
 
 				<ToolbarButton
 					icon={<HugeiconsIcon icon={Link04Icon} className="scale-110" />}
 					isActive={rippleEditingEnabled}
-					tooltip={t('Ripple editing')}
+					tooltip={t("Ripple editing")}
 					onClick={() => toggleRippleEditing()}
 				/>
 			</TooltipProvider>

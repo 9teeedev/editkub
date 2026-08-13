@@ -25,6 +25,7 @@ import {
 import { KeyframeRow } from "./keyframe-row";
 import { useAnimatedProperty } from "./use-animated-property";
 import { useAnimatedValueWriter } from "./use-animated-value-writer";
+import { TextAnimationTab } from "./text-animation-tab";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { uppercase } from "@/utils/string";
 import { clamp } from "@/utils/math";
@@ -387,6 +388,7 @@ export function TextProperties({
 			<Tabs defaultValue="style" className="flex h-full flex-col">
 				<TabsList className="border-b px-3 py-2">
 					<TabsTrigger value="style">{t("Style")}</TabsTrigger>
+					<TabsTrigger value="animation">{t("Animation")}</TabsTrigger>
 					<TabsTrigger value="speech">{t("Speech")}</TabsTrigger>
 				</TabsList>
 				<TabsContent value="style" className="mt-0 flex-1 overflow-auto">
@@ -1671,6 +1673,17 @@ export function TextProperties({
 								</div>
 							</PropertyGroup>
 					</PanelBaseView>
+				</TabsContent>
+				<TabsContent value="animation" className="mt-0 flex-1 overflow-auto">
+					<TextAnimationTab
+						element={element}
+						onChange={(textAnimations) =>
+							editor.timeline.updateElements({
+								updates: buildBatchUpdates({ textAnimations }),
+								pushHistory: true,
+							})
+						}
+					/>
 				</TabsContent>
 				<TabsContent value="speech" className="mt-0 flex-1 overflow-auto">
 					<TextSpeechPanel elements={elementRefs} />

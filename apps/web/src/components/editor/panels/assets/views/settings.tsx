@@ -38,6 +38,11 @@ import {
 import { isDevPlaceholderAvailable } from "@/lib/ai/placeholder";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useTranscriptionSettingsStore } from "@/stores/transcription-settings-store";
+import { REMOTE_PROVIDERS } from "@/lib/transcription/providers";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { Slider } from "@/components/ui/slider";
+import type { TBackground } from "@/types/project";
 
 export function SettingsView() {
 	return <ProjectSettingsTabs />;
@@ -394,6 +399,16 @@ function BackgroundView() {
 		[editor.project],
 	);
 
+	const handleGradientChange = useCallback(
+		async ({ stops, angle }: { stops: [string, string]; angle: number }) => {
+			const css = `linear-gradient(${angle}deg, #${stops[0]}, #${stops[1]})`;
+			await editor.project.updateSettings({
+				settings: { background: { type: "gradient", css, angle, stops } },
+			});
+		},
+		[editor.project],
+	);
+
 	const currentBlurIntensity =
 		activeProject.settings.background.type === "blur"
 			? activeProject.settings.background.blurIntensity
@@ -406,6 +421,12 @@ function BackgroundView() {
 
 	const isBlurBackground = activeProject.settings.background.type === "blur";
 	const isColorBackground = activeProject.settings.background.type === "color";
+	const isGradientBackground =
+		activeProject.settings.background.type === "gradient";
+	const currentGradient =
+		activeProject.settings.background.type === "gradient"
+			? activeProject.settings.background
+			: null;
 
 	const blurPreviews = useMemo(
 		() =>
@@ -429,6 +450,18 @@ function BackgroundView() {
 
 	return (
 		<div className="flex h-full flex-col">
+			<PropertyGroup
+				title={t("Custom gradient")}
+				hasBorderTop={false}
+				defaultExpanded={false}
+			>
+				<CustomGradientBuilder
+					isActive={isGradientBackground}
+					current={currentGradient}
+					onChange={handleGradientChange}
+				/>
+			</PropertyGroup>
+
 			<PropertyGroup
 				title={t("Blur")}
 				hasBorderTop={false}
@@ -561,6 +594,13 @@ function AISettingsView() {
 				</PropertyItem>
 			</div>
 
+			<div className="border-foreground/10 flex flex-col gap-3 border-t pt-4">
+				<span className="text-foreground text-xs font-medium">
+					{t("Transcription")}
+				</span>
+				<TranscriptionSettingsSection />
+			</div>
+
 			{isDevPlaceholderAvailable() && (
 				<div className="border-foreground/10 flex flex-col gap-3 border-t pt-4">
 					<span className="text-foreground text-xs font-medium">
@@ -584,6 +624,178 @@ function AISettingsView() {
 						/>
 					</div>
 				</div>
+				)}
+			</div>
+		);
+}
+
+function TranscriptionSettingsSection() {
+	const { t } = useTranslation();
+	const {
+		providerId,
+		apiKey,
+		remoteModelId,
+		customModelText,
+		setProviderId,
+		setApiKey,
+		setRemoteModelId,
+		setCustomModelText,
+	} = useTranscriptionSettingsStore();
+	const selectedProvider = REMOTE_PROVIDERS.find((p) => p.id === providerId);
+
+	return (
+		<div className="flex flex-col gap-3">
+			<PropertyItem direction="column">
+				<PropertyItemLabel>{t("Provider")}</PropertyItemLabel>
+				<PropertyItemValue>
+					<Select
+						value={providerId}
+						onValueChange={(v) => {
+							setProviderId(v);
+							const p = REMOTE_PROVIDERS.find((x) => x.id === v);
+							if (p) setRemoteModelId(p.defaultModelId);
+						}}
+					>
+						<SelectTrigger>
+							<SelectValue placeholder={t("Select a provider")} />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="local">
+								{t("Local (Private — In-browser)")}
+							</SelectItem>
+							{REMOTE_PROVIDERS.map((p) => (
+								<SelectItem key={p.id} value={p.id}>
+									{p.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</PropertyItemValue>
+			</PropertyItem>
+			{selectedProvider && (
+				<>
+					<PropertyItem direction="column">
+						<PropertyItemLabel>{t("Model")}</PropertyItemLabel>
+						<PropertyItemValue>
+							<Select
+								value={remoteModelId}
+								onValueChange={setRemoteModelId}
+							>
+								<SelectTrigger>
+									<SelectValue placeholder={t("Select a model")} />
+								</SelectTrigger>
+								<SelectContent>
+									{selectedProvider.models.map((m) => (
+										<SelectItem key={m.id} value={m.id}>
+											{m.name}
+										</SelectItem>
+									))}
+									{selectedProvider.supportsCustomModel && (
+										<SelectItem value="__custom__">
+											{t("Custom…")}
+										</SelectItem>
+									)}
+								</SelectContent>
+							</Select>
+						</PropertyItemValue>
+					</PropertyItem>
+					{selectedProvider.supportsCustomModel &&
+						remoteModelId === "__custom__" && (
+							<PropertyItem direction="column">
+								<PropertyItemLabel>
+									{t("Custom Model")}
+								</PropertyItemLabel>
+								<PropertyItemValue>
+									<Input
+										placeholder={t(
+											"Enter model id (e.g. openai/whisper-1)",
+										)}
+										value={customModelText}
+										onChange={(e) =>
+											setCustomModelText(e.target.value)
+										}
+									/>
+								</PropertyItemValue>
+							</PropertyItem>
+						)}
+					<PropertyItem direction="column">
+						<PropertyItemLabel>{t("API Key")}</PropertyItemLabel>
+						<PropertyItemValue>
+							<Input
+								type="password"
+								placeholder={t("Enter API key")}
+								value={apiKey}
+								onChange={(e) => setApiKey(e.target.value)}
+							/>
+						</PropertyItemValue>
+					</PropertyItem>
+					<a
+						href={selectedProvider.apiKeyUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="text-primary hover:underline text-xs"
+					>
+						{t("Get an API key")} →
+					</a>
+				</>
+			)}
+		</div>
+	);
+}
+
+function CustomGradientBuilder({
+	isActive,
+	current,
+	onChange,
+}: {
+	isActive: boolean;
+	current: Extract<TBackground, { type: "gradient" }> | null;
+	onChange: (params: { stops: [string, string]; angle: number }) => void;
+}) {
+	const { t } = useTranslation();
+	const stop1 = current?.stops[0] ?? "FF6B6B";
+	const stop2 = current?.stops[1] ?? "4ECDC4";
+	const angle = current?.angle ?? 135;
+
+	const previewCss = `linear-gradient(${angle}deg, #${stop1}, #${stop2})`;
+
+	return (
+		<div className="space-y-3">
+			<div
+				className="h-12 w-full rounded-sm border"
+				style={{ background: previewCss }}
+			/>
+			<div className="flex items-center justify-between gap-3">
+				<ColorPicker
+					value={stop1}
+					onChange={(hex) => onChange({ stops: [hex, stop2], angle })}
+					onChangeEnd={(hex) => onChange({ stops: [hex, stop2], angle })}
+				/>
+				<ColorPicker
+					value={stop2}
+					onChange={(hex) => onChange({ stops: [stop1, hex], angle })}
+					onChangeEnd={(hex) => onChange({ stops: [stop1, hex], angle })}
+				/>
+			</div>
+			<div className="flex items-center gap-2">
+				<span className="text-muted-foreground text-xs">{t("Angle")}</span>
+				<Slider
+					value={[angle]}
+					min={0}
+					max={360}
+					step={1}
+					onValueChange={([v]) => onChange({ stops: [stop1, stop2], angle: v })}
+					onValueCommit={([v]) => onChange({ stops: [stop1, stop2], angle: v })}
+					className="flex-1"
+				/>
+				<span className="text-muted-foreground w-10 text-right text-xs">
+					{angle}°
+				</span>
+			</div>
+			{!isActive && (
+				<p className="text-muted-foreground text-xs">
+					{t("Pick two colors to fill empty canvas areas with a gradient.")}
+				</p>
 			)}
 		</div>
 	);

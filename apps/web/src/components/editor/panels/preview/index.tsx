@@ -12,6 +12,7 @@ import type { RootNode } from "@/services/renderer/nodes/root-node";
 import { buildScene } from "@/services/renderer/scene-builder";
 import { formatTimeCode, getLastFrameTime } from "@/lib/time";
 import { PreviewInteractionOverlay } from "./preview-interaction-overlay";
+import { VoiceoverOverlay } from "./voiceover-overlay";
 import { EditableTimecode } from "@/components/editable-timecode";
 import { invokeAction } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -30,6 +33,10 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMediaPreviewStore } from "@/stores/media-preview-store";
+import {
+	PREVIEW_ZOOM_LEVELS,
+	usePreviewZoomStore,
+} from "@/stores/preview-zoom-store";
 import type { MediaAsset } from "@/types/assets";
 import { cn } from "@/utils/ui";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
@@ -250,10 +257,14 @@ function PreviewToolbar({
 	const currentTime = editor.playback.getCurrentTime();
 	const totalDuration = editor.timeline.getTotalDuration();
 	const fps = editor.project.getActive().settings.fps;
+	const zoom = usePreviewZoomStore((s) => s.zoom);
+	const setZoom = usePreviewZoomStore((s) => s.setZoom);
+
+	const zoomLabel = zoom === null ? t("Fit") : `${Math.round(zoom * 100)}%`;
 
 	return (
 		<div className="grid grid-cols-[1fr_auto_1fr] items-center pb-3 pt-5 px-5">
-			<div className="flex items-center mt-1">
+			<div className="flex items-center gap-2 mt-1">
 				<EditableTimecode
 					time={currentTime}
 					duration={totalDuration}
@@ -270,6 +281,40 @@ function PreviewToolbar({
 						fps,
 					})}
 				</span>
+
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="outline"
+							size="sm"
+							type="button"
+							onMouseDown={(event) => event.preventDefault()}
+							className="text-muted-foreground h-7 px-2 font-mono text-xs"
+							title={t("Zoom level")}
+						>
+							{zoomLabel}
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="start" side="top">
+						<DropdownMenuLabel>{t("Zoom")}</DropdownMenuLabel>
+						<DropdownMenuItem
+							onClick={() => setZoom(null)}
+							data-active={zoom === null}
+						>
+							{t("Fit")}
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						{PREVIEW_ZOOM_LEVELS.map((level) => (
+							<DropdownMenuItem
+								key={level}
+								onClick={() => setZoom(level)}
+								data-active={zoom === level}
+							>
+								{`${Math.round(level * 100)}%`}
+							</DropdownMenuItem>
+						))}
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</div>
 
 			<Button
@@ -327,6 +372,7 @@ function PreviewCanvas() {
 	const containerSize = useContainerSize({ containerRef });
 	const editor = useEditor();
 	const activeProject = editor.project.getActive();
+	const zoom = usePreviewZoomStore((s) => s.zoom);
 
 	const renderer = useMemo(() => {
 		return new CanvasRenderer({
@@ -346,6 +392,12 @@ function PreviewCanvas() {
 			return { width: nativeWidth ?? 0, height: nativeHeight ?? 0 };
 		}
 
+		// Explicit zoom: render at nativeSize * zoom, allow overflow (scroll)
+		if (zoom !== null) {
+			return { width: nativeWidth * zoom, height: nativeHeight * zoom };
+		}
+
+		// Fit: letterbox to container, preserve aspect ratio
 		const paddingBuffer = 4;
 		const availableWidth = containerSize.width - paddingBuffer;
 		const availableHeight = containerSize.height - paddingBuffer;
@@ -363,7 +415,16 @@ function PreviewCanvas() {
 				: availableWidth / aspectRatio;
 
 		return { width: displayWidth, height: displayHeight };
-	}, [nativeWidth, nativeHeight, containerSize.width, containerSize.height]);
+	}, [
+		nativeWidth,
+		nativeHeight,
+		containerSize.width,
+		containerSize.height,
+		zoom,
+	]);
+
+	// When zoomed in beyond the container, allow scrolling; when Fit, center
+	const isOverflow = zoom !== null && displaySize.width > 0;
 
 	const renderTree = editor.renderer.getRenderTree();
 
@@ -402,10 +463,13 @@ function PreviewCanvas() {
 	return (
 		<div
 			ref={containerRef}
-			className="relative flex h-full w-full items-center justify-center"
+			className={cn(
+				"relative h-full w-full",
+				isOverflow ? "overflow-auto" : "flex items-center justify-center",
+			)}
 		>
 			<div
-				className="relative"
+				className={cn("relative", isOverflow && "mx-auto my-auto w-fit")}
 				style={{ width: displaySize.width, height: displaySize.height }}
 			>
 				<canvas
@@ -419,13 +483,16 @@ function PreviewCanvas() {
 						background:
 							activeProject.settings.background.type === "blur"
 								? "transparent"
-								: activeProject?.settings.background.color,
+								: activeProject.settings.background.type === "gradient"
+									? activeProject.settings.background.css
+									: activeProject.settings.background.color,
 					}}
 				/>
 				<PreviewInteractionOverlay
 					canvasRef={canvasRef}
 					displaySize={displaySize}
 				/>
+				<VoiceoverOverlay displaySize={displaySize} />
 			</div>
 		</div>
 	);

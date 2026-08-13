@@ -37,9 +37,11 @@ import {
 	UpdateElementStartTimeCommand,
 	MoveElementCommand,
 	DetachAudioCommand,
+	RemoveSilenceCommand,
 } from "@/lib/commands/timeline";
 import { BatchCommand } from "@/lib/commands";
 import type { InsertElementParams } from "@/lib/commands/timeline/element/insert-element";
+import type { SilenceSegment } from "@/lib/audio/silence-detection";
 
 export class TimelineManager {
 	private listeners = new Set<() => void>();
@@ -308,6 +310,22 @@ export class TimelineManager {
 		elements: { trackId: string; elementId: string }[];
 	}): void {
 		const command = new DetachAudioCommand(elements);
+		this.editor.command.execute({ command });
+	}
+
+	/**
+	 * Remove silent segments from an element by splitting it into the kept
+	 * sub-segments and repositioning them back-to-back. Single undo entry.
+	 * `keptSegments` are in source-local time (seconds from trimStart).
+	 */
+	removeSilence({
+		target,
+		keptSegments,
+	}: {
+		target: { trackId: string; elementId: string };
+		keptSegments: SilenceSegment[];
+	}): void {
+		const command = new RemoveSilenceCommand(target, keptSegments);
 		this.editor.command.execute({ command });
 	}
 

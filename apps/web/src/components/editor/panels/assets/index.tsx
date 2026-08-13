@@ -5,6 +5,7 @@ import { type Tab, useAssetsPanelStore } from "@/stores/assets-panel-store";
 import { TabBar } from "./tabbar";
 import { AIView } from "./views/ai";
 import { Captions } from "./views/captions";
+import { SubtitlesView } from "./views/subtitles";
 import { MediaView } from "./views/media";
 import { SettingsView } from "./views/settings";
 import { SoundsView } from "./views/sounds";
@@ -12,6 +13,7 @@ import { StickersView } from "./views/stickers";
 import { TextView } from "./views/text";
 import { TransitionsView } from "./views/transitions";
 import { FiltersView } from "./views/filters";
+import { EffectsView } from "./views/effects";
 
 export function AssetsPanel() {
 	const { activeTab } = useAssetsPanelStore();
@@ -21,13 +23,10 @@ export function AssetsPanel() {
 		sounds: <SoundsView />,
 		text: <TextView />,
 		stickers: <StickersView />,
-		effects: (
-			<div className="text-muted-foreground p-4">
-				Effects view coming soon...
-			</div>
-		),
+		effects: <EffectsView />,
 		transitions: <TransitionsView />,
 		captions: <Captions />,
+		subtitles: <SubtitlesView />,
 		filters: <FiltersView />,
 		ai: <AIView />,
 		settings: <SettingsView />,

@@ -1,0 +1,62 @@
+export const v5Project = {
+	id: "project-v5-123",
+	version: 5,
+	metadata: {
+		id: "project-v5-123",
+		name: "My V5 Project",
+		thumbnail: "data:image/png;base64,abc123",
+		duration: 30,
+		createdAt: "2024-07-01T10:00:00.000Z",
+		updatedAt: "2024-07-01T14:00:00.000Z",
+	},
+	settings: {
+		fps: 30,
+		canvasSize: { width: 1920, height: 1080 },
+		background: { type: "color", color: "#000000" },
+	},
+	currentSceneId: "scene-main",
+	scenes: [
+		{
+			id: "scene-main",
+			name: "Main scene",
+			isMain: true,
+			tracks: [
+				{
+					id: "track-text",
+					type: "text",
+					name: "Text Track",
+					hidden: false,
+					elements: [
+						{
+							id: "element-text-1",
+							type: "text",
+							content: "Animated text",
+							startTime: 0,
+							duration: 5,
+							trimStart: 0,
+							trimEnd: 0,
+							fontSize: 48,
+							fontFamily: "Inter",
+							color: "#ffffff",
+							backgroundColor: "transparent",
+							textAlign: "center",
+							fontWeight: "normal",
+							fontStyle: "normal",
+							textDecoration: "none",
+							transform: { scale: 1, position: { x: 0, y: 0 }, rotate: 0 },
+							opacity: 1,
+							textAnimation: {
+								type: "fade-in",
+								duration: 0.5,
+								intensity: 1,
+							},
+						},
+					],
+				},
+			],
+			bookmarks: [],
+			createdAt: "2024-07-01T10:00:00.000Z",
+			updatedAt: "2024-07-01T14:00:00.000Z",
+		},
+	],
+};

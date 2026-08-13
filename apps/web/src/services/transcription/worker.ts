@@ -51,6 +51,63 @@ let cancelled = false;
 let lastReportedProgress = -1;
 const fileBytes = new Map<string, { loaded: number; total: number }>();
 
+type ResolvedBackend = {
+	/** "webgpu" if available, otherwise "wasm" */
+	device: "webgpu" | "wasm";
+	/** Encoder dtype appropriate for the resolved device */
+	encoderDtype: "fp16" | "fp32" | "q8";
+	/** Signal to send to the service layer (undefined = no fallback) */
+	signal?: -1 | -2;
+};
+
+/**
+ * Detect the best available backend and resolve an appropriate encoder dtype.
+ * Progressive fallback chain:
+ *
+ *  1. navigator.gpu missing          → WASM + q8 (signal: -2)
+ *  2. requestAdapter() fails / null  → WASM + q8 (signal: -2)
+ *  3. WebGPU OK, fp16 wanted, no shader-f16 → WebGPU + fp32 (signal: -1)
+ *  4. WebGPU OK, fp32 wanted         → WebGPU + fp32
+ *  5. WebGPU OK, fp16 wanted, has shader-f16 → WebGPU + fp16
+ *
+ * @param preferredEncoderDtype  "fp16" or "fp32" from the model config.
+ */
+async function detectBackend(
+	preferredEncoderDtype: "fp16" | "fp32",
+): Promise<ResolvedBackend> {
+	// Check WebGPU availability
+	if (typeof navigator === "undefined" || !("gpu" in navigator)) {
+		return { device: "wasm", encoderDtype: "q8", signal: -2 };
+	}
+
+	let adapter: { features: { has: (f: string) => boolean } } | null = null;
+	try {
+		const gpu = (
+			navigator as unknown as {
+				gpu: {
+					requestAdapter: () => Promise<{
+						features: { has: (f: string) => boolean };
+					} | null>;
+				};
+			}
+		).gpu;
+		adapter = await gpu.requestAdapter();
+	} catch {
+		// requestAdapter threw — no usable GPU
+	}
+
+	if (!adapter) {
+		return { device: "wasm", encoderDtype: "q8", signal: -2 };
+	}
+
+	// WebGPU is available — check fp16 support
+	if (preferredEncoderDtype === "fp16" && !adapter.features.has("shader-f16")) {
+		return { device: "webgpu", encoderDtype: "fp32", signal: -1 };
+	}
+
+	return { device: "webgpu", encoderDtype: preferredEncoderDtype };
+}
+
 self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 	const message = event.data;
 
@@ -97,12 +154,33 @@ async function handleInit({
 	fileBytes.clear();
 
 	try {
+		// Detect the best available backend before loading the model.
+		// Falls back from WebGPU → WASM automatically so transcription works
+		// even on machines without a usable GPU adapter.
+		const backend = await detectBackend(encoderDtype);
+		if (backend.signal !== undefined) {
+			self.postMessage({
+				type: "init-progress",
+				progress: backend.signal,
+			} satisfies WorkerResponse);
+		}
+
+		// Build dtype config per device. WASM uses q8 (smaller, faster to
+		// download); WebGPU uses the resolved encoder dtype + q4 decoder.
+		const dtypeConfig: Record<
+			"encoder_model" | "decoder_model_merged",
+			"fp16" | "fp32" | "q8" | "q4"
+		> =
+			backend.device === "wasm"
+				? { encoder_model: "q8", decoder_model_merged: "q8" }
+				: {
+						encoder_model: backend.encoderDtype,
+						decoder_model_merged: "q4",
+					};
+
 		transcriber = (await pipeline("automatic-speech-recognition", modelId, {
-			dtype: {
-				encoder_model: encoderDtype,
-				decoder_model_merged: "q4",
-			},
-			device: "webgpu",
+			dtype: dtypeConfig,
+			device: backend.device,
 			progress_callback: (progressInfo: {
 				status?: string;
 				file?: string;
@@ -187,8 +265,7 @@ async function handleTranscribe({
 			max_source_positions: number;
 		};
 		const timePrecision =
-			featureExtractor.config.chunk_length /
-			modelConfig.max_source_positions;
+			featureExtractor.config.chunk_length / modelConfig.max_source_positions;
 
 		const chunks: TranscriptionChunk[] = [];
 		let chunkCount = 0;
@@ -203,10 +280,7 @@ async function handleTranscribe({
 		const WHISPER_SAMPLE_RATE = 16000;
 		const audioDurationS = audio.length / WHISPER_SAMPLE_RATE;
 		const stepS = chunkLengthS - strideLengthS;
-		const estimatedTotalChunks = Math.max(
-			1,
-			Math.ceil(audioDurationS / stepS),
-		);
+		const estimatedTotalChunks = Math.max(1, Math.ceil(audioDurationS / stepS));
 
 		let lastUpdateTime = 0;
 		const UPDATE_THROTTLE_MS = 100;

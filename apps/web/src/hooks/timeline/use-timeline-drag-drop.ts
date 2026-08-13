@@ -10,12 +10,17 @@ import {
 	buildUploadAudioElement,
 	buildVideoElement,
 	buildImageElement,
+	buildBlurEffectElement,
 } from "@/lib/timeline/element-utils";
 import { computeDropTarget } from "@/lib/timeline/drop-utils";
 import { getDragData, hasDragData } from "@/lib/drag-data";
 import { useTimelineStore } from "@/stores/timeline-store";
 import type { TrackType, DropTarget, ElementType } from "@/types/timeline";
-import type { MediaDragData, StickerDragData } from "@/types/drag";
+import type {
+	MediaDragData,
+	StickerDragData,
+	BlurEffectDragData,
+} from "@/types/drag";
 
 interface UseTimelineDragDropProps {
 	containerRef: RefObject<HTMLDivElement | null>;
@@ -53,6 +58,7 @@ export function useTimelineDragDrop({
 
 			if (dragData.type === "text") return "text";
 			if (dragData.type === "sticker") return "sticker";
+			if (dragData.type === "blur-effect") return "blur-effect";
 			if (dragData.type === "media") {
 				return dragData.mediaType;
 			}
@@ -69,7 +75,11 @@ export function useTimelineDragDrop({
 			elementType: ElementType;
 			mediaId?: string;
 		}): number => {
-			if (elementType === "text" || elementType === "sticker") {
+			if (
+				elementType === "text" ||
+				elementType === "sticker" ||
+				elementType === "blur-effect"
+			) {
 				return TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION;
 			}
 			if (mediaId) {
@@ -180,7 +190,11 @@ export function useTimelineDragDrop({
 			dragData,
 		}: {
 			target: DropTarget;
-			dragData: { name?: string; content?: string; styles?: Record<string, unknown> };
+			dragData: {
+				name?: string;
+				content?: string;
+				styles?: Record<string, unknown>;
+			};
 		}) => {
 			let trackId: string;
 
@@ -235,6 +249,40 @@ export function useTimelineDragDrop({
 
 			const element = buildStickerElement({
 				iconName: dragData.iconName,
+				startTime: target.xPosition,
+			});
+
+			editor.timeline.insertElement({
+				placement: { mode: "explicit", trackId },
+				element,
+			});
+		},
+		[editor.timeline, tracks],
+	);
+
+	const executeBlurEffectDrop = useCallback(
+		({
+			target,
+			dragData,
+		}: {
+			target: DropTarget;
+			dragData: BlurEffectDragData;
+		}) => {
+			let trackId: string;
+
+			if (target.isNewTrack) {
+				trackId = editor.timeline.addTrack({
+					type: "effect",
+					index: target.trackIndex,
+				});
+			} else {
+				const track = tracks[target.trackIndex];
+				if (!track) return;
+				trackId = track.id;
+			}
+
+			const element = buildBlurEffectElement({
+				blurIntensity: dragData.blurIntensity,
 				startTime: target.xPosition,
 			});
 
@@ -418,6 +466,8 @@ export function useTimelineDragDrop({
 						executeTextDrop({ target: currentTarget, dragData });
 					} else if (dragData.type === "sticker") {
 						executeStickerDrop({ target: currentTarget, dragData });
+					} else if (dragData.type === "blur-effect") {
+						executeBlurEffectDrop({ target: currentTarget, dragData });
 					} else {
 						executeMediaDrop({ target: currentTarget, dragData });
 					}
@@ -443,6 +493,7 @@ export function useTimelineDragDrop({
 			dropTarget,
 			executeTextDrop,
 			executeStickerDrop,
+			executeBlurEffectDrop,
 			executeMediaDrop,
 			executeFileDrop,
 			containerRef,

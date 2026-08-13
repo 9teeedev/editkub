@@ -174,6 +174,11 @@ export class InsertElementCommand extends Command {
 			return false;
 		}
 
+		if (element.type === "blur-effect" && element.blurIntensity == null) {
+			console.error("Blur effect element must have blurIntensity");
+			return false;
+		}
+
 		return true;
 	}
 
@@ -343,6 +348,9 @@ export class InsertElementCommand extends Command {
 	}): TrackType {
 		if (element.type === "video" || element.type === "image") {
 			return "video";
+		}
+		if (element.type === "blur-effect") {
+			return "effect";
 		}
 		return element.type;
 	}

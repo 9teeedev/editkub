@@ -20,4 +20,13 @@ export interface StickerDragData extends BaseDragData {
 	iconName: string;
 }
 
-export type TimelineDragData = MediaDragData | TextDragData | StickerDragData;
+export interface BlurEffectDragData extends BaseDragData {
+	type: "blur-effect";
+	blurIntensity: number;
+}
+
+export type TimelineDragData =
+	| MediaDragData
+	| TextDragData
+	| StickerDragData
+	| BlurEffectDragData;

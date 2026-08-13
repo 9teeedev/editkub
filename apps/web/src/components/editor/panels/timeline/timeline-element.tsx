@@ -51,6 +51,7 @@ import {
 	ArrowTurnBackwardIcon,
 	Edit02Icon,
 	AiVoiceGeneratorIcon,
+	BlurIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { uppercase } from "@/utils/string";
@@ -131,10 +132,9 @@ export function TimelineElement({
 		dragState.isDragging &&
 		isCurrentElementSelected &&
 		selectedElements.length > 1;
-	const timeDelta =
-		dragState.isDragging
-			? dragState.currentTime - dragState.startElementTime
-			: 0;
+	const timeDelta = dragState.isDragging
+		? dragState.currentTime - dragState.startElementTime
+		: 0;
 	const dragOffsetY =
 		isBeingDragged && dragState.isDragging
 			? dragState.currentMouseY - dragState.startMouseY
@@ -359,7 +359,7 @@ function ElementInner({
 
 			{isSelected && (
 				<>
-					<div className="border-primary pointer-events-none absolute inset-0 z-20 rounded-[0.5rem] border-2" />
+					<div className="border-white pointer-events-none absolute inset-0 z-20 rounded-[0.5rem] border-2" />
 					<ResizeHandle
 						side="left"
 						elementId={element.id}
@@ -393,7 +393,7 @@ function ResizeHandle({
 	return (
 		<button
 			type="button"
-			className={`bg-primary absolute top-0 bottom-0 z-50 flex w-[0.6rem] items-center justify-center ${isLeft ? "left-0 cursor-w-resize" : "right-0 cursor-e-resize"}`}
+			className={`bg-white absolute top-0 bottom-0 z-50 flex w-[0.6rem] items-center justify-center ${isLeft ? "left-0 cursor-w-resize" : "right-0 cursor-e-resize"}`}
 			onMouseDown={(e) => handleResizeStart({ e, elementId, side })}
 			aria-label={`${isLeft ? "Left" : "Right"} resize handle`}
 		>
@@ -433,6 +433,17 @@ function ElementContent({
 					unoptimized
 				/>
 				<span className="truncate text-xs text-white">{element.name}</span>
+			</div>
+		);
+	}
+
+	if (element.type === "blur-effect") {
+		return (
+			<div className="flex size-full items-center gap-2 pl-2">
+				<HugeiconsIcon icon={BlurIcon} className="size-4 shrink-0 text-white" />
+				<span className="truncate text-xs text-white">
+					{element.name} ({element.blurIntensity}%)
+				</span>
 			</div>
 		);
 	}

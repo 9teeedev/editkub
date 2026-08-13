@@ -24,13 +24,12 @@ export class VideoNode extends VisualNode<VideoNodeParams> {
 		});
 
 		if (frame) {
-			this.renderVisual({
-				renderer,
+			const masked = this.getMaskedSource({
 				source: frame.canvas,
 				sourceWidth: frame.canvas.width,
 				sourceHeight: frame.canvas.height,
-				time,
 			});
+			this.renderVisual({ renderer, ...masked, time });
 		}
 	}
 }

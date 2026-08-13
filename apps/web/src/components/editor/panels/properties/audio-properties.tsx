@@ -15,6 +15,26 @@ import { clamp } from "@/utils/math";
 import { useEditor } from "@/hooks/use-editor";
 import type { AudioElement } from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
+import { invokeAction } from "@/lib/actions";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AiAudioIcon, VoiceIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+
+const VOICE_PRESETS = [
+	"chipmunk",
+	"deep",
+	"robot",
+	"telephone",
+	"alien",
+	"echo",
+] as const;
 
 export function AudioProperties({
 	_element: element,
@@ -160,10 +180,47 @@ export function AudioProperties({
 										}}
 										className="bg-accent h-7 w-14 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 									/>
-								</div>
-							</PropertyItemValue>
-						</PropertyItem>
-					</div>
+									</div>
+								</PropertyItemValue>
+							</PropertyItem>
+
+							<div className="grid grid-cols-2 gap-2">
+								<button
+									type="button"
+									onClick={() => invokeAction("enhance-voice")}
+									className="bg-accent hover:bg-accent/80 flex items-center justify-center gap-1.5 rounded-sm px-2 py-1.5 text-xs transition-colors"
+								>
+									<HugeiconsIcon icon={AiAudioIcon} className="size-4" />
+									{t("Enhance voice")}
+								</button>
+
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<button
+											type="button"
+											className="bg-accent hover:bg-accent/80 flex items-center justify-center gap-1.5 rounded-sm px-2 py-1.5 text-xs transition-colors"
+										>
+											<HugeiconsIcon icon={VoiceIcon} className="size-4" />
+											{t("Voice changer")}
+										</button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="start" side="bottom">
+										<DropdownMenuLabel>{t("Voice changer")}</DropdownMenuLabel>
+										<DropdownMenuSeparator />
+										{VOICE_PRESETS.map((preset) => (
+											<DropdownMenuItem
+												key={preset}
+												onClick={() => invokeAction("change-voice", { preset })}
+											>
+												{t(
+													preset.charAt(0).toUpperCase() + preset.slice(1),
+												)}
+											</DropdownMenuItem>
+										))}
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+						</div>
 				</PropertyGroup>
 
 <PropertyGroup title={t("Speed")} collapsible={false}>

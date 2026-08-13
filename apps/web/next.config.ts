@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/**": ["./public/locales/**/*"],
   },
+  transpilePackages: ["@editkub/ui", "@editkub/env"],
   images: {
     remotePatterns: [
       {
