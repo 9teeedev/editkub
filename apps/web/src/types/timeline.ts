@@ -302,6 +302,8 @@ export interface BlurEffectElement extends BaseTimelineElement {
 	type: "blur-effect";
 	/** Blur strength, 0–100. */
 	blurIntensity: number;
+	/** Width as a fraction of canvas (1 = full width). */
+	boxWidth?: number;
 	hidden?: boolean;
 	transform: Transform;
 	opacity: number;

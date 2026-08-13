@@ -223,6 +223,7 @@ export function buildScene(params: BuildSceneParams) {
 				contentNodes.push(
 					new BlurEffectNode({
 						blurIntensity: element.blurIntensity,
+						boxWidth: element.boxWidth,
 						duration: element.duration,
 						timeOffset: element.startTime,
 						trimStart: element.trimStart,

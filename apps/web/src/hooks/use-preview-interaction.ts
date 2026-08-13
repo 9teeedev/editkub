@@ -5,6 +5,7 @@ import type {
 	TimelineTrack,
 	TimelineElement,
 	TextElement,
+	BlurEffectElement,
 	ElementKeyframes,
 } from "@/types/timeline";
 import { hitTestElements } from "@/lib/preview/hit-test";
@@ -66,6 +67,7 @@ interface ResizeState {
 	initialBoxWidth: number;
 	initialTransform: Transform;
 	scaleFactor: number;
+	resizeType: "text" | "blur-effect";
 }
 
 export function usePreviewInteraction({
@@ -274,9 +276,8 @@ export function usePreviewInteraction({
 			element: TimelineElement;
 			trackId: string;
 		}) => {
-			if (element.type !== "text") return;
+			if (element.type !== "text" && element.type !== "blur-effect") return;
 
-			const textElement = element as TextElement;
 			const startPos = getCanvasCoordinates({
 				clientX: event.clientX,
 				clientY: event.clientY,
@@ -284,24 +285,46 @@ export function usePreviewInteraction({
 
 			const canvasHeight = canvasRef.current?.height ?? 0;
 			const canvasWidth = canvasRef.current?.width ?? 0;
-			const scaleFactor = getTextScaleFactor({ canvasWidth, canvasHeight });
 
-			const initialBoxWidth =
-				textElement.boxWidth && textElement.boxWidth > 0
-					? textElement.boxWidth
-					: textElement.content.length * textElement.fontSize * 0.6;
+			if (element.type === "text") {
+				const textElement = element as TextElement;
+				const scaleFactor = getTextScaleFactor({ canvasWidth, canvasHeight });
 
-			resizeStateRef.current = {
-				startX: startPos.x,
-				startY: startPos.y,
-				handle,
-				tracksSnapshot: editor.timeline.getTracks(),
-				trackId,
-				elementId: element.id,
-				initialBoxWidth,
-				initialTransform: textElement.transform,
-				scaleFactor,
-			};
+				const initialBoxWidth =
+					textElement.boxWidth && textElement.boxWidth > 0
+						? textElement.boxWidth
+						: textElement.content.length * textElement.fontSize * 0.6;
+
+				resizeStateRef.current = {
+					startX: startPos.x,
+					startY: startPos.y,
+					handle,
+					tracksSnapshot: editor.timeline.getTracks(),
+					trackId,
+					elementId: element.id,
+					initialBoxWidth,
+					initialTransform: textElement.transform,
+					scaleFactor,
+					resizeType: "text",
+				};
+			} else {
+				const blurElement = element as BlurEffectElement;
+				const scaleFactor =
+					canvasWidth > 0 ? canvasWidth * blurElement.transform.scale : 1;
+
+				resizeStateRef.current = {
+					startX: startPos.x,
+					startY: startPos.y,
+					handle,
+					tracksSnapshot: editor.timeline.getTracks(),
+					trackId,
+					elementId: element.id,
+					initialBoxWidth: blurElement.boxWidth ?? 1,
+					initialTransform: blurElement.transform,
+					scaleFactor,
+					resizeType: "blur-effect",
+				};
+			}
 
 			resizePointerIdRef.current = event.pointerId;
 			overlayRef.current?.setPointerCapture(event.pointerId);

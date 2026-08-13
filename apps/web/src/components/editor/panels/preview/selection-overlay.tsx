@@ -196,7 +196,9 @@ function computeBlurEffectBounds({
 	displayScale: number;
 }): ElementBounds {
 	// scale=1 → full canvas, scale=0.5 → half canvas
-	const regionWidth = canvasWidth * element.transform.scale;
+	// boxWidth narrows the width independently (default 1 = proportional)
+	const boxWidth = element.boxWidth ?? 1;
+	const regionWidth = canvasWidth * element.transform.scale * boxWidth;
 	const regionHeight = canvasHeight * element.transform.scale;
 
 	const centerX = canvasWidth / 2 + element.transform.position.x;
@@ -321,7 +323,8 @@ function ElementOverlay({
 		handle,
 	}: { event: React.PointerEvent; handle: ResizeHandle }) => void;
 }) {
-	const showResizeHandles = elementType === "text" && onResizeStart;
+	const showResizeHandles =
+		(elementType === "text" || elementType === "blur-effect") && onResizeStart;
 
 	return (
 		<div
