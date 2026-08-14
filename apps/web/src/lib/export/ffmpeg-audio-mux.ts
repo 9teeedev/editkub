@@ -110,13 +110,13 @@ export async function muxAacAudioIntoMp4({
 	videoBuffer: ArrayBuffer;
 	audioWav: Uint8Array;
 	audioBitrate?: number;
-	onProgress?: (progress: number) => void;
+	onProgress?: ({ progress }: { progress: number }) => void;
 	shouldAbort?: () => boolean;
 }): Promise<ArrayBuffer> {
 	const ffmpeg = await getFfmpeg();
 
 	const progressHandler = ({ progress }: { progress: number }) => {
-		onProgress?.(progress);
+		onProgress?.({ progress });
 	};
 	ffmpeg.on("progress", progressHandler);
 
