@@ -19,6 +19,7 @@ import { Check, Copy, Download, RotateCcw } from "lucide-react";
 import {
 	EXPORT_FORMAT_VALUES,
 	EXPORT_QUALITY_VALUES,
+	type ExportErrorCode,
 	type ExportFormat,
 	type ExportQuality,
 	type ExportResult,
@@ -88,8 +89,10 @@ function ExportPopover({
 	const [exportResult, setExportResult] = useState<ExportResult | null>(null);
 	const cancelRequestedRef = useRef(false);
 
-	const handleExport = async () => {
+	const handleExport = async (formatOverride?: ExportFormat) => {
 		if (!activeProject) return;
+
+		const effectiveFormat = formatOverride ?? format;
 
 		cancelRequestedRef.current = false;
 		setIsExporting(true);
@@ -98,7 +101,7 @@ function ExportPopover({
 
 		const result = await editor.project.export({
 			options: {
-				format,
+				format: effectiveFormat,
 				quality,
 				fps: activeProject.settings.fps,
 				includeAudio,
@@ -118,8 +121,8 @@ function ExportPopover({
 		setExportResult(result);
 
 		if (result.success && result.buffer) {
-			const mimeType = getExportMimeType({ format });
-			const extension = getExportFileExtension({ format });
+			const mimeType = getExportMimeType({ format: effectiveFormat });
+			const extension = getExportFileExtension({ format: effectiveFormat });
 			const blob = new Blob([result.buffer], { type: mimeType });
 			const url = URL.createObjectURL(blob);
 
@@ -141,12 +144,24 @@ function ExportPopover({
 		cancelRequestedRef.current = true;
 	};
 
+	const handleSwitchToWebM = () => {
+		setFormat("webm");
+		handleExport("webm");
+	};
+
 	return (
 		<PopoverContent className="bg-background mr-4 flex w-80 flex-col p-0">
 			{exportResult && !exportResult.success ? (
 				<ExportError
 					error={exportResult.error || "Unknown error occurred"}
-					onRetry={handleExport}
+					code={exportResult.code}
+					onRetry={() => handleExport()}
+					onSwitchToWebM={
+						exportResult.code === "unsupported_codec" &&
+						format !== "webm"
+							? handleSwitchToWebM
+							: undefined
+					}
 				/>
 			) : (
 				<>
@@ -236,12 +251,15 @@ function ExportPopover({
 									</PropertyGroup>
 								</div>
 
-								<div className="p-3 pt-0">
-									<Button onClick={handleExport} className="w-full gap-2">
-										<Download className="size-4" />
-										{t("Export")}
-									</Button>
-								</div>
+									<div className="p-3 pt-0">
+										<Button
+											onClick={() => handleExport()}
+											className="w-full gap-2"
+										>
+											<Download className="size-4" />
+											{t("Export")}
+										</Button>
+									</div>
 							</>
 						)}
 
@@ -282,10 +300,14 @@ function isExportQuality(value: string): value is ExportQuality {
 
 function ExportError({
 	error,
+	code,
 	onRetry,
+	onSwitchToWebM,
 }: {
 	error: string;
+	code?: ExportErrorCode;
 	onRetry: () => void;
+	onSwitchToWebM?: () => void;
 }) {
 	const { t } = useTranslation();
 	const [copied, setCopied] = useState(false);
@@ -304,6 +326,13 @@ function ExportError({
 				</p>
 				<p className="text-muted-foreground text-xs">{error}</p>
 			</div>
+
+			{onSwitchToWebM && (
+				<Button onClick={onSwitchToWebM} className="w-full gap-2">
+					<Download className="size-4" />
+					{t("Use WebM instead")}
+				</Button>
+			)}
 
 			<div className="flex gap-2">
 				<Button

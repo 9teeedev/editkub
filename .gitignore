@@ -20,3 +20,6 @@ bun.lockb
 
 .DS_Store
 .zcode/
+
+# ffmpeg.wasm core (31MB, copied from node_modules via scripts/setup-ffmpeg.sh)
+apps/web/public/ffmpeg/
