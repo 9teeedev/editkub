@@ -5,7 +5,7 @@
   "packageManager": "bun@1.2.18",
   "scripts": {
     "dev": "next dev --turbopack --port 4100",
-    "build": "next build",
+    "build": "../../scripts/setup-ffmpeg.sh && next build",
     "start": "next start",
     "lint": "biome check src/",
     "lint:fix": "biome check src/ --write",

@@ -19,9 +19,13 @@ export interface ExportOptions {
 	onCancel?: () => boolean;
 }
 
+/** Machine-readable export error category, so the UI can offer recovery. */
+export type ExportErrorCode = "unsupported_codec" | "unknown";
+
 export interface ExportResult {
 	success: boolean;
 	buffer?: ArrayBuffer;
 	error?: string;
+	code?: ExportErrorCode;
 	cancelled?: boolean;
 }
