@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AiAudioIcon, VoiceIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { Switch } from "@/components/ui/switch";
 
 const VOICE_PRESETS = [
 	"chipmunk",
@@ -62,6 +63,9 @@ export function AudioProperties({
 		: volumePercent.toString();
 
 	const currentSpeed = element.playbackRate ?? 1;
+	const pan = element.pan ?? 0;
+	const fadeIn = element.fadeIn ?? 0;
+	const fadeOut = element.fadeOut ?? 0;
 	const speedDisplay = isEditingSpeed.current
 		? speedDraft.current
 		: formatSpeedLabel({ rate: currentSpeed });
@@ -221,6 +225,72 @@ export function AudioProperties({
 								</DropdownMenu>
 							</div>
 						</div>
+				</PropertyGroup>
+
+				<PropertyGroup title={t("Pan, Fade & Auto-Duck")} collapsible={false}>
+					<div className="space-y-5">
+						<PropertyItem direction="column">
+							<PropertyItemLabel>{t("Pan")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<div className="flex items-center gap-2">
+									<Slider
+										value={[pan * 100]}
+										min={-100}
+										max={100}
+										step={1}
+										onValueChange={([value]) =>
+											updateElement({ updates: { pan: value / 100 }, pushHistory: false })}
+										onValueCommit={([value]) =>
+											updateElement({ updates: { pan: value / 100 }, pushHistory: true })}
+										className="flex-1"
+									/>
+									<span className="text-muted-foreground w-10 text-right text-xs">
+										{pan === 0 ? t("Center") : pan < 0 ? t("Left") : t("Right")}
+									</span>
+								</div>
+							</PropertyItemValue>
+						</PropertyItem>
+
+						{(["fadeIn", "fadeOut"] as const).map((key) => {
+							const value = key === "fadeIn" ? fadeIn : fadeOut;
+							return (
+								<PropertyItem key={key} direction="column">
+									<PropertyItemLabel>
+										{t(key === "fadeIn" ? "Fade in" : "Fade out")}
+									</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<Slider
+												value={[value]}
+												min={0}
+												max={Math.min(5, element.duration)}
+												step={0.1}
+												onValueChange={([next]) =>
+													updateElement({ updates: { [key]: next }, pushHistory: false })}
+												onValueCommit={([next]) =>
+													updateElement({ updates: { [key]: next }, pushHistory: true })}
+												className="flex-1"
+											/>
+											<span className="text-muted-foreground w-10 text-right text-xs">
+												{value.toFixed(1)}s
+											</span>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+							);
+						})}
+
+						<PropertyItem>
+							<PropertyItemLabel>{t("Auto-duck under voiceover")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Switch
+									checked={element.autoDuck ?? false}
+									onCheckedChange={(autoDuck) =>
+										updateElement({ updates: { autoDuck }, pushHistory: true })}
+								/>
+							</PropertyItemValue>
+						</PropertyItem>
+					</div>
 				</PropertyGroup>
 
 <PropertyGroup title={t("Speed")} collapsible={false}>

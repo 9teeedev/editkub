@@ -2,7 +2,9 @@ import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
 import type {
 	ChromaKeyConfig,
+	BackgroundRemovalConfig,
 	ElementKeyframes,
+	PictureInPictureConfig,
 	ShapeMaskConfig,
 	Transform,
 	VideoEffectConfig,
@@ -15,6 +17,10 @@ import {
 } from "@/lib/renderer/chroma-key";
 import { applyVideoEffect } from "@/lib/renderer/video-effects";
 import { applyShapeMask } from "@/lib/renderer/shape-mask";
+import {
+	applyBackgroundRemoval,
+	reportBackgroundRemovalError,
+} from "@/lib/renderer/background-removal";
 
 const VISUAL_EPSILON = 1 / 1000;
 
@@ -31,6 +37,8 @@ export interface VisualNodeParams {
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
+	backgroundRemoval?: BackgroundRemovalConfig;
+	pip?: PictureInPictureConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -42,8 +50,9 @@ export abstract class VisualNode<
 	private chromaTarget?: DrawableCanvas;
 	private vfxTarget?: DrawableCanvas;
 	private shapeMaskTarget?: DrawableCanvas;
+	private backgroundRemovalTarget?: DrawableCanvas;
 
-	protected getMaskedSource({
+	protected async getMaskedSource({
 		source,
 		sourceWidth,
 		sourceHeight,
@@ -51,12 +60,33 @@ export abstract class VisualNode<
 		source: CanvasImageSource;
 		sourceWidth: number;
 		sourceHeight: number;
-	}): {
+	}): Promise<{
 		source: CanvasImageSource;
 		sourceWidth: number;
 		sourceHeight: number;
-	} {
+	}> {
 		let currentSource: CanvasImageSource = source;
+
+		if (this.params.backgroundRemoval?.enabled) {
+			this.backgroundRemovalTarget = ensureChromaTarget({
+				existing: this.backgroundRemovalTarget,
+				width: sourceWidth,
+				height: sourceHeight,
+			});
+			try {
+				await applyBackgroundRemoval({
+					source: currentSource,
+					sourceWidth,
+					sourceHeight,
+					config: this.params.backgroundRemoval,
+					target: this.backgroundRemovalTarget,
+				});
+				currentSource = this.backgroundRemovalTarget;
+			} catch (error) {
+				reportBackgroundRemovalError();
+				console.warn("Background removal failed; using original frame:", error);
+			}
+		}
 
 		if (this.params.chromaKey) {
 			this.chromaTarget = ensureChromaTarget({
@@ -147,8 +177,8 @@ export abstract class VisualNode<
 		renderer.context.save();
 
 		if (this.params.blendMode) {
-			renderer.context.globalCompositeOperation =
-				this.params.blendMode as GlobalCompositeOperation;
+			renderer.context.globalCompositeOperation = this.params
+				.blendMode as GlobalCompositeOperation;
 		}
 
 		if (this.params.filter && this.params.filter !== "none") {
@@ -197,7 +227,63 @@ export abstract class VisualNode<
 			renderer.context.translate(-centerX, -centerY);
 		}
 
+		const pip = this.params.pip;
+		const drawPipPath = () => {
+			const radius = Math.min(
+				pip?.borderRadius ?? 0,
+				scaledWidth / 2,
+				scaledHeight / 2,
+			);
+			renderer.context.beginPath();
+			renderer.context.moveTo(x + radius, y);
+			renderer.context.arcTo(
+				x + scaledWidth,
+				y,
+				x + scaledWidth,
+				y + scaledHeight,
+				radius,
+			);
+			renderer.context.arcTo(
+				x + scaledWidth,
+				y + scaledHeight,
+				x,
+				y + scaledHeight,
+				radius,
+			);
+			renderer.context.arcTo(x, y + scaledHeight, x, y, radius);
+			renderer.context.arcTo(x, y, x + scaledWidth, y, radius);
+			renderer.context.closePath();
+		};
+
+		if (pip) {
+			renderer.context.save();
+			if (pip.shadow) {
+				renderer.context.shadowColor = "rgba(0, 0, 0, 0.35)";
+				renderer.context.shadowBlur = 18;
+				renderer.context.shadowOffsetY = 6;
+				drawPipPath();
+				renderer.context.strokeStyle = "rgba(0, 0, 0, 0.35)";
+				renderer.context.lineWidth = Math.max(2, pip.borderWidth);
+				renderer.context.stroke();
+			}
+			renderer.context.shadowColor = "transparent";
+			drawPipPath();
+			renderer.context.clip();
+		}
+
 		renderer.context.drawImage(source, x, y, scaledWidth, scaledHeight);
+
+		if (pip) {
+			renderer.context.restore();
+			if (pip.borderWidth > 0) {
+				renderer.context.save();
+				drawPipPath();
+				renderer.context.strokeStyle = pip.borderColor;
+				renderer.context.lineWidth = pip.borderWidth;
+				renderer.context.stroke();
+				renderer.context.restore();
+			}
+		}
 
 		// Vignette: radial gradient darkened at the edges, clipped to the clip rect.
 		// Drawn before restore() so it composites inside the same transform/alpha scope.

@@ -247,12 +247,14 @@ export function buildUploadAudioElement({
 	duration,
 	startTime,
 	buffer,
+	isVoiceover = false,
 }: {
 	mediaId: string;
 	name: string;
 	duration: number;
 	startTime: number;
 	buffer?: AudioBuffer;
+	isVoiceover?: boolean;
 }): CreateUploadAudioElement {
 	const element: CreateUploadAudioElement = {
 		type: "audio",
@@ -265,6 +267,7 @@ export function buildUploadAudioElement({
 		trimEnd: 0,
 		volume: 1,
 		muted: false,
+		isVoiceover,
 	};
 	if (buffer) {
 		element.buffer = buffer;

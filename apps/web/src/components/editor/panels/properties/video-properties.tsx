@@ -2,7 +2,7 @@
 
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { useReducer, useRef } from "react";
+import { useReducer, useRef, useSyncExternalStore } from "react";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { PanelBaseView } from "@/components/editor/panels/panel-base-view";
 import {
@@ -23,6 +23,8 @@ import type {
 	ShapeMaskConfig,
 	VideoElement,
 	AdjustmentControls,
+	PictureInPictureConfig,
+	PictureInPicturePreset,
 } from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
@@ -38,8 +40,15 @@ import {
 import { MASK_DEFAULT, MASK_PRESETS } from "@/lib/renderer/shape-mask";
 import { BLEND_MODES } from "@/constants/blend-mode-constants";
 import { hasContentBelowElement } from "@/lib/timeline/track-utils";
-import { Info, Pipette } from "lucide-react";
+import { Info, Loader2, Pipette } from "lucide-react";
 import { useChromaPickerStore } from "@/stores/chroma-picker-store";
+import { Progress } from "@/components/ui/progress";
+import {
+	cancelBackgroundRemoval,
+	getBackgroundRemovalStatus,
+	requestBackgroundRemoval,
+	subscribeBackgroundRemovalStatus,
+} from "@/lib/renderer/background-removal";
 import {
 	Select,
 	SelectTrigger,
@@ -48,6 +57,18 @@ import {
 	SelectItem,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+
+const PIP_PRESET_OPTIONS: Array<{
+	value: PictureInPicturePreset;
+	label: string;
+}> = [
+	{ value: "corner-top-left", label: "Top left" },
+	{ value: "corner-top-right", label: "Top right" },
+	{ value: "corner-bottom-left", label: "Bottom left" },
+	{ value: "corner-bottom-right", label: "Bottom right" },
+	{ value: "split-left", label: "Split left" },
+	{ value: "split-right", label: "Split right" },
+];
 
 export function VideoProperties({
 	_element: element,
@@ -61,6 +82,11 @@ export function VideoProperties({
 	const isPickingChroma = useChromaPickerStore((state) => state.isPicking);
 	const setChromaPicking = useChromaPickerStore((state) => state.setPicking);
 	const [, forceRender] = useReducer((x: number) => x + 1, 0);
+	const backgroundRemovalStatus = useSyncExternalStore(
+		subscribeBackgroundRemovalStatus,
+		getBackgroundRemovalStatus,
+		getBackgroundRemovalStatus,
+	);
 
 	const isEditingScale = useRef(false);
 	const isEditingPosX = useRef(false);
@@ -325,6 +351,20 @@ export function VideoProperties({
 	};
 
 	const mask: ShapeMaskConfig | undefined = element.shapeMask;
+	const backgroundRemoval = element.backgroundRemoval;
+	const backgroundRemovalBusy =
+		backgroundRemovalStatus === "loading" ||
+		backgroundRemovalStatus === "processing";
+	const backgroundRemovalStatusLabel =
+		backgroundRemovalStatus === "loading"
+			? t("Loading background removal model…")
+			: backgroundRemovalStatus === "processing"
+				? t("Removing background…")
+				: backgroundRemovalStatus === "ready"
+					? t("Background removal ready")
+					: backgroundRemovalStatus === "error"
+						? t("Background removal failed. Toggle off and on to retry.")
+						: null;
 
 	const updateMask = (
 		patch: Partial<ShapeMaskConfig>,
@@ -355,6 +395,23 @@ export function VideoProperties({
 				},
 			],
 			pushHistory: true,
+		});
+	};
+
+	const updatePip = (
+		updates: Partial<PictureInPictureConfig>,
+		pushHistory = true,
+	) => {
+		if (!element.pip) return;
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { pip: { ...element.pip, ...updates } },
+				},
+			],
+			pushHistory,
 		});
 	};
 
@@ -723,6 +780,82 @@ export function VideoProperties({
 								</div>
 							</PropertyItemValue>
 						</PropertyItem>
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup
+					title={t("Picture-in-Picture")}
+					defaultExpanded={element.pip !== undefined}
+				>
+					<div className="space-y-4">
+						<PropertyItem direction="column">
+							<PropertyItemLabel>{t("Preset")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<div className="grid grid-cols-2 gap-1.5">
+									{PIP_PRESET_OPTIONS.map(({ value, label }) => (
+										<Button
+											key={value}
+											variant={element.pip?.preset === value ? "default" : "outline"}
+											size="sm"
+											className="h-7 px-2 text-[11px]"
+											onClick={() => invokeAction("apply-pip-preset", { preset: value })}
+										>
+											{t(label)}
+										</Button>
+									))}
+								</div>
+							</PropertyItemValue>
+						</PropertyItem>
+
+						{element.pip && (
+							<>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Corner radius")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Slider
+											value={[element.pip.borderRadius]}
+											min={0}
+											max={96}
+											step={1}
+											onValueChange={([value]) => updatePip({ borderRadius: value }, false)}
+											onValueCommit={([value]) => updatePip({ borderRadius: value }, true)}
+										/>
+									</PropertyItemValue>
+								</PropertyItem>
+
+								<PropertyItem>
+									<PropertyItemLabel>{t("Border")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<Slider
+												value={[element.pip.borderWidth]}
+												min={0}
+												max={16}
+												step={1}
+												onValueChange={([value]) => updatePip({ borderWidth: value }, false)}
+												onValueCommit={([value]) => updatePip({ borderWidth: value }, true)}
+												className="flex-1"
+											/>
+											<ColorPicker
+												value={element.pip.borderColor.replace("#", "")}
+												onChange={(color) => updatePip({ borderColor: `#${color}` }, false)}
+												onChangeEnd={(color) => updatePip({ borderColor: `#${color}` }, true)}
+											/>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+
+								<PropertyItem>
+									<PropertyItemLabel>{t("Shadow")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Switch
+											checked={element.pip.shadow}
+											onCheckedChange={(shadow) => updatePip({ shadow }, true)}
+										/>
+									</PropertyItemValue>
+								</PropertyItem>
+							</>
+						)}
 					</div>
 				</PropertyGroup>
 
@@ -1250,6 +1383,68 @@ export function VideoProperties({
 								</p>
 							</>
 						)}
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup title={t("Background Removal")} collapsible={false}>
+					<div className="space-y-3">
+						<PropertyItem>
+							<PropertyItemLabel>{t("Remove background")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Switch
+									checked={backgroundRemoval?.enabled ?? false}
+									onCheckedChange={(enabled) => {
+										if (enabled) requestBackgroundRemoval();
+										else cancelBackgroundRemoval();
+										editor.timeline.updateElements({
+											updates: [
+												{
+													trackId,
+													elementId: element.id,
+													updates: {
+														backgroundRemoval: enabled
+															? { enabled: true }
+															: undefined,
+													},
+												},
+											],
+											pushHistory: true,
+										});
+									}}
+								/>
+							</PropertyItemValue>
+						</PropertyItem>
+						{backgroundRemoval?.enabled && backgroundRemovalStatusLabel && (
+							<div
+								className="bg-muted/40 space-y-2 rounded-md border p-2"
+								role="status"
+								aria-live="polite"
+							>
+								<div className="flex items-center gap-2 text-xs">
+									{backgroundRemovalBusy ? (
+										<Loader2
+											className="text-primary size-3 shrink-0 animate-spin"
+											aria-hidden="true"
+										/>
+									) : (
+										<span aria-hidden="true">
+											{backgroundRemovalStatus === "error" ? "!" : "✓"}
+										</span>
+									)}
+									<span>{backgroundRemovalStatusLabel}</span>
+								</div>
+								{backgroundRemovalBusy && (
+									<Progress
+										value={50}
+										aria-label={backgroundRemovalStatusLabel}
+										className="h-1.5 animate-pulse"
+									/>
+								)}
+							</div>
+						)}
+						<p className="text-muted-foreground text-xs">
+							{t("Runs locally with MODNet. The first frame downloads the model.")}
+						</p>
 					</div>
 				</PropertyGroup>
 

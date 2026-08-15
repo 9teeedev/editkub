@@ -24,7 +24,7 @@ export class VideoNode extends VisualNode<VideoNodeParams> {
 		});
 
 		if (frame) {
-			const masked = this.getMaskedSource({
+			const masked = await this.getMaskedSource({
 				source: frame.canvas,
 				sourceWidth: frame.canvas.width,
 				sourceHeight: frame.canvas.height,

@@ -23,10 +23,7 @@ import { patternCraftGradients } from "@/data/colors/pattern-craft";
 import { colors } from "@/data/colors/solid";
 import { syntaxUIGradients } from "@/data/colors/syntax-ui";
 import { useEditor } from "@/hooks/use-editor";
-import {
-	IMAGE_PROVIDERS,
-	VIDEO_PROVIDERS,
-} from "@/lib/ai/providers";
+import { IMAGE_PROVIDERS, VIDEO_PROVIDERS } from "@/lib/ai/providers";
 import { useAISettingsStore } from "@/stores/ai-settings-store";
 import { cn } from "@/utils/ui";
 import {
@@ -43,6 +40,9 @@ import { REMOTE_PROVIDERS } from "@/lib/transcription/providers";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Slider } from "@/components/ui/slider";
 import type { TBackground } from "@/types/project";
+
+const TRANSPARENT_BACKGROUND =
+	"repeating-conic-gradient(#e5e7eb 0% 25%, #9ca3af 0% 50%) 50% / 16px 16px";
 
 export function SettingsView() {
 	return <ProjectSettingsTabs />;
@@ -155,7 +155,9 @@ function ProjectInfoView() {
 		);
 		if (matched) {
 			editor.project.updateSettings({
-				settings: { canvasSize: { width: matched.width, height: matched.height } },
+				settings: {
+					canvasSize: { width: matched.width, height: matched.height },
+				},
 			});
 		}
 	};
@@ -210,9 +212,7 @@ function ProjectInfoView() {
 									{preset.label} ({preset.width}×{preset.height})
 								</SelectItem>
 							))}
-							<SelectItem value={CANVAS_CUSTOM_VALUE}>
-								{t("Custom")}
-							</SelectItem>
+							<SelectItem value={CANVAS_CUSTOM_VALUE}>{t("Custom")}</SelectItem>
 						</SelectContent>
 					</Select>
 				</PropertyItemValue>
@@ -228,7 +228,9 @@ function ProjectInfoView() {
 							const value = Number(event.target.value);
 							setCustomWidth(value);
 						}}
-						onBlur={() => applyCustomSize({ width: customWidth, height: customHeight })}
+						onBlur={() =>
+							applyCustomSize({ width: customWidth, height: customHeight })
+						}
 						onKeyDown={(event) => {
 							if (event.key === "Enter") {
 								applyCustomSize({ width: customWidth, height: customHeight });
@@ -246,7 +248,9 @@ function ProjectInfoView() {
 							const value = Number(event.target.value);
 							setCustomHeight(value);
 						}}
-						onBlur={() => applyCustomSize({ width: customWidth, height: customHeight })}
+						onBlur={() =>
+							applyCustomSize({ width: customWidth, height: customHeight })
+						}
 						onKeyDown={(event) => {
 							if (event.key === "Enter") {
 								applyCustomSize({ width: customWidth, height: customHeight });
@@ -349,7 +353,9 @@ const BackgroundPreviews = memo(
 						)}
 						style={
 							useBackgroundColor
-								? { backgroundColor: bg }
+								? bg === "transparent"
+									? { background: TRANSPARENT_BACKGROUND }
+									: { backgroundColor: bg }
 								: {
 										background: bg,
 										backgroundSize: "cover",
@@ -359,7 +365,11 @@ const BackgroundPreviews = memo(
 						}
 						onClick={() => handleColorSelect({ bg })}
 						type="button"
-						aria-label={`Select background ${useBackgroundColor ? bg : index + 1}`}
+						aria-label={
+							useBackgroundColor && bg === "transparent"
+								? "Select transparent background"
+								: `Select background ${useBackgroundColor ? bg : index + 1}`
+						}
 					/>
 				)),
 			[
@@ -443,7 +453,11 @@ function BackgroundView() {
 	);
 
 	const backgroundSections = [
-		{ title: t("Colors"), backgrounds: colors, useBackgroundColor: true },
+		{
+			title: t("Colors"),
+			backgrounds: ["transparent", ...colors],
+			useBackgroundColor: true,
+		},
 		{ title: t("Pattern craft"), backgrounds: patternCraftGradients },
 		{ title: t("Syntax UI"), backgrounds: syntaxUIGradients },
 	];
@@ -624,9 +638,9 @@ function AISettingsView() {
 						/>
 					</div>
 				</div>
-				)}
-			</div>
-		);
+			)}
+		</div>
+	);
 }
 
 function TranscriptionSettingsSection() {
@@ -677,10 +691,7 @@ function TranscriptionSettingsSection() {
 					<PropertyItem direction="column">
 						<PropertyItemLabel>{t("Model")}</PropertyItemLabel>
 						<PropertyItemValue>
-							<Select
-								value={remoteModelId}
-								onValueChange={setRemoteModelId}
-							>
+							<Select value={remoteModelId} onValueChange={setRemoteModelId}>
 								<SelectTrigger>
 									<SelectValue placeholder={t("Select a model")} />
 								</SelectTrigger>
@@ -691,9 +702,7 @@ function TranscriptionSettingsSection() {
 										</SelectItem>
 									))}
 									{selectedProvider.supportsCustomModel && (
-										<SelectItem value="__custom__">
-											{t("Custom…")}
-										</SelectItem>
+										<SelectItem value="__custom__">{t("Custom…")}</SelectItem>
 									)}
 								</SelectContent>
 							</Select>
@@ -702,18 +711,12 @@ function TranscriptionSettingsSection() {
 					{selectedProvider.supportsCustomModel &&
 						remoteModelId === "__custom__" && (
 							<PropertyItem direction="column">
-								<PropertyItemLabel>
-									{t("Custom Model")}
-								</PropertyItemLabel>
+								<PropertyItemLabel>{t("Custom Model")}</PropertyItemLabel>
 								<PropertyItemValue>
 									<Input
-										placeholder={t(
-											"Enter model id (e.g. openai/whisper-1)",
-										)}
+										placeholder={t("Enter model id (e.g. openai/whisper-1)")}
 										value={customModelText}
-										onChange={(e) =>
-											setCustomModelText(e.target.value)
-										}
+										onChange={(e) => setCustomModelText(e.target.value)}
 									/>
 								</PropertyItemValue>
 							</PropertyItem>

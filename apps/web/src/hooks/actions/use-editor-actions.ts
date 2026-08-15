@@ -27,6 +27,9 @@ import type {
 	Transform,
 	VideoElement,
 } from "@/types/timeline";
+import { PIP_DEFAULTS, getPictureInPictureTransform } from "@/lib/timeline/pip";
+import { generateUUID } from "@/utils/id";
+import { isMainTrack } from "@/lib/timeline/track-utils";
 import { enhanceVoice } from "@/lib/audio/voice-enhance";
 import { encodeWav } from "@/lib/audio/wav-encoder";
 import { changeVoice, type VoicePreset } from "@/lib/audio/voice-changer";
@@ -471,6 +474,71 @@ export function useEditorActions() {
 					);
 				}
 			})();
+		},
+		undefined,
+	);
+
+	useActionHandler(
+		"apply-pip-preset",
+		(args) => {
+			if (!args?.preset) return;
+			if (selectedElements.length !== 1) {
+				toast.info(i18next.t("Select one video or image clip"));
+				return;
+			}
+
+			const entry = editor.timeline.getElementsWithTracks({
+				elements: selectedElements,
+			})[0];
+			if (!entry || (entry.element.type !== "video" && entry.element.type !== "image")) {
+				toast.info(i18next.t("Select one video or image clip"));
+				return;
+			}
+			const visualElement = entry.element;
+
+			const project = editor.project.getActive();
+			const media = editor.media
+				.getAssets()
+				.find((asset) => asset.id === visualElement.mediaId);
+			if (!project || !media) return;
+
+			const transform = getPictureInPictureTransform({
+				preset: args.preset,
+				canvasSize: project.settings.canvasSize,
+				mediaSize: media,
+			});
+			const pip = {
+				...PIP_DEFAULTS,
+				...visualElement.pip,
+				preset: args.preset,
+			};
+			const targetTrackId = isMainTrack(entry.track)
+				? generateUUID()
+				: entry.track.id;
+
+			if (targetTrackId !== entry.track.id) {
+				editor.timeline.moveElement({
+					sourceTrackId: entry.track.id,
+					targetTrackId,
+					elementId: entry.element.id,
+					newStartTime: entry.element.startTime,
+					createTrack: { type: "video", index: 0 },
+				});
+				setElementSelection({
+					elements: [{ trackId: targetTrackId, elementId: entry.element.id }],
+				});
+			}
+
+			editor.timeline.updateElements({
+				updates: [
+					{
+						trackId: targetTrackId,
+						elementId: entry.element.id,
+						updates: { transform, pip },
+					},
+				],
+			});
+			toast.success(i18next.t("Applied picture-in-picture"));
 		},
 		undefined,
 	);

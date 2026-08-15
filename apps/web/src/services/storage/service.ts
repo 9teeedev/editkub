@@ -113,6 +113,7 @@ class StorageService {
 			currentSceneId: project.currentSceneId,
 			settings: project.settings,
 			version: project.version,
+			layoutMode: project.layoutMode,
 			timelineViewState: project.timelineViewState,
 			agentMessages: project.agentMessages,
 		};
@@ -160,6 +161,7 @@ class StorageService {
 			currentSceneId: serializedProject.currentSceneId || "",
 			settings: serializedProject.settings,
 			version: serializedProject.version,
+			layoutMode: serializedProject.layoutMode,
 			timelineViewState: serializedProject.timelineViewState,
 			agentMessages: serializedProject.agentMessages ?? [],
 		};

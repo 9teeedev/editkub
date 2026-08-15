@@ -66,6 +66,22 @@ export interface Transform {
 	flipY?: boolean;
 }
 
+export type PictureInPicturePreset =
+	| "corner-top-left"
+	| "corner-top-right"
+	| "corner-bottom-left"
+	| "corner-bottom-right"
+	| "split-left"
+	| "split-right";
+
+export interface PictureInPictureConfig {
+	preset: PictureInPicturePreset;
+	borderRadius: number;
+	borderWidth: number;
+	borderColor: string;
+	shadow: boolean;
+}
+
 // ---- Keyframe Animation ----
 
 /** Animatable property channels. `flipX`/`flipY` are boolean and not animatable. */
@@ -185,6 +201,11 @@ interface BaseAudioElement extends BaseTimelineElement {
 	muted?: boolean;
 	buffer?: AudioBuffer;
 	playbackRate?: number;
+	pan?: number;
+	fadeIn?: number;
+	fadeOut?: number;
+	autoDuck?: boolean;
+	isVoiceover?: boolean;
 }
 
 export interface UploadAudioElement extends BaseAudioElement {
@@ -221,6 +242,8 @@ export interface VideoElement extends BaseTimelineElement {
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
+	backgroundRemoval?: BackgroundRemovalConfig;
+	pip?: PictureInPictureConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -238,6 +261,8 @@ export interface ImageElement extends BaseTimelineElement {
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
+	backgroundRemoval?: BackgroundRemovalConfig;
+	pip?: PictureInPictureConfig;
 	keyframes?: ElementKeyframes;
 }
 
@@ -268,6 +293,11 @@ export interface ChromaKeyConfig {
 	smoothness: number;
 	/** Spill suppression strength (0-1). */
 	spillSuppression: number;
+}
+
+/** AI portrait matting configuration. */
+export interface BackgroundRemovalConfig {
+	enabled: boolean;
 }
 
 /**

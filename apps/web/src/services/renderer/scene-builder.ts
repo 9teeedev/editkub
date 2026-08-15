@@ -56,11 +56,13 @@ function buildVisualElementNode({
 			opacity: element.opacity,
 			filter: computeFilterString(element.filter, element.adjustments),
 			blendMode: element.blendMode,
-			vignette: element.adjustments?.vignette ?? 0,
-			chromaKey: element.chromaKey,
-			videoEffect: element.videoEffect,
-			shapeMask: element.shapeMask,
-			keyframes: element.keyframes,
+				vignette: element.adjustments?.vignette ?? 0,
+				chromaKey: element.chromaKey,
+				videoEffect: element.videoEffect,
+				shapeMask: element.shapeMask,
+				backgroundRemoval: element.backgroundRemoval,
+				pip: element.pip,
+				keyframes: element.keyframes,
 			playbackRate: videoElement.playbackRate,
 			reversed: videoElement.reversed,
 		});
@@ -81,7 +83,9 @@ function buildVisualElementNode({
 			chromaKey: element.chromaKey,
 			videoEffect: element.videoEffect,
 			shapeMask: element.shapeMask,
-			keyframes: element.keyframes,
+			backgroundRemoval: element.backgroundRemoval,
+				pip: element.pip,
+				keyframes: element.keyframes,
 		});
 	}
 

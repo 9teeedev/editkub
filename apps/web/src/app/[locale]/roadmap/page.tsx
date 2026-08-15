@@ -185,22 +185,10 @@ const roadmapPhases: RoadmapPhase[] = [
 				status: { text: "Completed", type: "complete" },
 			},
 			{
-				title: "Custom Sticker Upload & Animated Stickers",
-				description:
-					"User-uploaded custom stickers (PNG/SVG) and animated stickers (Lottie, APNG, animated emoji).",
-				status: { text: "Not started", type: "default" },
-			},
-			{
 				title: "Picture-in-Picture",
 				description:
-					"Overlay video clips with draggable resize, rounded corners, border, shadow. PiP presets (split-screen, corner cam).",
-				status: { text: "Not started", type: "default" },
-			},
-			{
-				title: "Split Screen",
-				description:
-					"Multi-frame layouts: 2-split (horizontal/vertical), 3-split, 4-grid, custom grid. Drag media into each frame. Adjustable divider positions, per-frame border/gap/rounding. Preset layouts for comparison videos, reactions, before/after.",
-				status: { text: "Not started", type: "default" },
+					"Overlay video clips with draggable resize, rounded corners, border, shadow. PiP presets for corner overlays.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Overlay & Blend Modes",
@@ -217,14 +205,14 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Pan, Fade & Auto-Duck",
 				description:
-					"Per-clip stereo pan, fade in/out gain ramps, and auto-ducking (sidechain-lower background music when voiceover is active).",
-				status: { text: "Not started", type: "default" },
+					"Per-clip stereo pan, fade in/out gain ramps, and auto-ducking (sidechain-lower background music when voiceover is active). Preview and export use the same local audio envelope.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Background Removal",
 				description:
-					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU). Per-clip toggle removes the background so lower tracks show through. Runs locally — privacy-first. Chroma Key is available separately; full segmentation remains planned.",
-				status: { text: "Not started", type: "default" },
+					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU/WASM fallback). Per-clip toggle removes the background so lower tracks show through in preview and export. Runs locally — privacy-first.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Auto-Captions",
@@ -247,8 +235,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Quick Add Keyframe Button",
 				description:
-					"CapCut-style 'Add Keyframe' / 'Mark' button. One click drops a keyframe for the currently selected property at the playhead position on the selected clip. Toolbar-level shortcut for fast animation authoring.",
-				status: { text: "Not started", type: "default" },
+					"CapCut-style 'Add Keyframe' / 'Mark' button. Timeline toolbar and inline property controls add keyframes at the playhead for all animatable channels on the selected visual clip, with full undo/redo support.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Preview Fit / Zoom Dropdown",

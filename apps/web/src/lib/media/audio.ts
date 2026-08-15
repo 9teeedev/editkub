@@ -12,7 +12,7 @@ import { mediaSupportsAudio } from "@/lib/media/media-utils";
 export type CollectedAudioElement = Omit<
 	AudioElement,
 	"type" | "mediaId" | "id" | "name" | "sourceType" | "sourceUrl"
-> & { buffer: AudioBuffer };
+> & { buffer: AudioBuffer; id: string };
 
 export function createAudioContext(): AudioContext {
 	const AudioContextConstructor =
@@ -155,12 +155,18 @@ export async function collectAudioElements({
 				}).then((audioBuffer) => {
 					if (!audioBuffer) return null;
 					return {
+						id: element.id,
 						buffer: audioBuffer,
 						startTime: element.startTime,
 						duration: element.duration,
 						trimStart: element.trimStart,
 						trimEnd: element.trimEnd,
 						volume,
+						pan: element.pan ?? 0,
+						fadeIn: element.fadeIn ?? 0,
+						fadeOut: element.fadeOut ?? 0,
+						autoDuck: element.autoDuck ?? false,
+						isVoiceover: element.isVoiceover ?? false,
 						muted,
 					};
 				}),
@@ -179,12 +185,18 @@ export async function collectAudioElements({
 				}).then((audioBuffer) => {
 					if (!audioBuffer) return null;
 					return {
+						id: element.id,
 						buffer: audioBuffer,
 						startTime: element.startTime,
 						duration: element.duration,
 						trimStart: element.trimStart,
 						trimEnd: element.trimEnd,
 						volume: 1,
+						pan: 0,
+						fadeIn: 0,
+						fadeOut: 0,
+						autoDuck: false,
+						isVoiceover: false,
 						muted,
 					};
 				}),
@@ -270,6 +282,11 @@ export interface AudioClipSource {
 	muted: boolean;
 	volume: number;
 	playbackRate: number;
+	pan: number;
+	fadeIn: number;
+	fadeOut: number;
+	autoDuck: boolean;
+	isVoiceover: boolean;
 }
 
 async function fetchLibraryAudioSource({
@@ -331,6 +348,11 @@ async function fetchLibraryAudioClip({
 			muted,
 			volume: element.volume ?? 1,
 			playbackRate: element.playbackRate ?? 1,
+			pan: element.pan ?? 0,
+			fadeIn: element.fadeIn ?? 0,
+			fadeOut: element.fadeOut ?? 0,
+			autoDuck: element.autoDuck ?? false,
+			isVoiceover: element.isVoiceover ?? false,
 		};
 	} catch (error) {
 		console.warn("Failed to fetch library audio:", error);
@@ -397,6 +419,11 @@ function collectMediaAudioClip({
 		muted,
 		volume: getElementVolume({ element }),
 		playbackRate: getElementPlaybackRate({ element }),
+		pan: element.type === "audio" ? element.pan ?? 0 : 0,
+		fadeIn: element.type === "audio" ? element.fadeIn ?? 0 : 0,
+		fadeOut: element.type === "audio" ? element.fadeOut ?? 0 : 0,
+		autoDuck: element.type === "audio" ? element.autoDuck ?? false : false,
+		isVoiceover: element.type === "audio" ? element.isVoiceover ?? false : false,
 	};
 }
 
@@ -546,6 +573,13 @@ export async function createTimelineAudioBuffer({
 	});
 
 	if (audioElements.length === 0) return null;
+	const voiceoverIntervals = audioElements
+		.filter((element) => element.isVoiceover && !element.muted)
+		.map((element) => ({
+			id: element.id,
+			start: element.startTime,
+			end: element.startTime + element.duration,
+		}));
 
 	const outputChannels = 2;
 	const outputLength = Math.ceil(duration * sampleRate);
@@ -563,6 +597,7 @@ export async function createTimelineAudioBuffer({
 			outputBuffer,
 			outputLength,
 			sampleRate,
+			voiceoverIntervals,
 		});
 	}
 
@@ -574,11 +609,13 @@ function mixAudioChannels({
 	outputBuffer,
 	outputLength,
 	sampleRate,
+	voiceoverIntervals,
 }: {
 	element: CollectedAudioElement;
 	outputBuffer: AudioBuffer;
 	outputLength: number;
 	sampleRate: number;
+	voiceoverIntervals: Array<{ id?: string; start: number; end: number }>;
 }): void {
 	const {
 		buffer,
@@ -586,14 +623,21 @@ function mixAudioChannels({
 		trimStart,
 		duration: elementDuration,
 		volume,
+		playbackRate = 1,
+		pan = 0,
+		fadeIn = 0,
+		fadeOut = 0,
+		autoDuck = false,
 	} = element;
 
 	const sourceStartSample = Math.floor(trimStart * buffer.sampleRate);
-	const sourceLengthSamples = Math.floor(elementDuration * buffer.sampleRate);
 	const outputStartSample = Math.floor(startTime * sampleRate);
 
 	const resampleRatio = sampleRate / buffer.sampleRate;
-	const resampledLength = Math.floor(sourceLengthSamples * resampleRatio);
+	const resampledLength = Math.floor(elementDuration * sampleRate);
+	const normalizedPan = Math.max(-1, Math.min(1, pan));
+	const leftPanGain = normalizedPan > 0 ? 1 - normalizedPan : 1;
+	const rightPanGain = normalizedPan < 0 ? 1 + normalizedPan : 1;
 
 	const outputChannels = 2;
 	for (let channel = 0; channel < outputChannels; channel++) {
@@ -605,7 +649,8 @@ function mixAudioChannels({
 			const outputIndex = outputStartSample + i;
 			if (outputIndex >= outputLength) break;
 
-			const sourcePos = sourceStartSample + i / resampleRatio;
+			const sourcePos =
+				sourceStartSample + (i / resampleRatio) * playbackRate;
 			const sourceIndex = Math.floor(sourcePos);
 			if (sourceIndex >= sourceData.length) break;
 
@@ -616,8 +661,29 @@ function mixAudioChannels({
 					? sourceData[sourceIndex + 1]
 					: sample0;
 			const interpolated = sample0 + fraction * (sample1 - sample0);
+			const localTime = i / sampleRate;
+			const fadeInGain = fadeIn > 0 ? Math.min(1, localTime / fadeIn) : 1;
+			const fadeOutStart = Math.max(0, elementDuration - fadeOut);
+			const fadeOutGain =
+				fadeOut > 0 && localTime >= fadeOutStart
+					? Math.max(0, (elementDuration - localTime) / fadeOut)
+					: 1;
+			// ponytail: linear interval scan; replace with an envelope cache only
+			// if projects with many voiceover clips make export measurably slow.
+			const duckGain =
+				autoDuck &&
+				voiceoverIntervals.some(
+					(interval) =>
+						interval.id !== element.id &&
+						startTime + localTime >= interval.start &&
+						startTime + localTime < interval.end,
+					)
+					? 0.25
+					: 1;
+			const panGain = channel === 0 ? leftPanGain : rightPanGain;
 
-			outputData[outputIndex] += interpolated * volume;
+			outputData[outputIndex] +=
+				interpolated * volume * fadeInGain * fadeOutGain * duckGain * panGain;
 		}
 	}
 }
