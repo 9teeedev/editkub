@@ -1,6 +1,7 @@
 import type { MutableRefObject } from "react";
 import type { TAction } from "./definitions";
 import type { VoicePreset } from "@/lib/audio/voice-changer";
+import type { PictureInPicturePreset } from "@/types/timeline";
 
 export type { TAction };
 
@@ -10,6 +11,7 @@ export type TActionArgsMap = {
 	"jump-forward": { seconds: number } | undefined;
 	"jump-backward": { seconds: number } | undefined;
 	"change-voice": { preset: VoicePreset } | undefined;
+	"apply-pip-preset": { preset: PictureInPicturePreset } | undefined;
 };
 
 type TKeysWithValueUndefined<T> = {

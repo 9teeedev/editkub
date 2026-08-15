@@ -557,6 +557,7 @@ export class ProjectManager {
 	setLayoutMode({ mode }: { mode: TEditorLayoutMode }): void {
 		if (!this.active) return;
 		this.active = { ...this.active, layoutMode: mode };
+		this.notify();
 		this.editor.save.markDirty();
 	}
 

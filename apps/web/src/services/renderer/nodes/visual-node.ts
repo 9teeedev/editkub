@@ -3,6 +3,7 @@ import { BaseNode } from "./base-node";
 import type {
 	ChromaKeyConfig,
 	ElementKeyframes,
+	PictureInPictureConfig,
 	ShapeMaskConfig,
 	Transform,
 	VideoEffectConfig,
@@ -31,6 +32,7 @@ export interface VisualNodeParams {
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
+	pip?: PictureInPictureConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -197,7 +199,62 @@ export abstract class VisualNode<
 			renderer.context.translate(-centerX, -centerY);
 		}
 
+		const pip = this.params.pip;
+		const drawPipPath = () => {
+			const radius = Math.min(
+				pip?.borderRadius ?? 0,
+				scaledWidth / 2,
+				scaledHeight / 2,
+			);
+			renderer.context.beginPath();
+			renderer.context.moveTo(x + radius, y);
+			renderer.context.arcTo(
+				x + scaledWidth,
+				y,
+				x + scaledWidth,
+				y + scaledHeight,
+				radius,
+			);
+			renderer.context.arcTo(
+				x + scaledWidth,
+				y + scaledHeight,
+				x,
+				y + scaledHeight,
+				radius,
+			);
+			renderer.context.arcTo(x, y + scaledHeight, x, y, radius);
+			renderer.context.arcTo(x, y, x + scaledWidth, y, radius);
+			renderer.context.closePath();
+		};
+
+		if (pip) {
+			renderer.context.save();
+			if (pip.shadow) {
+				renderer.context.shadowColor = "rgba(0, 0, 0, 0.35)";
+				renderer.context.shadowBlur = 18;
+				renderer.context.shadowOffsetY = 6;
+				drawPipPath();
+				renderer.context.fillStyle = "rgba(0, 0, 0, 1)";
+				renderer.context.fill();
+			}
+			renderer.context.shadowColor = "transparent";
+			drawPipPath();
+			renderer.context.clip();
+		}
+
 		renderer.context.drawImage(source, x, y, scaledWidth, scaledHeight);
+
+		if (pip) {
+			renderer.context.restore();
+			if (pip.borderWidth > 0) {
+				renderer.context.save();
+				drawPipPath();
+				renderer.context.strokeStyle = pip.borderColor;
+				renderer.context.lineWidth = pip.borderWidth;
+				renderer.context.stroke();
+				renderer.context.restore();
+			}
+		}
 
 		// Vignette: radial gradient darkened at the edges, clipped to the clip rect.
 		// Drawn before restore() so it composites inside the same transform/alpha scope.

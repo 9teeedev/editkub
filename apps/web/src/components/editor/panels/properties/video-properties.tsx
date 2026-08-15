@@ -23,6 +23,8 @@ import type {
 	ShapeMaskConfig,
 	VideoElement,
 	AdjustmentControls,
+	PictureInPictureConfig,
+	PictureInPicturePreset,
 } from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
@@ -48,6 +50,18 @@ import {
 	SelectItem,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+
+const PIP_PRESET_OPTIONS: Array<{
+	value: PictureInPicturePreset;
+	label: string;
+}> = [
+	{ value: "corner-top-left", label: "Top left" },
+	{ value: "corner-top-right", label: "Top right" },
+	{ value: "corner-bottom-left", label: "Bottom left" },
+	{ value: "corner-bottom-right", label: "Bottom right" },
+	{ value: "split-left", label: "Split left" },
+	{ value: "split-right", label: "Split right" },
+];
 
 export function VideoProperties({
 	_element: element,
@@ -355,6 +369,23 @@ export function VideoProperties({
 				},
 			],
 			pushHistory: true,
+		});
+	};
+
+	const updatePip = (
+		updates: Partial<PictureInPictureConfig>,
+		pushHistory = true,
+	) => {
+		if (!element.pip) return;
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { pip: { ...element.pip, ...updates } },
+				},
+			],
+			pushHistory,
 		});
 	};
 
@@ -723,6 +754,82 @@ export function VideoProperties({
 								</div>
 							</PropertyItemValue>
 						</PropertyItem>
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup
+					title={t("Picture-in-Picture")}
+					defaultExpanded={element.pip !== undefined}
+				>
+					<div className="space-y-4">
+						<PropertyItem direction="column">
+							<PropertyItemLabel>{t("Preset")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<div className="grid grid-cols-2 gap-1.5">
+									{PIP_PRESET_OPTIONS.map(({ value, label }) => (
+										<Button
+											key={value}
+											variant={element.pip?.preset === value ? "default" : "outline"}
+											size="sm"
+											className="h-7 px-2 text-[11px]"
+											onClick={() => invokeAction("apply-pip-preset", { preset: value })}
+										>
+											{t(label)}
+										</Button>
+									))}
+								</div>
+							</PropertyItemValue>
+						</PropertyItem>
+
+						{element.pip && (
+							<>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Corner radius")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Slider
+											value={[element.pip.borderRadius]}
+											min={0}
+											max={96}
+											step={1}
+											onValueChange={([value]) => updatePip({ borderRadius: value }, false)}
+											onValueCommit={([value]) => updatePip({ borderRadius: value }, true)}
+										/>
+									</PropertyItemValue>
+								</PropertyItem>
+
+								<PropertyItem>
+									<PropertyItemLabel>{t("Border")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<Slider
+												value={[element.pip.borderWidth]}
+												min={0}
+												max={16}
+												step={1}
+												onValueChange={([value]) => updatePip({ borderWidth: value }, false)}
+												onValueCommit={([value]) => updatePip({ borderWidth: value }, true)}
+												className="flex-1"
+											/>
+											<ColorPicker
+												value={element.pip.borderColor.replace("#", "")}
+												onChange={(color) => updatePip({ borderColor: `#${color}` }, false)}
+												onChangeEnd={(color) => updatePip({ borderColor: `#${color}` }, true)}
+											/>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+
+								<PropertyItem>
+									<PropertyItemLabel>{t("Shadow")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Switch
+											checked={element.pip.shadow}
+											onCheckedChange={(shadow) => updatePip({ shadow }, true)}
+										/>
+									</PropertyItemValue>
+								</PropertyItem>
+							</>
+						)}
 					</div>
 				</PropertyGroup>
 

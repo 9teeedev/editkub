@@ -66,6 +66,22 @@ export interface Transform {
 	flipY?: boolean;
 }
 
+export type PictureInPicturePreset =
+	| "corner-top-left"
+	| "corner-top-right"
+	| "corner-bottom-left"
+	| "corner-bottom-right"
+	| "split-left"
+	| "split-right";
+
+export interface PictureInPictureConfig {
+	preset: PictureInPicturePreset;
+	borderRadius: number;
+	borderWidth: number;
+	borderColor: string;
+	shadow: boolean;
+}
+
 // ---- Keyframe Animation ----
 
 /** Animatable property channels. `flipX`/`flipY` are boolean and not animatable. */
@@ -221,6 +237,7 @@ export interface VideoElement extends BaseTimelineElement {
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
+	pip?: PictureInPictureConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
 	reversed?: boolean;
@@ -238,6 +255,7 @@ export interface ImageElement extends BaseTimelineElement {
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
+	pip?: PictureInPictureConfig;
 	keyframes?: ElementKeyframes;
 }
 
