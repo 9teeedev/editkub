@@ -201,6 +201,11 @@ interface BaseAudioElement extends BaseTimelineElement {
 	muted?: boolean;
 	buffer?: AudioBuffer;
 	playbackRate?: number;
+	pan?: number;
+	fadeIn?: number;
+	fadeOut?: number;
+	autoDuck?: boolean;
+	isVoiceover?: boolean;
 }
 
 export interface UploadAudioElement extends BaseAudioElement {
@@ -237,6 +242,7 @@ export interface VideoElement extends BaseTimelineElement {
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
+	backgroundRemoval?: BackgroundRemovalConfig;
 	pip?: PictureInPictureConfig;
 	keyframes?: ElementKeyframes;
 	playbackRate?: number;
@@ -255,6 +261,7 @@ export interface ImageElement extends BaseTimelineElement {
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
+	backgroundRemoval?: BackgroundRemovalConfig;
 	pip?: PictureInPictureConfig;
 	keyframes?: ElementKeyframes;
 }
@@ -286,6 +293,11 @@ export interface ChromaKeyConfig {
 	smoothness: number;
 	/** Spill suppression strength (0-1). */
 	spillSuppression: number;
+}
+
+/** AI portrait matting configuration. */
+export interface BackgroundRemovalConfig {
+	enabled: boolean;
 }
 
 /**

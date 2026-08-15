@@ -2,7 +2,7 @@
 
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { useReducer, useRef } from "react";
+import { useReducer, useRef, useSyncExternalStore } from "react";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { PanelBaseView } from "@/components/editor/panels/panel-base-view";
 import {
@@ -40,8 +40,15 @@ import {
 import { MASK_DEFAULT, MASK_PRESETS } from "@/lib/renderer/shape-mask";
 import { BLEND_MODES } from "@/constants/blend-mode-constants";
 import { hasContentBelowElement } from "@/lib/timeline/track-utils";
-import { Info, Pipette } from "lucide-react";
+import { Info, Loader2, Pipette } from "lucide-react";
 import { useChromaPickerStore } from "@/stores/chroma-picker-store";
+import { Progress } from "@/components/ui/progress";
+import {
+	cancelBackgroundRemoval,
+	getBackgroundRemovalStatus,
+	requestBackgroundRemoval,
+	subscribeBackgroundRemovalStatus,
+} from "@/lib/renderer/background-removal";
 import {
 	Select,
 	SelectTrigger,
@@ -75,6 +82,11 @@ export function VideoProperties({
 	const isPickingChroma = useChromaPickerStore((state) => state.isPicking);
 	const setChromaPicking = useChromaPickerStore((state) => state.setPicking);
 	const [, forceRender] = useReducer((x: number) => x + 1, 0);
+	const backgroundRemovalStatus = useSyncExternalStore(
+		subscribeBackgroundRemovalStatus,
+		getBackgroundRemovalStatus,
+		getBackgroundRemovalStatus,
+	);
 
 	const isEditingScale = useRef(false);
 	const isEditingPosX = useRef(false);
@@ -339,6 +351,20 @@ export function VideoProperties({
 	};
 
 	const mask: ShapeMaskConfig | undefined = element.shapeMask;
+	const backgroundRemoval = element.backgroundRemoval;
+	const backgroundRemovalBusy =
+		backgroundRemovalStatus === "loading" ||
+		backgroundRemovalStatus === "processing";
+	const backgroundRemovalStatusLabel =
+		backgroundRemovalStatus === "loading"
+			? t("Loading background removal model…")
+			: backgroundRemovalStatus === "processing"
+				? t("Removing background…")
+				: backgroundRemovalStatus === "ready"
+					? t("Background removal ready")
+					: backgroundRemovalStatus === "error"
+						? t("Background removal failed. Toggle off and on to retry.")
+						: null;
 
 	const updateMask = (
 		patch: Partial<ShapeMaskConfig>,
@@ -1357,6 +1383,68 @@ export function VideoProperties({
 								</p>
 							</>
 						)}
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup title={t("Background Removal")} collapsible={false}>
+					<div className="space-y-3">
+						<PropertyItem>
+							<PropertyItemLabel>{t("Remove background")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Switch
+									checked={backgroundRemoval?.enabled ?? false}
+									onCheckedChange={(enabled) => {
+										if (enabled) requestBackgroundRemoval();
+										else cancelBackgroundRemoval();
+										editor.timeline.updateElements({
+											updates: [
+												{
+													trackId,
+													elementId: element.id,
+													updates: {
+														backgroundRemoval: enabled
+															? { enabled: true }
+															: undefined,
+													},
+												},
+											],
+											pushHistory: true,
+										});
+									}}
+								/>
+							</PropertyItemValue>
+						</PropertyItem>
+						{backgroundRemoval?.enabled && backgroundRemovalStatusLabel && (
+							<div
+								className="bg-muted/40 space-y-2 rounded-md border p-2"
+								role="status"
+								aria-live="polite"
+							>
+								<div className="flex items-center gap-2 text-xs">
+									{backgroundRemovalBusy ? (
+										<Loader2
+											className="text-primary size-3 shrink-0 animate-spin"
+											aria-hidden="true"
+										/>
+									) : (
+										<span aria-hidden="true">
+											{backgroundRemovalStatus === "error" ? "!" : "✓"}
+										</span>
+									)}
+									<span>{backgroundRemovalStatusLabel}</span>
+								</div>
+								{backgroundRemovalBusy && (
+									<Progress
+										value={50}
+										aria-label={backgroundRemovalStatusLabel}
+										className="h-1.5 animate-pulse"
+									/>
+								)}
+							</div>
+						)}
+						<p className="text-muted-foreground text-xs">
+							{t("Runs locally with MODNet. The first frame downloads the model.")}
+						</p>
 					</div>
 				</PropertyGroup>
 

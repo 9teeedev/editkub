@@ -41,6 +41,9 @@ import type { MediaAsset } from "@/types/assets";
 import { cn } from "@/utils/ui";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 
+const TRANSPARENT_BACKGROUND =
+	"repeating-conic-gradient(#e5e7eb 0% 25%, #9ca3af 0% 50%) 50% / 16px 16px";
+
 function usePreviewSize() {
 	const editor = useEditor();
 	const activeProject = editor.project.getActive();
@@ -485,7 +488,9 @@ function PreviewCanvas() {
 								? "transparent"
 								: activeProject.settings.background.type === "gradient"
 									? activeProject.settings.background.css
-									: activeProject.settings.background.color,
+									: activeProject.settings.background.color === "transparent"
+										? TRANSPARENT_BACKGROUND
+										: activeProject.settings.background.color,
 					}}
 				/>
 				<PreviewInteractionOverlay

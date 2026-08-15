@@ -187,8 +187,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Picture-in-Picture",
 				description:
-					"Overlay video clips with draggable resize, rounded corners, border, shadow. PiP presets (split-screen, corner cam).",
-				status: { text: "Not started", type: "default" },
+					"Overlay video clips with draggable resize, rounded corners, border, shadow. PiP presets for corner overlays.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Overlay & Blend Modes",
@@ -205,14 +205,14 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Pan, Fade & Auto-Duck",
 				description:
-					"Per-clip stereo pan, fade in/out gain ramps, and auto-ducking (sidechain-lower background music when voiceover is active).",
-				status: { text: "Not started", type: "default" },
+					"Per-clip stereo pan, fade in/out gain ramps, and auto-ducking (sidechain-lower background music when voiceover is active). Preview and export use the same local audio envelope.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Background Removal",
 				description:
-					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU). Per-clip toggle removes the background so lower tracks show through. Runs locally — privacy-first. Chroma Key is available separately; full segmentation remains planned.",
-				status: { text: "Not started", type: "default" },
+					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU/WASM fallback). Per-clip toggle removes the background so lower tracks show through in preview and export. Runs locally — privacy-first.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Auto-Captions",

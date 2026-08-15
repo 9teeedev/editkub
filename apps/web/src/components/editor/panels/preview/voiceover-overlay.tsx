@@ -61,6 +61,7 @@ export function VoiceoverOverlay({ displaySize }: VoiceoverOverlayProps) {
 				name: file.name,
 				duration: processed.duration ?? 0,
 				startTime,
+				isVoiceover: true,
 			});
 			editor.timeline.insertElement({
 				element,

@@ -208,9 +208,13 @@ export class AudioManager {
 		node.playbackRate.value = rate;
 
 		const clipGain = audioContext.createGain();
-		clipGain.gain.value = clip.volume;
-		node.connect(clipGain);
-		clipGain.connect(this.masterGain);
+		const panNode = audioContext.createStereoPanner();
+		panNode.pan.value = Math.max(-1, Math.min(1, clip.pan));
+		const duckGain = audioContext.createGain();
+		node.connect(panNode);
+		panNode.connect(clipGain);
+		clipGain.connect(duckGain);
+		duckGain.connect(this.masterGain);
 
 		if (scheduleTime >= audioContext.currentTime) {
 			node.start(scheduleTime, sourceOffset, remainingDuration);
@@ -225,11 +229,132 @@ export class AudioManager {
 			}
 		}
 
+		const actualStart = Math.max(audioContext.currentTime, scheduleTime);
+		const actualTimelineStart =
+			timelineStart + Math.max(0, actualStart - scheduleTime);
+		this.scheduleFadeEnvelope({
+			gain: clipGain,
+			clip,
+			startAt: actualStart,
+			timelineStart: actualTimelineStart,
+		});
+		this.scheduleDuckEnvelope({
+			gain: duckGain,
+			clip,
+			startAt: actualStart,
+			timelineStart: actualTimelineStart,
+		});
+
 		this.queuedSources.add(node);
 		node.addEventListener("ended", () => {
 			node.disconnect();
+			panNode.disconnect();
+			clipGain.disconnect();
+			duckGain.disconnect();
 			this.queuedSources.delete(node);
 		});
+	}
+
+	private scheduleFadeEnvelope({
+		gain,
+		clip,
+		startAt,
+		timelineStart,
+	}: {
+		gain: GainNode;
+		clip: AudioClipSource;
+		startAt: number;
+		timelineStart: number;
+	}): void {
+		const localTime = Math.max(0, timelineStart - clip.startTime);
+		const clipEnd = clip.startTime + clip.duration;
+		const fadeIn = Math.max(0, clip.fadeIn);
+		const fadeOut = Math.max(0, clip.fadeOut);
+		const fadeOutStart = clipEnd - fadeOut;
+
+		gain.gain.cancelScheduledValues(startAt);
+		const initialFade = fadeIn > localTime ? localTime / fadeIn : 1;
+		gain.gain.setValueAtTime(clip.volume * initialFade, startAt);
+
+		if (fadeIn > localTime) {
+			gain.gain.linearRampToValueAtTime(
+				clip.volume,
+				startAt + (fadeIn - localTime),
+			);
+		}
+
+		if (fadeOut > 0) {
+			const fadeOutAt = Math.max(timelineStart, fadeOutStart);
+			const fadeOutGain =
+				fadeOutStart > timelineStart
+					? clip.volume
+					: clip.volume * Math.max(0, (clipEnd - timelineStart) / fadeOut);
+			gain.gain.setValueAtTime(
+				fadeOutGain,
+				startAt + (fadeOutAt - timelineStart),
+			);
+			gain.gain.linearRampToValueAtTime(
+				0,
+				startAt + Math.max(0, clipEnd - timelineStart),
+			);
+		}
+	}
+
+	private scheduleDuckEnvelope({
+		gain,
+		clip,
+		startAt,
+		timelineStart,
+	}: {
+		gain: GainNode;
+		clip: AudioClipSource;
+		startAt: number;
+		timelineStart: number;
+	}): void {
+		if (!clip.autoDuck) {
+			gain.gain.setValueAtTime(1, startAt);
+			return;
+		}
+
+		const clipEnd = clip.startTime + clip.duration;
+		const voiceovers = this.clips.filter(
+			(candidate) =>
+				candidate.isVoiceover &&
+				candidate.id !== clip.id &&
+				!candidate.muted &&
+				candidate.startTime < clipEnd &&
+				candidate.startTime + candidate.duration > clip.startTime,
+		);
+		const isDuckedAtStart = voiceovers.some(
+			(candidate) =>
+				timelineStart >= candidate.startTime &&
+				timelineStart < candidate.startTime + candidate.duration,
+		);
+		gain.gain.cancelScheduledValues(startAt);
+		gain.gain.setValueAtTime(isDuckedAtStart ? 0.25 : 1, startAt);
+
+		const eventTimes = new Set<number>();
+		for (const voiceover of voiceovers) {
+			const start = Math.max(timelineStart, voiceover.startTime);
+			const end = Math.min(
+				clipEnd,
+				voiceover.startTime + voiceover.duration,
+			);
+			if (start > timelineStart) eventTimes.add(start);
+			if (end > timelineStart && end < clipEnd) eventTimes.add(end);
+		}
+
+		for (const eventTime of [...eventTimes].sort((a, b) => a - b)) {
+			const ducked = voiceovers.some(
+				(candidate) =>
+				eventTime >= candidate.startTime &&
+					eventTime < candidate.startTime + candidate.duration,
+			);
+			gain.gain.linearRampToValueAtTime(
+				ducked ? 0.25 : 1,
+				startAt + (eventTime - timelineStart),
+			);
+		}
 	}
 
 	private async getDecodedBuffer({

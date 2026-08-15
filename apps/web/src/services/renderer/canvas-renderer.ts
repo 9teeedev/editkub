@@ -15,7 +15,12 @@ export class CanvasRenderer {
 	fps: number;
 	private smoothingQuality: ImageSmoothingQuality;
 
-	constructor({ width, height, fps, imageSmoothingQuality = "low" }: CanvasRendererParams) {
+	constructor({
+		width,
+		height,
+		fps,
+		imageSmoothingQuality = "low",
+	}: CanvasRendererParams) {
 		this.width = width;
 		this.height = height;
 		this.fps = fps;

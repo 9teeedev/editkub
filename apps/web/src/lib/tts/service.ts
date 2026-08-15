@@ -115,6 +115,7 @@ export async function generateAndInsertSpeech({
 		duration: result.duration,
 		startTime,
 		buffer: result.buffer,
+		isVoiceover: true,
 	});
 
 	const trackId = findAvailableAudioTrack({
