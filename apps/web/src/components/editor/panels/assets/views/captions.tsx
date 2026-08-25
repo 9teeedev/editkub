@@ -42,6 +42,14 @@ import {
 } from "@/lib/transcript/group-words";
 import { getTranscriptCaptionGroups } from "@/lib/transcript/derive-captions";
 import { rebuildCaptionTrack } from "@/lib/transcript/sync-captions";
+import {
+	parseSrt,
+	serializeSrt,
+	srtCuesFromTranscript,
+	srtCuesToTranscriptionSegments,
+} from "@/lib/transcript/srt";
+import { shareOrDownloadFile } from "@/lib/download";
+import { useFileUpload } from "@/hooks/use-file-upload";
 import { useTranscriptStore } from "@/stores/transcript-store";
 import { Spinner } from "@/components/ui/spinner";
 import { Progress } from "@/components/ui/progress";
@@ -55,7 +63,7 @@ import {
 } from "@/lib/transcription/providers";
 import { useTranscriptionSettingsStore } from "@/stores/transcription-settings-store";
 import { useAssetsPanelStore } from "@/stores/assets-panel-store";
-import { Cloud, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Cloud, ShieldCheck, AlertTriangle, Download, Upload } from "lucide-react";
 import { cn } from "@/utils/ui";
 
 /** m:ss.s timestamp for transcript rows. */
@@ -70,6 +78,15 @@ export function Captions() {
 	const editor = useEditor();
 	const transcript = useTranscriptStore((s) => s.transcript);
 	const [subTab, setSubTab] = useState(transcript ? "text" : "generate");
+
+	const { openFilePicker, fileInputProps } = useFileUpload({
+		accept: ".srt,text/plain",
+		multiple: false,
+		onFilesSelected: (files) => {
+			const file = files[0];
+			if (file) void handleImportSrt(file);
+		},
+	});
 
 	// The transcript outlives its derived elements on purpose (it is the
 	// source of truth), but when the user deletes the caption track or all
@@ -91,17 +108,117 @@ export function Captions() {
 		}
 	}, [transcript, editor]);
 
+	/** Import replaces the transcript and rebuilds the caption track —
+	 * one undo entry via ReplaceTrackElementsCommand. */
+	const handleImportSrt = async (file: File) => {
+		try {
+			const cues = parseSrt({ text: await file.text() });
+			if (cues.length === 0) {
+				toast.error(t("Failed to import subtitles"));
+				return;
+			}
+
+			const { words, timing } = extractWordsFromSegments({
+				segments: srtCuesToTranscriptionSegments({ cues }),
+			});
+			if (words.length === 0) {
+				toast.error(t("Failed to import subtitles"));
+				return;
+			}
+
+			const previous = useTranscriptStore.getState().transcript;
+			const nextTranscript: TranscriptData = {
+				language: previous?.language ?? "auto",
+				createdAt: new Date().toISOString(),
+				providerId: "srt",
+				modelId: "srt-import",
+				wordTiming: timing,
+				wordsPerGroup: previous?.wordsPerGroup ?? 3,
+				templateId: previous?.templateId ?? DEFAULT_CAPTION_TEMPLATE_ID,
+				accentColor:
+					previous?.accentColor ?? CAPTION_FLOW_TEMPLATES[0].accentColor,
+				captionTrackId: previous?.captionTrackId ?? null,
+				segments: buildSentenceSegments({ words }),
+			};
+
+			const { trackId } = rebuildCaptionTrack({
+				editor,
+				transcript: nextTranscript,
+			});
+			useTranscriptStore.getState().init({
+				...nextTranscript,
+				captionTrackId: trackId,
+			});
+
+			toast.success(t("Subtitles imported"));
+			setSubTab("text");
+		} catch (error) {
+			console.error("SRT import failed:", error);
+			toast.error(t("Failed to import subtitles"));
+		}
+	};
+
+	const handleExportSrt = async () => {
+		const current = useTranscriptStore.getState().transcript;
+		if (!current) return;
+
+		const cues = srtCuesFromTranscript({ transcript: current });
+		if (cues.length === 0) {
+			toast.error(t("No captions to export"));
+			return;
+		}
+
+		try {
+			const projectName =
+				editor.project.getActive()?.metadata.name ?? "captions";
+			await shareOrDownloadFile({
+				blob: new Blob([serializeSrt({ cues })], {
+					type: "text/plain;charset=utf-8",
+				}),
+				filename: `${projectName}.srt`,
+			});
+			toast.success(t("Subtitles exported"));
+		} catch (error) {
+			console.error("SRT export failed:", error);
+			toast.error(t("Failed to export subtitles"));
+		}
+	};
+
 	return (
-		<BaseView
-			value={subTab}
-			onValueChange={setSubTab}
-			tabs={[
-				{ value: "generate", label: t("Generate"), content: <GenerateCaptionsView onGenerated={() => setSubTab("text")} /> },
-				{ value: "text", label: t("Text"), content: <TranscriptTextView onNeedGenerate={() => setSubTab("generate")} /> },
-				{ value: "templates", label: t("Templates"), content: <CaptionTemplatesView onNeedGenerate={() => setSubTab("generate")} /> },
-			]}
-			className="flex h-full flex-col"
-		/>
+		<div className="flex h-full min-h-0 flex-col">
+			<div className="flex items-center justify-end gap-1 px-2 py-1">
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-7 gap-1.5 px-2 text-xs"
+					onClick={openFilePicker}
+				>
+					<Upload className="size-3.5" />
+					{t("Import SRT")}
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-7 gap-1.5 px-2 text-xs"
+					disabled={!transcript}
+					onClick={() => void handleExportSrt()}
+				>
+					<Download className="size-3.5" />
+					{t("Export SRT")}
+				</Button>
+				<input {...fileInputProps} />
+			</div>
+			<BaseView
+				value={subTab}
+				onValueChange={setSubTab}
+				tabs={[
+					{ value: "generate", label: t("Generate"), content: <GenerateCaptionsView onGenerated={() => setSubTab("text")} /> },
+					{ value: "text", label: t("Text"), content: <TranscriptTextView onNeedGenerate={() => setSubTab("generate")} /> },
+					{ value: "templates", label: t("Templates"), content: <CaptionTemplatesView onNeedGenerate={() => setSubTab("generate")} /> },
+				]}
+				className="flex min-h-0 flex-1 flex-col"
+			/>
+		</div>
 	);
 }
 
