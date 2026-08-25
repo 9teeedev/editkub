@@ -23,6 +23,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
+import { useMobileDrawerStore } from "./hooks/use-mobile-drawer";
 
 export function MobileHeader() {
 	const { t } = useTranslation();
@@ -34,6 +35,7 @@ export function MobileHeader() {
 	const projectName = activeProject?.metadata.name ?? "";
 	const canUndo = editor.command.canUndo();
 	const canRedo = editor.command.canRedo();
+	const openDrawer = useMobileDrawerStore((s) => s.openDrawer);
 
 	const handleBack = async () => {
 		if (isExiting) return;
@@ -56,7 +58,7 @@ export function MobileHeader() {
 	};
 
 	const handleExport = () => {
-		// TODO: Open mobile export drawer when implemented
+		openDrawer({ drawer: "export" });
 	};
 
 	const handleFullscreenPreview = () => {
@@ -129,20 +131,33 @@ export function MobileHeader() {
 					<HugeiconsIcon icon={ArrowTurnForwardIcon} className="size-4" />
 				</Button>
 
-				<OverflowMenu
-					onExport={handleExport}
-					onFullscreenPreview={handleFullscreenPreview}
-				/>
+				<Button
+					type="button"
+					size="sm"
+					className="h-8 gap-1.5 px-3 font-semibold"
+					onClick={handleExport}
+					onKeyDown={(event) => {
+						if (event.key === "Enter" || event.key === " ") {
+							event.preventDefault();
+							handleExport();
+						}
+					}}
+					disabled={!activeProject}
+					title={t("Export")}
+				>
+					<HugeiconsIcon icon={TransitionTopIcon} className="size-4" />
+					<span>{t("Export")}</span>
+				</Button>
+
+				<OverflowMenu onFullscreenPreview={handleFullscreenPreview} />
 			</div>
 		</header>
 	);
 }
 
 function OverflowMenu({
-	onExport,
 	onFullscreenPreview,
 }: {
-	onExport: () => void;
 	onFullscreenPreview: () => void;
 }) {
 	const { t } = useTranslation();
@@ -175,14 +190,6 @@ function OverflowMenu({
 				</DropdownMenuTrigger>
 
 				<DropdownMenuContent align="end" className="w-48">
-					<DropdownMenuItem
-						className="flex items-center gap-2"
-						onClick={() => handleSelect({ action: onExport })}
-					>
-						<HugeiconsIcon icon={TransitionTopIcon} className="size-4" />
-						{t("Export")}
-					</DropdownMenuItem>
-
 					<DropdownMenuItem
 						className="flex items-center gap-2"
 						onClick={() =>

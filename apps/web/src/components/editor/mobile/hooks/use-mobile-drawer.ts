@@ -9,6 +9,7 @@ type MobileDrawerType =
 	| "audio"
 	| "ai"
 	| "properties"
+	| "export"
 	| null;
 
 interface MobileDrawerState {
