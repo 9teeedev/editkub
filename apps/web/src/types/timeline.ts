@@ -74,6 +74,22 @@ export type PictureInPicturePreset =
 	| "split-left"
 	| "split-right";
 
+/**
+ * Source-space crop rectangle for media elements. All values are
+ * normalized [0,1] against the uncropped source frame and describe the
+ * region of the source that is kept.
+ */
+export interface CropConfig {
+	/** Left edge of the kept region, normalized [0,1]. */
+	x: number;
+	/** Top edge of the kept region, normalized [0,1]. */
+	y: number;
+	/** Width of the kept region, normalized [0,1]. */
+	width: number;
+	/** Height of the kept region, normalized [0,1]. */
+	height: number;
+}
+
 export interface PictureInPictureConfig {
 	preset: PictureInPicturePreset;
 	borderRadius: number;
@@ -239,6 +255,7 @@ export interface VideoElement extends BaseTimelineElement {
 	filter?: ElementFilter;
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
+	crop?: CropConfig;
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
@@ -258,6 +275,7 @@ export interface ImageElement extends BaseTimelineElement {
 	filter?: ElementFilter;
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
+	crop?: CropConfig;
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;

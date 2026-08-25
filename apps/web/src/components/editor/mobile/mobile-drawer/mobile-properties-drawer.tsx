@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
-import { Delete02Icon } from "@hugeicons/core-free-icons";
+import { Delete02Icon, ScissorIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { invokeAction } from "@/lib/actions";
 import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
 import { useEditor } from "@/hooks/use-editor";
 import { PropertiesPanel } from "../../panels/properties";
@@ -36,6 +37,12 @@ export function MobilePropertiesDrawer() {
 		editor.selection.clearSelection();
 	}, [editor, selectedElements]);
 
+	const handleSplit = useCallback(() => {
+		if (selectedElements.length === 0) return;
+		invokeAction("split");
+		closeDrawer();
+	}, [selectedElements, closeDrawer]);
+
 	return (
 		<Drawer
 			open={isOpen}
@@ -47,19 +54,34 @@ export function MobilePropertiesDrawer() {
 			<DrawerContent className="max-h-[60vh]">
 				<DrawerHeader className="flex flex-row items-center justify-between">
 					<DrawerTitle>{t("Properties")}</DrawerTitle>
-					<Button
-						variant="destructive"
-						size="sm"
-						onClick={handleDelete}
-						onKeyDown={(event) => {
-							if (event.key === "Enter" || event.key === " ") {
-								handleDelete();
-							}
-						}}
-					>
-						<HugeiconsIcon icon={Delete02Icon} className="size-4" />
-						<span>{t("Delete")}</span>
-					</Button>
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={handleSplit}
+							onKeyDown={(event) => {
+								if (event.key === "Enter" || event.key === " ") {
+									handleSplit();
+								}
+							}}
+						>
+							<HugeiconsIcon icon={ScissorIcon} className="size-4" />
+							<span>{t("Split")}</span>
+						</Button>
+						<Button
+							variant="destructive"
+							size="sm"
+							onClick={handleDelete}
+							onKeyDown={(event) => {
+								if (event.key === "Enter" || event.key === " ") {
+									handleDelete();
+								}
+							}}
+						>
+							<HugeiconsIcon icon={Delete02Icon} className="size-4" />
+							<span>{t("Delete")}</span>
+						</Button>
+					</div>
 				</DrawerHeader>
 				<div className="overflow-y-auto px-4 pb-6">
 					<PropertiesPanel />

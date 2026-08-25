@@ -29,7 +29,7 @@ const SCALE_HANDLES: ScaleHandle[] = [
 	"bottom-right",
 ];
 
-interface ElementBounds {
+export interface ElementBounds {
 	left: number;
 	top: number;
 	width: number;
@@ -61,37 +61,54 @@ function getHandleCursor({ handle }: { handle: ScaleHandle }) {
 	}
 }
 
-function computeMediaBounds({
+/**
+ * Bounds of the element's *rendered* (post-crop) frame on screen, mirroring
+ * the renderer's contain-fit math. Exported for the crop overlay.
+ */
+export function computeMediaBounds({
 	element,
 	media,
 	canvasWidth,
 	canvasHeight,
 	displayScale,
+	uncropped = false,
 }: {
 	element: VideoElement | ImageElement;
 	media: MediaAsset | undefined;
 	canvasWidth: number;
 	canvasHeight: number;
 	displayScale: number;
+	/** Skip the crop so the overlay can show the full source frame. */
+	uncropped?: boolean;
 }): ElementBounds | null {
 	if (!media) return null;
 
 	const mediaW = media.width || canvasWidth;
 	const mediaH = media.height || canvasHeight;
 	const containScale = Math.min(canvasWidth / mediaW, canvasHeight / mediaH);
-	const scaledW = mediaW * containScale * element.transform.scale;
-	const scaledH = mediaH * containScale * element.transform.scale;
+	const fullW = mediaW * containScale * element.transform.scale;
+	const fullH = mediaH * containScale * element.transform.scale;
+	const baseX = canvasWidth / 2 + element.transform.position.x - fullW / 2;
+	const baseY = canvasHeight / 2 + element.transform.position.y - fullH / 2;
 
-	const canvasX =
-		canvasWidth / 2 + element.transform.position.x - scaledW / 2;
-	const canvasY =
-		canvasHeight / 2 + element.transform.position.y - scaledH / 2;
+	// Crop keeps the uncropped layout; the visible box is the kept sub-rect
+	// at its original position (mirrors the renderer's drawImage source rect).
+	const crop = element.crop;
+	if (!uncropped && crop) {
+		return {
+			left: (baseX + crop.x * fullW) * displayScale,
+			top: (baseY + crop.y * fullH) * displayScale,
+			width: crop.width * fullW * displayScale,
+			height: crop.height * fullH * displayScale,
+			rotate: element.transform.rotate,
+		};
+	}
 
 	return {
-		left: canvasX * displayScale,
-		top: canvasY * displayScale,
-		width: scaledW * displayScale,
-		height: scaledH * displayScale,
+		left: baseX * displayScale,
+		top: baseY * displayScale,
+		width: fullW * displayScale,
+		height: fullH * displayScale,
 		rotate: element.transform.rotate,
 	};
 }

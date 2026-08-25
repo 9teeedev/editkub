@@ -749,5 +749,18 @@
   "kdf5d6c0e": "Mask",
   "ke57efbb6": "Clip to a shape (circle/rect/star/vignette) with feathered edges.",
   "kf23d3448": "Vignette",
-  "kf5be6bf1": "Invert"
+  "kf5be6bf1": "Invert",
+  "k4df092a5": "크롭",
+  "kc3087758": "크롭 켜기",
+  "k2cc35145": "화면 비율",
+  "ked1c6ef6": "자유",
+  "kae9f88f6": "1:1",
+  "k33998f8b": "16:9",
+  "k8c7c9a5a": "9:16",
+  "k465a2b31": "4:3",
+  "k92f7efe5": "캔버스에서 조정",
+  "k4caf8b2b": "조정",
+  "kb7b2364b": "X",
+  "kc0b506dd": "Y",
+  "k2e805b2f": "클립의 바깥 영역을 잘라냅니다. 캔버스에서 드래그하여 정확하게 조정하세요."
 }

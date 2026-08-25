@@ -18,6 +18,7 @@ import { clamp } from "@/utils/math";
 import { useEditor } from "@/hooks/use-editor";
 import type {
 	ChromaKeyConfig,
+	CropConfig,
 	ImageElement,
 	MaskShape,
 	ShapeMaskConfig,
@@ -38,6 +39,14 @@ import {
 	rgbToHex,
 } from "@/lib/renderer/chroma-key";
 import { MASK_DEFAULT, MASK_PRESETS } from "@/lib/renderer/shape-mask";
+import {
+	CROP_DEFAULT,
+	CROP_PRESETS,
+	MIN_CROP,
+	cropRectForAspect,
+	type CropPreset,
+} from "@/lib/renderer/crop";
+import { useCropStore } from "@/stores/crop-store";
 import { BLEND_MODES } from "@/constants/blend-mode-constants";
 import { hasContentBelowElement } from "@/lib/timeline/track-utils";
 import { Info, Loader2, Pipette } from "lucide-react";
@@ -396,6 +405,58 @@ export function VideoProperties({
 			],
 			pushHistory: true,
 		});
+	};
+
+	const crop = element.crop;
+	const cropElementId = useCropStore((state) => state.elementId);
+	const setCropping = useCropStore((state) => state.setCropping);
+	const isCropping = cropElementId === element.id;
+
+	const updateCrop = (patch: Partial<CropConfig>, pushHistory: boolean) => {
+		const current = crop ?? { ...CROP_DEFAULT };
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { crop: { ...current, ...patch } },
+				},
+			],
+			pushHistory,
+		});
+	};
+
+	const toggleCrop = (enabled: boolean) => {
+		editor.timeline.updateElements({
+			updates: [
+				{
+					trackId,
+					elementId: element.id,
+					updates: { crop: enabled ? { ...CROP_DEFAULT } : undefined },
+				},
+			],
+			pushHistory: true,
+		});
+		if (!enabled) setCropping(null);
+	};
+
+	const applyCropPreset = (preset: CropPreset) => {
+		if (preset.ratio === null) {
+			updateCrop({ ...CROP_DEFAULT }, true);
+			return;
+		}
+		const asset = editor.media
+			.getAssets()
+			.find((a) => a.id === element.mediaId);
+		const canvasSize = editor.project.getActive()?.settings.canvasSize;
+		updateCrop(
+			cropRectForAspect({
+				sourceWidth: asset?.width || canvasSize?.width || 1920,
+				sourceHeight: asset?.height || canvasSize?.height || 1080,
+				ratio: preset.ratio,
+			}),
+			true,
+		);
 	};
 
 	const updatePip = (
@@ -780,6 +841,97 @@ export function VideoProperties({
 								</div>
 							</PropertyItemValue>
 						</PropertyItem>
+					</div>
+				</PropertyGroup>
+
+				<PropertyGroup
+					title={t("Crop")}
+					defaultExpanded={element.crop !== undefined}
+				>
+					<div className="space-y-4">
+						<PropertyItem>
+							<PropertyItemLabel>{t("Enable crop")}</PropertyItemLabel>
+							<PropertyItemValue>
+								<Switch checked={crop !== undefined} onCheckedChange={toggleCrop} />
+							</PropertyItemValue>
+						</PropertyItem>
+						{crop && (
+							<>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Aspect ratio")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="grid grid-cols-3 gap-1.5">
+											{CROP_PRESETS.map((preset) => (
+												<Button
+													key={preset.id}
+													variant="outline"
+													size="sm"
+													className="h-7 px-2 text-[11px]"
+													onClick={() => applyCropPreset(preset)}
+												>
+													{t(preset.label)}
+												</Button>
+											))}
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+								<PropertyItem>
+									<PropertyItemLabel>{t("Adjust on canvas")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<Button
+											variant={isCropping ? "default" : "outline"}
+											size="sm"
+											className="hidden h-7 px-2 text-[11px] md:inline-flex"
+											onClick={() => setCropping(isCropping ? null : element.id)}
+										>
+											{isCropping ? t("Done") : t("Adjust")}
+										</Button>
+									</PropertyItemValue>
+								</PropertyItem>
+								{(
+									[
+										["X", "x", 0, Math.max(0, 1 - crop.width)],
+										["Y", "y", 0, Math.max(0, 1 - crop.height)],
+										["Width", "width", MIN_CROP, Math.max(MIN_CROP, 1 - crop.x)],
+										[
+											"Height",
+											"height",
+											MIN_CROP,
+											Math.max(MIN_CROP, 1 - crop.y),
+										],
+									] as const
+								).map(([label, key, min, max]) => (
+									<PropertyItem key={key} direction="column">
+										<PropertyItemLabel>{t(label)}</PropertyItemLabel>
+										<PropertyItemValue>
+											<div className="flex items-center gap-2">
+												<Slider
+													value={[crop[key]]}
+													min={min}
+													max={max}
+													step={0.01}
+													onValueChange={([value]) =>
+														updateCrop({ [key]: value }, false)
+													}
+													onValueCommit={([value]) =>
+														updateCrop({ [key]: value }, true)
+													}
+													className="flex-1"
+												/>
+												<span className="text-muted-foreground w-10 text-right text-xs">
+													{crop[key].toFixed(2)}
+												</span>
+											</div>
+										</PropertyItemValue>
+									</PropertyItem>
+								))}
+								<p className="text-muted-foreground text-xs">
+									{t(
+										"Cut away outer regions of the clip. Drag on the canvas for precise control.",
+									)}
+								</p>
+							</>
+						)}
 					</div>
 				</PropertyGroup>
 

@@ -26,9 +26,14 @@ export function getElementHalfSize({
 		const mediaW = media?.width || canvasWidth;
 		const mediaH = media?.height || canvasHeight;
 		const containScale = Math.min(canvasWidth / mediaW, canvasHeight / mediaH);
+		// Crop keeps the uncropped layout; the visible box is the kept
+		// sub-rect of the full frame (no re-fit), mirroring the renderer.
+		const fullW = mediaW * containScale * transform.scale;
+		const fullH = mediaH * containScale * transform.scale;
+		const crop = element.crop;
 		return {
-			halfWidth: (mediaW * containScale * transform.scale) / 2,
-			halfHeight: (mediaH * containScale * transform.scale) / 2,
+			halfWidth: crop ? (crop.width * fullW) / 2 : fullW / 2,
+			halfHeight: crop ? (crop.height * fullH) / 2 : fullH / 2,
 		};
 	}
 

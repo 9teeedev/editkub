@@ -3,6 +3,7 @@ import { BaseNode } from "./base-node";
 import type {
 	ChromaKeyConfig,
 	BackgroundRemovalConfig,
+	CropConfig,
 	ElementKeyframes,
 	PictureInPictureConfig,
 	ShapeMaskConfig,
@@ -15,6 +16,7 @@ import {
 	ensureChromaTarget,
 	type DrawableCanvas,
 } from "@/lib/renderer/chroma-key";
+import { isFullCrop } from "@/lib/renderer/crop";
 import { applyVideoEffect } from "@/lib/renderer/video-effects";
 import { applyShapeMask } from "@/lib/renderer/shape-mask";
 import {
@@ -34,6 +36,7 @@ export interface VisualNodeParams {
 	filter?: string;
 	vignette?: number; // 0-100, edge darkening intensity
 	blendMode?: string;
+	crop?: CropConfig;
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
@@ -76,8 +79,8 @@ export abstract class VisualNode<
 			try {
 				await applyBackgroundRemoval({
 					source: currentSource,
-					sourceWidth,
-					sourceHeight,
+					sourceWidth: sourceWidth,
+					sourceHeight: sourceHeight,
 					config: this.params.backgroundRemoval,
 					target: this.backgroundRemovalTarget,
 				});
@@ -96,8 +99,8 @@ export abstract class VisualNode<
 			});
 			applyChromaKey({
 				source: currentSource,
-				sourceWidth,
-				sourceHeight,
+				sourceWidth: sourceWidth,
+				sourceHeight: sourceHeight,
 				config: this.params.chromaKey,
 				target: this.chromaTarget,
 			});
@@ -116,8 +119,8 @@ export abstract class VisualNode<
 			});
 			applyVideoEffect({
 				source: currentSource,
-				sourceWidth,
-				sourceHeight,
+				sourceWidth: sourceWidth,
+				sourceHeight: sourceHeight,
 				config: this.params.videoEffect,
 				target: this.vfxTarget,
 			});
@@ -132,15 +135,19 @@ export abstract class VisualNode<
 			});
 			applyShapeMask({
 				source: currentSource,
-				sourceWidth,
-				sourceHeight,
+				sourceWidth: sourceWidth,
+				sourceHeight: sourceHeight,
 				config: this.params.shapeMask,
 				target: this.shapeMaskTarget,
 			});
 			currentSource = this.shapeMaskTarget;
 		}
 
-		return { source: currentSource, sourceWidth, sourceHeight };
+		return {
+			source: currentSource,
+			sourceWidth: sourceWidth,
+			sourceHeight: sourceHeight,
+		};
 	}
 
 	protected getLocalTime(time: number): number {
@@ -205,10 +212,32 @@ export abstract class VisualNode<
 		const x = renderer.width / 2 + transform.position.x - scaledWidth / 2;
 		const y = renderer.height / 2 + transform.position.y - scaledHeight / 2;
 
+		// Crop keeps the uncropped layout and draws only the kept sub-rect at
+		// its original position — edges that aren't cropped stay put instead
+		// of the element re-fitting around the new region.
+		const crop = this.params.crop;
+		let sourceRect: [number, number, number, number] | undefined;
+		let drawX = x;
+		let drawY = y;
+		let drawWidth = scaledWidth;
+		let drawHeight = scaledHeight;
+		if (crop && !isFullCrop(crop)) {
+			sourceRect = [
+				Math.max(0, crop.x * sourceWidth),
+				Math.max(0, crop.y * sourceHeight),
+				Math.max(1, crop.width * sourceWidth),
+				Math.max(1, crop.height * sourceHeight),
+			];
+			drawX = x + crop.x * scaledWidth;
+			drawY = y + crop.y * scaledHeight;
+			drawWidth = crop.width * scaledWidth;
+			drawHeight = crop.height * scaledHeight;
+		}
+
 		renderer.context.globalAlpha = opacity;
 
-		const centerX = x + scaledWidth / 2;
-		const centerY = y + scaledHeight / 2;
+		const centerX = drawX + drawWidth / 2;
+		const centerY = drawY + drawHeight / 2;
 
 		const needsFlip = transform.flipX || transform.flipY;
 		const needsRotate = transform.rotate !== 0;
@@ -231,27 +260,27 @@ export abstract class VisualNode<
 		const drawPipPath = () => {
 			const radius = Math.min(
 				pip?.borderRadius ?? 0,
-				scaledWidth / 2,
-				scaledHeight / 2,
+				drawWidth / 2,
+				drawHeight / 2,
 			);
 			renderer.context.beginPath();
-			renderer.context.moveTo(x + radius, y);
+			renderer.context.moveTo(drawX + radius, drawY);
 			renderer.context.arcTo(
-				x + scaledWidth,
-				y,
-				x + scaledWidth,
-				y + scaledHeight,
+				drawX + drawWidth,
+				drawY,
+				drawX + drawWidth,
+				drawY + drawHeight,
 				radius,
 			);
 			renderer.context.arcTo(
-				x + scaledWidth,
-				y + scaledHeight,
-				x,
-				y + scaledHeight,
+				drawX + drawWidth,
+				drawY + drawHeight,
+				drawX,
+				drawY + drawHeight,
 				radius,
 			);
-			renderer.context.arcTo(x, y + scaledHeight, x, y, radius);
-			renderer.context.arcTo(x, y, x + scaledWidth, y, radius);
+			renderer.context.arcTo(drawX, drawY + drawHeight, drawX, drawY, radius);
+			renderer.context.arcTo(drawX, drawY, drawX + drawWidth, drawY, radius);
 			renderer.context.closePath();
 		};
 
@@ -271,7 +300,21 @@ export abstract class VisualNode<
 			renderer.context.clip();
 		}
 
-		renderer.context.drawImage(source, x, y, scaledWidth, scaledHeight);
+		if (sourceRect) {
+			renderer.context.drawImage(
+				source,
+				sourceRect[0],
+				sourceRect[1],
+				sourceRect[2],
+				sourceRect[3],
+				drawX,
+				drawY,
+				drawWidth,
+				drawHeight,
+			);
+		} else {
+			renderer.context.drawImage(source, drawX, drawY, drawWidth, drawHeight);
+		}
 
 		if (pip) {
 			renderer.context.restore();
@@ -290,8 +333,8 @@ export abstract class VisualNode<
 		const vignette = this.params.vignette ?? 0;
 		if (vignette > 0) {
 			const intensity = Math.min(Math.max(vignette / 100, 0), 1);
-			const inner = Math.min(scaledWidth, scaledHeight) * 0.32;
-			const outer = Math.max(scaledWidth, scaledHeight) * 0.72;
+			const inner = Math.min(drawWidth, drawHeight) * 0.32;
+			const outer = Math.max(drawWidth, drawHeight) * 0.72;
 			const grad = renderer.context.createRadialGradient(
 				centerX,
 				centerY,
@@ -304,10 +347,10 @@ export abstract class VisualNode<
 			grad.addColorStop(1, `rgba(0,0,0,${(intensity * 0.85).toFixed(3)})`);
 			renderer.context.save();
 			renderer.context.beginPath();
-			renderer.context.rect(x, y, scaledWidth, scaledHeight);
+			renderer.context.rect(drawX, drawY, drawWidth, drawHeight);
 			renderer.context.clip();
 			renderer.context.fillStyle = grad;
-			renderer.context.fillRect(x, y, scaledWidth, scaledHeight);
+			renderer.context.fillRect(drawX, drawY, drawWidth, drawHeight);
 			renderer.context.restore();
 		}
 
