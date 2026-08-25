@@ -3,10 +3,14 @@
 import {
 	AiBrain01Icon,
 	ArrowLeft01Icon,
+	ArrowRightDoubleIcon,
+	ClosedCaptionIcon,
+	ColorsIcon,
 	Delete02Icon,
 	Folder03Icon,
 	Happy01Icon,
 	HeadphonesIcon,
+	MagicWand05Icon,
 	PencilEdit01Icon,
 	ScissorIcon,
 	TextIcon,
@@ -19,7 +23,16 @@ import { useEditor } from "@/hooks/use-editor";
 import { invokeAction } from "@/lib/actions";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 
-type TabKey = "assets" | "text" | "sticker" | "audio" | "ai";
+type TabKey =
+	| "assets"
+	| "text"
+	| "captions"
+	| "sticker"
+	| "audio"
+	| "effects"
+	| "filters"
+	| "transitions"
+	| "ai";
 
 interface TabConfig {
 	key: TabKey;
@@ -30,8 +43,12 @@ interface TabConfig {
 const TABS: TabConfig[] = [
 	{ key: "assets", icon: Folder03Icon, labelKey: "Assets" },
 	{ key: "text", icon: TextIcon, labelKey: "Text" },
+	{ key: "captions", icon: ClosedCaptionIcon, labelKey: "Captions" },
 	{ key: "sticker", icon: Happy01Icon, labelKey: "Stickers" },
 	{ key: "audio", icon: HeadphonesIcon, labelKey: "Audio" },
+	{ key: "effects", icon: MagicWand05Icon, labelKey: "Effects" },
+	{ key: "filters", icon: ColorsIcon, labelKey: "Filters" },
+	{ key: "transitions", icon: ArrowRightDoubleIcon, labelKey: "Transitions" },
 	{ key: "ai", icon: AiBrain01Icon, labelKey: "AI" },
 ];
 
@@ -56,7 +73,7 @@ function TabBar({ labels }: { labels: (key: string) => string }) {
 	const toggleDrawer = useMobileDrawerStore((s) => s.toggleDrawer);
 
 	return (
-		<nav className="bg-background flex items-center justify-around border-t px-1 pb-[calc(0.375rem+env(safe-area-inset-bottom))] pt-1.5">
+		<nav className="bg-background flex items-center gap-0.5 overflow-x-auto border-t px-1 pb-[calc(0.375rem+env(safe-area-inset-bottom))] pt-1.5 [&::-webkit-scrollbar]:hidden">
 			{TABS.map((tab) => {
 				const isActive = activeDrawer === tab.key;
 
@@ -69,7 +86,7 @@ function TabBar({ labels }: { labels: (key: string) => string }) {
 						key={tab.key}
 						type="button"
 						className={cn(
-							"flex flex-col items-center gap-0.5 rounded-md px-3 py-1 text-xs transition-colors",
+							"flex shrink-0 flex-col items-center gap-0.5 rounded-md px-2.5 py-1 text-xs transition-colors",
 							isActive ? "text-primary" : "text-muted-foreground",
 						)}
 						onClick={handlePress}
