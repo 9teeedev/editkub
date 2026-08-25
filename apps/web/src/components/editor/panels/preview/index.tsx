@@ -285,39 +285,6 @@ function PreviewToolbar({
 					})}
 				</span>
 
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant="outline"
-							size="sm"
-							type="button"
-							onMouseDown={(event) => event.preventDefault()}
-							className="text-muted-foreground h-7 px-2 font-mono text-xs"
-							title={t("Zoom level")}
-						>
-							{zoomLabel}
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="start" side="top">
-						<DropdownMenuLabel>{t("Zoom")}</DropdownMenuLabel>
-						<DropdownMenuItem
-							onClick={() => setZoom(null)}
-							data-active={zoom === null}
-						>
-							{t("Fit")}
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						{PREVIEW_ZOOM_LEVELS.map((level) => (
-							<DropdownMenuItem
-								key={level}
-								onClick={() => setZoom(level)}
-								data-active={zoom === level}
-							>
-								{`${Math.round(level * 100)}%`}
-							</DropdownMenuItem>
-						))}
-					</DropdownMenuContent>
-				</DropdownMenu>
 			</div>
 
 			<Button
@@ -341,6 +308,40 @@ function PreviewToolbar({
 				>
 					<HugeiconsIcon icon={FullScreenIcon} />
 				</Button>
+
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="outline"
+							size="sm"
+							type="button"
+							onMouseDown={(event) => event.preventDefault()}
+							className="text-muted-foreground h-7 px-2 font-mono text-xs"
+							title={t("Zoom level")}
+						>
+							{zoomLabel}
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end" side="top">
+						<DropdownMenuLabel>{t("Zoom")}</DropdownMenuLabel>
+						<DropdownMenuItem
+							onClick={() => setZoom(null)}
+							data-active={zoom === null}
+						>
+							{t("Fit")}
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						{PREVIEW_ZOOM_LEVELS.map((level) => (
+							<DropdownMenuItem
+								key={level}
+								onClick={() => setZoom(level)}
+								data-active={zoom === level}
+							>
+								{`${Math.round(level * 100)}%`}
+							</DropdownMenuItem>
+						))}
+					</DropdownMenuContent>
+				</DropdownMenu>
 
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
