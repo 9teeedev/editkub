@@ -88,6 +88,23 @@ interface ResizeState {
 	resizeType: "text" | "blur-effect";
 }
 
+/**
+ * Two-finger pinch/rotate on the selected element. Baseline transform is
+ * captured when the second finger lands (after any live drag deltas), and
+ * the snapshot comes from gesture start so the whole gesture is one undo
+ * step.
+ */
+interface PinchState {
+	pointerA: number;
+	pointerB: number;
+	initialDistance: number;
+	initialAngle: number;
+	tracksSnapshot: TimelineTrack[];
+	trackId: string;
+	elementId: string;
+	initialTransform: Transform;
+}
+
 export function usePreviewInteraction({
 	canvasRef,
 	overlayRef,
@@ -105,8 +122,14 @@ export function usePreviewInteraction({
 	const dragStateRef = useRef<DragState | null>(null);
 	const scaleStateRef = useRef<ScaleState | null>(null);
 	const resizeStateRef = useRef<ResizeState | null>(null);
+	const pinchStateRef = useRef<PinchState | null>(null);
 	const scalePointerIdRef = useRef<number | null>(null);
 	const resizePointerIdRef = useRef<number | null>(null);
+	const dragPointerIdRef = useRef<number | null>(null);
+	const activePointersRef = useRef<Map<number, { x: number; y: number }>>(
+		new Map(),
+	);
+	const [isPinching, setIsPinching] = useState(false);
 
 	const selectedElements = useSyncExternalStore(
 		(listener) => editor.selection.subscribe(listener),
@@ -190,8 +213,62 @@ export function usePreviewInteraction({
 
 	const handlePointerDown = useCallback(
 		(event: React.PointerEvent) => {
+			activePointersRef.current.set(event.pointerId, {
+				x: event.clientX,
+				y: event.clientY,
+			});
+
 			if (isPickingChroma) {
 				handleChromaPick(event);
+				return;
+			}
+
+			// Second finger while dragging a single element = pinch/rotate.
+			if (
+				!event.isPrimary &&
+				dragStateRef.current &&
+				dragStateRef.current.elements.length === 1 &&
+				!pinchStateRef.current &&
+				!scaleStateRef.current &&
+				!resizeStateRef.current
+			) {
+				const dragPointerId = dragPointerIdRef.current;
+				const p1 =
+					dragPointerId !== null
+						? activePointersRef.current.get(dragPointerId)
+						: undefined;
+				if (!p1) return;
+
+				const { trackId, elementId } = dragStateRef.current.elements[0];
+				const tracks = editor.timeline.getTracks();
+				const element = findElement(tracks, elementId);
+				if (!element || element.type === "audio") return;
+
+				const initialDistance = Math.hypot(
+					event.clientX - p1.x,
+					event.clientY - p1.y,
+				);
+				if (initialDistance < 1) return;
+
+				pinchStateRef.current = {
+					pointerA: dragPointerId as number,
+					pointerB: event.pointerId,
+					initialDistance,
+					initialAngle: Math.atan2(
+						event.clientY - p1.y,
+						event.clientX - p1.x,
+					),
+					tracksSnapshot: dragStateRef.current.tracksSnapshot,
+					trackId,
+					elementId,
+					initialTransform: (element as { transform: Transform }).transform,
+				};
+
+				dragStateRef.current = null;
+				setIsDragging(false);
+				setActiveGuides([]);
+				setIsPinching(true);
+				event.currentTarget.setPointerCapture(event.pointerId);
 				return;
 			}
 
@@ -296,6 +373,7 @@ export function usePreviewInteraction({
 				primaryElement: dragStateRef.current.elements[0],
 			});
 
+			dragPointerIdRef.current = event.pointerId;
 			setIsDragging(true);
 			event.currentTarget.setPointerCapture(event.pointerId);
 		},
@@ -430,6 +508,61 @@ export function usePreviewInteraction({
 
 	const handlePointerMove = useCallback(
 		(event: React.PointerEvent) => {
+			activePointersRef.current.set(event.pointerId, {
+				x: event.clientX,
+				y: event.clientY,
+			});
+
+			if (pinchStateRef.current) {
+				const pinch = pinchStateRef.current;
+				if (
+					event.pointerId !== pinch.pointerA &&
+					event.pointerId !== pinch.pointerB
+				) {
+					return;
+				}
+
+				const p1 = activePointersRef.current.get(pinch.pointerA);
+				const p2 = activePointersRef.current.get(pinch.pointerB);
+				if (!p1 || !p2) return;
+
+				const nextTransform = computePinchTransform({ pinch, p1, p2 });
+				if (!nextTransform) return;
+
+				const element = findElement(pinch.tracksSnapshot, pinch.elementId);
+				const localTime = element
+					? getElementLocalTime({
+							tracks: pinch.tracksSnapshot,
+							elements: [
+								{ trackId: pinch.trackId, elementId: pinch.elementId },
+							],
+							playbackTime: editor.playback.getCurrentTime(),
+						})
+					: undefined;
+				editor.timeline.updateElements({
+					updates: [
+						{
+							trackId: pinch.trackId,
+							elementId: pinch.elementId,
+							updates:
+								element && "keyframes" in element
+									? buildAnimatedTransformUpdate({
+											element: element as {
+												transform: Transform;
+												keyframes?: ElementKeyframes;
+												duration: number;
+											},
+											nextTransform,
+											localTime,
+										})
+									: { transform: nextTransform },
+						},
+					],
+					pushHistory: false,
+				});
+				return;
+			}
+
 			if (isPickingChroma) {
 				const canvas = canvasRef.current;
 				const overlay = overlayRef.current;
@@ -678,6 +811,81 @@ export function usePreviewInteraction({
 
 	const handlePointerUp = useCallback(
 		(event: React.PointerEvent) => {
+			// Pinch pointers are released inside the pinch branch below so the
+			// committing finger's last move position stays available.
+			const activePinch = pinchStateRef.current;
+			const isPinchPointer =
+				!!activePinch &&
+				(event.pointerId === activePinch.pointerA ||
+					event.pointerId === activePinch.pointerB);
+			if (!isPinchPointer) {
+				activePointersRef.current.delete(event.pointerId);
+			}
+
+			// Pinch ends when either finger lifts; commit the final transform
+			// as the single undo entry for the whole drag+pinch gesture.
+			if (activePinch) {
+				const pinch = activePinch;
+				if (
+					event.pointerId !== pinch.pointerA &&
+					event.pointerId !== pinch.pointerB
+				) {
+					return;
+				}
+
+				const p1 = activePointersRef.current.get(pinch.pointerA);
+				const p2 = activePointersRef.current.get(pinch.pointerB);
+				const finalTransform =
+					p1 && p2 ? computePinchTransform({ pinch, p1, p2 }) : null;
+
+				editor.timeline.updateTracks(pinch.tracksSnapshot);
+				if (finalTransform) {
+					const element = findElement(pinch.tracksSnapshot, pinch.elementId);
+					const localTime = element
+						? getElementLocalTime({
+								tracks: pinch.tracksSnapshot,
+								elements: [
+									{ trackId: pinch.trackId, elementId: pinch.elementId },
+								],
+								playbackTime: editor.playback.getCurrentTime(),
+							})
+						: undefined;
+					editor.timeline.updateElements({
+						updates: [
+							{
+								trackId: pinch.trackId,
+								elementId: pinch.elementId,
+								updates:
+									element && "keyframes" in element
+										? buildAnimatedTransformUpdate({
+												element: element as {
+													transform: Transform;
+													keyframes?: ElementKeyframes;
+													duration: number;
+												},
+												nextTransform: finalTransform,
+												localTime,
+											})
+										: { transform: finalTransform },
+							},
+						],
+					});
+				}
+
+				for (const pointerId of [pinch.pointerA, pinch.pointerB]) {
+					try {
+						overlayRef.current?.releasePointerCapture(pointerId);
+					} catch {
+						// capture may already be gone if the browser cancelled it
+					}
+					activePointersRef.current.delete(pointerId);
+				}
+
+				pinchStateRef.current = null;
+				setIsPinching(false);
+				return;
+			}
+
 			if (resizeStateRef.current) {
 				const state = resizeStateRef.current;
 				const currentPos = getCanvasCoordinates({
@@ -949,10 +1157,37 @@ export function usePreviewInteraction({
 		onPointerUp: handlePointerUp,
 		onScaleStart: handleScaleStart,
 		onResizeStart: handleResizeStart,
-		isTransforming: isDragging || isScaling || isResizing,
+		isTransforming: isDragging || isScaling || isResizing || isPinching,
 		activeGuides,
 		chromaPreview,
 		clearChromaPreview,
+	};
+}
+
+function computePinchTransform({
+	pinch,
+	p1,
+	p2,
+}: {
+	pinch: PinchState;
+	p1: { x: number; y: number };
+	p2: { x: number; y: number };
+}): Transform | null {
+	if (pinch.initialDistance < 1) return null;
+
+	const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+	const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+	const scaleRatio = distance / pinch.initialDistance;
+	const newScale = Math.max(
+		0.1,
+		Math.min(5, pinch.initialTransform.scale * scaleRatio),
+	);
+	const rotationDelta = ((angle - pinch.initialAngle) * 180) / Math.PI;
+
+	return {
+		...pinch.initialTransform,
+		scale: newScale,
+		rotate: pinch.initialTransform.rotate + rotationDelta,
 	};
 }
 

@@ -21,6 +21,8 @@ type ResizeHandle = "left" | "right" | "top" | "bottom";
 const HANDLE_SIZE = 10;
 const RESIZE_HANDLE_WIDTH = 6;
 const RESIZE_HANDLE_HEIGHT = 24;
+/** Invisible hit zone around every handle — fingers need ≥28px. */
+const HANDLE_HIT_SIZE = 30;
 
 const SCALE_HANDLES: ScaleHandle[] = [
 	"top-left",
@@ -37,16 +39,28 @@ export interface ElementBounds {
 	rotate: number;
 }
 
-function getHandlePosition({ handle }: { handle: ScaleHandle }) {
+function getHandleHitPosition({ handle }: { handle: ScaleHandle }) {
 	switch (handle) {
 		case "top-left":
-			return { left: -HANDLE_SIZE / 2, top: -HANDLE_SIZE / 2 };
+			return {
+				left: -HANDLE_HIT_SIZE / 2,
+				top: -HANDLE_HIT_SIZE / 2,
+			};
 		case "top-right":
-			return { right: -HANDLE_SIZE / 2, top: -HANDLE_SIZE / 2 };
+			return {
+				right: -HANDLE_HIT_SIZE / 2,
+				top: -HANDLE_HIT_SIZE / 2,
+			};
 		case "bottom-left":
-			return { left: -HANDLE_SIZE / 2, bottom: -HANDLE_SIZE / 2 };
+			return {
+				left: -HANDLE_HIT_SIZE / 2,
+				bottom: -HANDLE_HIT_SIZE / 2,
+			};
 		case "bottom-right":
-			return { right: -HANDLE_SIZE / 2, bottom: -HANDLE_SIZE / 2 };
+			return {
+				right: -HANDLE_HIT_SIZE / 2,
+				bottom: -HANDLE_HIT_SIZE / 2,
+			};
 	}
 }
 
@@ -365,22 +379,29 @@ function ElementOverlay({
 				)}
 			/>
 
-			{/* Corner handles (proportional scale) */}
+			{/* Corner handles (proportional scale) — fat invisible hit zones so
+			    fingers can grab them; the visible dot stays HANDLE_SIZE. */}
 			{SCALE_HANDLES.map((handle) => (
 				<div
 					key={handle}
-					className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+					className="pointer-events-auto absolute flex items-center justify-center"
 					style={{
-						width: HANDLE_SIZE,
-						height: HANDLE_SIZE,
+						width: HANDLE_HIT_SIZE,
+						height: HANDLE_HIT_SIZE,
 						cursor: getHandleCursor({ handle }),
-						...getHandlePosition({ handle }),
+						touchAction: "none",
+						...getHandleHitPosition({ handle }),
 					}}
 					onPointerDown={(event) => {
 						event.stopPropagation();
 						onScaleStart({ event, handle });
 					}}
-				/>
+				>
+					<div
+						className="bg-primary border-background rounded-sm border"
+						style={{ width: HANDLE_SIZE, height: HANDLE_SIZE }}
+					/>
+				</div>
 			))}
 
 			{/* Side handles for text width resize */}
@@ -388,12 +409,13 @@ function ElementOverlay({
 				<>
 					{/* Left handle */}
 					<div
-						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						className="pointer-events-auto absolute flex items-center justify-center"
 						style={{
-							width: RESIZE_HANDLE_WIDTH,
-							height: RESIZE_HANDLE_HEIGHT,
+							width: HANDLE_HIT_SIZE,
+							height: HANDLE_HIT_SIZE + RESIZE_HANDLE_HEIGHT - HANDLE_SIZE,
 							cursor: "ew-resize",
-							left: -RESIZE_HANDLE_WIDTH / 2,
+							touchAction: "none",
+							left: -HANDLE_HIT_SIZE / 2,
 							top: "50%",
 							transform: "translateY(-50%)",
 						}}
@@ -401,15 +423,24 @@ function ElementOverlay({
 							event.stopPropagation();
 							onResizeStart({ event, handle: "left" });
 						}}
-					/>
+					>
+						<div
+							className="bg-primary border-background rounded-sm border"
+							style={{
+								width: RESIZE_HANDLE_WIDTH,
+								height: RESIZE_HANDLE_HEIGHT,
+							}}
+						/>
+					</div>
 					{/* Right handle */}
 					<div
-						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						className="pointer-events-auto absolute flex items-center justify-center"
 						style={{
-							width: RESIZE_HANDLE_WIDTH,
-							height: RESIZE_HANDLE_HEIGHT,
+							width: HANDLE_HIT_SIZE,
+							height: HANDLE_HIT_SIZE + RESIZE_HANDLE_HEIGHT - HANDLE_SIZE,
 							cursor: "ew-resize",
-							right: -RESIZE_HANDLE_WIDTH / 2,
+							touchAction: "none",
+							right: -HANDLE_HIT_SIZE / 2,
 							top: "50%",
 							transform: "translateY(-50%)",
 						}}
@@ -417,7 +448,15 @@ function ElementOverlay({
 							event.stopPropagation();
 							onResizeStart({ event, handle: "right" });
 						}}
-					/>
+					>
+						<div
+							className="bg-primary border-background rounded-sm border"
+							style={{
+								width: RESIZE_HANDLE_WIDTH,
+								height: RESIZE_HANDLE_HEIGHT,
+							}}
+						/>
+					</div>
 				</>
 			)}
 
@@ -426,12 +465,13 @@ function ElementOverlay({
 				<>
 					{/* Top handle */}
 					<div
-						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						className="pointer-events-auto absolute flex items-center justify-center"
 						style={{
-							width: RESIZE_HANDLE_HEIGHT,
-							height: RESIZE_HANDLE_WIDTH,
+							width: HANDLE_HIT_SIZE + RESIZE_HANDLE_HEIGHT - HANDLE_SIZE,
+							height: HANDLE_HIT_SIZE,
 							cursor: "ns-resize",
-							top: -RESIZE_HANDLE_WIDTH / 2,
+							touchAction: "none",
+							top: -HANDLE_HIT_SIZE / 2,
 							left: "50%",
 							transform: "translateX(-50%)",
 						}}
@@ -439,15 +479,24 @@ function ElementOverlay({
 							event.stopPropagation();
 							onResizeStart({ event, handle: "top" });
 						}}
-					/>
+					>
+						<div
+							className="bg-primary border-background rounded-sm border"
+							style={{
+								width: RESIZE_HANDLE_HEIGHT,
+								height: RESIZE_HANDLE_WIDTH,
+							}}
+						/>
+					</div>
 					{/* Bottom handle */}
 					<div
-						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						className="pointer-events-auto absolute flex items-center justify-center"
 						style={{
-							width: RESIZE_HANDLE_HEIGHT,
-							height: RESIZE_HANDLE_WIDTH,
+							width: HANDLE_HIT_SIZE + RESIZE_HANDLE_HEIGHT - HANDLE_SIZE,
+							height: HANDLE_HIT_SIZE,
 							cursor: "ns-resize",
-							bottom: -RESIZE_HANDLE_WIDTH / 2,
+							touchAction: "none",
+							bottom: -HANDLE_HIT_SIZE / 2,
 							left: "50%",
 							transform: "translateX(-50%)",
 						}}
@@ -455,7 +504,15 @@ function ElementOverlay({
 							event.stopPropagation();
 							onResizeStart({ event, handle: "bottom" });
 						}}
-					/>
+					>
+						<div
+							className="bg-primary border-background rounded-sm border"
+							style={{
+								width: RESIZE_HANDLE_HEIGHT,
+								height: RESIZE_HANDLE_WIDTH,
+							}}
+						/>
+					</div>
 				</>
 			)}
 		</div>

@@ -38,12 +38,13 @@ export function PreviewInteractionOverlay({
 		<div
 			ref={overlayRef}
 			className={cn(
-				"pointer-events-auto absolute inset-0",
+				"pointer-events-auto absolute inset-0 touch-none",
 				isPickingChroma && "cursor-crosshair",
 			)}
 			onPointerDown={onPointerDown}
 			onPointerMove={onPointerMove}
 			onPointerUp={onPointerUp}
+			onPointerCancel={onPointerUp}
 			onPointerLeave={clearChromaPreview}
 		>
 			{isPickingChroma && chromaPreview && (
