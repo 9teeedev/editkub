@@ -7,6 +7,7 @@ import { cn } from "@/utils/ui";
 import { useEditor } from "@/hooks/use-editor";
 import Image from "next/image";
 import {
+	Add01Icon,
 	Video01Icon,
 	HeadphonesIcon,
 	TextIcon,
@@ -14,6 +15,7 @@ import {
 	ImageIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { useMobileDrawerStore } from "../hooks/use-mobile-drawer";
 import { KeyframeDiamonds } from "../../panels/timeline/keyframe-diamonds";
 import { VideoThumbnailStrip } from "../../panels/timeline/video-thumbnail-strip";
@@ -680,6 +682,14 @@ export function MobileTrack({
 
 		const pxPerSecond = timeToPixels({ time: 1 }) - timeToPixels({ time: 0 });
 		const zoomLevel = pxPerSecond / TIMELINE_CONSTANTS.PIXELS_PER_SECOND;
+		const trackEndX = track.elements.reduce(
+			(farthest, element) =>
+				Math.max(
+					farthest,
+					timeToPixels({ time: element.startTime + element.duration }),
+				),
+			0,
+		);
 
 		return (
 			<div className="relative w-full" style={{ height: MOBILE_TRACK_HEIGHT }}>
@@ -836,6 +846,62 @@ export function MobileTrack({
 					</Fragment>
 				);
 				})}
-		</div>
+
+				<QuickAddButton trackType={track.type} trackEndX={trackEndX} />
+			</div>
+		);
+}
+
+/**
+ * "+" button at the end of a track — CapCut-style quick add. Opens the
+ * drawer matching the track type. Touch events are stopped so the timeline
+ * container's tap-to-clear gesture doesn't immediately close the drawer.
+ */
+function QuickAddButton({
+	trackType,
+	trackEndX,
+}: {
+	trackType: TimelineTrack["type"];
+	trackEndX: number;
+}) {
+	const { t } = useTranslation();
+	const openDrawer = useMobileDrawerStore((s) => s.openDrawer);
+
+	if (trackType !== "video" && trackType !== "audio" && trackType !== "text") {
+		return null;
+	}
+
+	const drawerForTrack =
+		trackType === "video" ? "assets" : trackType === "audio" ? "audio" : "text";
+
+	const handlePress = (event: React.MouseEvent) => {
+		event.stopPropagation();
+		openDrawer({ drawer: drawerForTrack });
+	};
+
+	const stopTouch = (event: React.TouchEvent) => {
+		event.stopPropagation();
+	};
+
+	const buttonSize = MOBILE_TRACK_HEIGHT - 10;
+
+	return (
+		<button
+			type="button"
+			className="border-border/60 bg-muted/60 text-foreground absolute flex items-center justify-center rounded-md border border-dashed active:bg-muted"
+			style={{ left: trackEndX + 8, top: 5, width: buttonSize, height: buttonSize }}
+			onClick={handlePress}
+			onTouchStart={stopTouch}
+			onTouchEnd={stopTouch}
+			onKeyDown={(event) => {
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					openDrawer({ drawer: drawerForTrack });
+				}
+			}}
+			aria-label={t("Add to timeline")}
+		>
+			<HugeiconsIcon icon={Add01Icon} className="size-5" />
+		</button>
 	);
 }
