@@ -23,6 +23,8 @@ export type WorkerMessage =
 			audio: Float32Array;
 			language: string;
 			subtask: string | null;
+			/** Request per-word timestamps (karaoke). Incompatible with streaming. */
+			wordTimestamps?: boolean;
 	  }
 	| { type: "cancel" };
 
@@ -123,6 +125,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 				audio: message.audio,
 				language: message.language,
 				subtask: message.subtask,
+				wordTimestamps: message.wordTimestamps,
 			});
 			break;
 		case "cancel":
@@ -241,10 +244,12 @@ async function handleTranscribe({
 	audio,
 	language,
 	subtask,
+	wordTimestamps,
 }: {
 	audio: Float32Array;
 	language: string;
 	subtask: string | null;
+	wordTimestamps?: boolean;
 }) {
 	if (!transcriber) {
 		self.postMessage({
@@ -274,6 +279,9 @@ async function handleTranscribe({
 		let tps = 0;
 
 		const isDistilWhisper = currentModelId?.includes("distil") ?? false;
+		// Distil models don't produce reliable token-level timestamps — fall
+		// back to segment mode even when word timestamps were requested.
+		const useWordTimestamps = (wordTimestamps ?? false) && !isDistilWhisper;
 		const chunkLengthS = isDistilWhisper ? 20 : DEFAULT_CHUNK_LENGTH_SECONDS;
 		const strideLengthS = isDistilWhisper ? 3 : DEFAULT_STRIDE_SECONDS;
 
@@ -354,9 +362,13 @@ async function handleTranscribe({
 			stride_length_s: strideLengthS,
 			language: language === "auto" ? undefined : language,
 			task: subtask ?? "transcribe",
-			return_timestamps: true,
+			// Word mode returns per-word chunks with [start, end] timestamps,
+			// but the generation config disables timestamp tokens — the
+			// WhisperTextStreamer relies on those, so streaming is only
+			// possible in segment mode.
+			return_timestamps: useWordTimestamps ? "word" : true,
 			force_full_sequences: false,
-			streamer,
+			streamer: useWordTimestamps ? undefined : streamer,
 		});
 
 		if (cancelled) return;

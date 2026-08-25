@@ -39,6 +39,7 @@ export async function transcribeRemote({
 	apiKey,
 	model,
 	language,
+	wordTimestamps = false,
 	onChunkProgress,
 }: {
 	provider: RemoteTranscriptionProvider;
@@ -46,6 +47,8 @@ export async function transcribeRemote({
 	apiKey: string;
 	model: string;
 	language?: string;
+	/** Ask whisper-family models for per-word timestamps. */
+	wordTimestamps?: boolean;
 	onChunkProgress?: (completed: number, total: number) => void;
 }): Promise<TranscriptionResult> {
 	const chunkSize = REMOTE_CHUNK_DURATION_S * REMOTE_SAMPLE_RATE;
@@ -68,6 +71,7 @@ export async function transcribeRemote({
 			apiKey,
 			model,
 			language,
+			wordTimestamps,
 		});
 
 		// Map segments with correct absolute timestamps.

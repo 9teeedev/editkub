@@ -31,11 +31,17 @@ export const groqProvider: RemoteTranscriptionProvider = {
 		apiKey,
 		model,
 		language,
+		wordTimestamps,
 	}): Promise<TranscriptionResult> {
 		const formData = new FormData();
 		formData.append("file", audioBlob, "audio.wav");
 		formData.append("model", model);
 		formData.append("response_format", "verbose_json");
+		// Word granularity makes `segments` come back with one entry per word
+		// (distil models don't support it — leave them at segment level).
+		if (wordTimestamps && !model.includes("distil")) {
+			formData.append("timestamp_granularities[]", "word");
+		}
 
 		if (language && language !== "auto") {
 			formData.append("language", language);

@@ -10,6 +10,7 @@ import type {
 } from "@/types/project";
 import type { ExportOptions, ExportResult } from "@/types/export";
 import { useAgentStore } from "@/stores/agent-store";
+import { useTranscriptStore } from "@/stores/transcript-store";
 import { storageService } from "@/services/storage/service";
 import { toast } from "sonner";
 import { generateUUID } from "@/utils/id";
@@ -100,6 +101,7 @@ export class ProjectManager {
 
 		this.active = newProject;
 		this.notify();
+		useTranscriptStore.getState().clear();
 
 		this.editor.media.clearAllAssets();
 		this.editor.scenes.initializeScenes({
@@ -154,6 +156,7 @@ export class ProjectManager {
 			await this.editor.media.loadProjectMedia({ projectId: id });
 
 			useAgentStore.getState().initMessages(project.agentMessages ?? []);
+			useTranscriptStore.getState().init(project.transcript ?? null);
 
 			if (!project.metadata.thumbnail) {
 				const didUpdateThumbnail = await this.updateThumbnailFromTimeline();
@@ -177,10 +180,12 @@ export class ProjectManager {
 		try {
 			const scenes = this.editor.scenes.getScenes();
 			const agentMessages = useAgentStore.getState().getMessages();
+			const transcript = useTranscriptStore.getState().transcript;
 			const updatedProject = {
 				...this.active,
 				scenes,
 				agentMessages,
+				transcript: transcript ?? undefined,
 				metadata: {
 					...this.active.metadata,
 					duration: getProjectDurationFromScenes({ scenes }),

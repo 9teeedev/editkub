@@ -37,6 +37,8 @@ export interface RemoteTranscriptionProvider {
 		apiKey: string;
 		model: string;
 		language?: string;
+		/** Ask for per-word timestamps (whisper-family models only). */
+		wordTimestamps?: boolean;
 	}): Promise<TranscriptionResult>;
 }
 

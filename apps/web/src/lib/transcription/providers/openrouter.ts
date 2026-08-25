@@ -39,6 +39,7 @@ export const openrouterProvider: RemoteTranscriptionProvider = {
 		apiKey,
 		model,
 		language,
+		wordTimestamps,
 	}): Promise<TranscriptionResult> {
 		// Only whisper models support verbose_json (segment timestamps).
 		// GPT transcribe models (gpt-transcribe, gpt-4o-transcribe, etc.)
@@ -49,6 +50,10 @@ export const openrouterProvider: RemoteTranscriptionProvider = {
 		formData.append("file", audioBlob, "audio.wav");
 		formData.append("model", model);
 		formData.append("response_format", useVerbose ? "verbose_json" : "json");
+		// Word granularity makes `segments` come back with one entry per word.
+		if (useVerbose && wordTimestamps) {
+			formData.append("timestamp_granularities[]", "word");
+		}
 
 		if (language && language !== "auto") {
 			formData.append("language", language);

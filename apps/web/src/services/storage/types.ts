@@ -47,6 +47,7 @@ export type SerializedProject = Omit<TProject, "metadata" | "scenes"> & {
 	scenes: SerializedScene[];
 	timelineViewState?: TTimelineViewState;
 	agentMessages?: AgentMessage[];
+	transcript?: TProject["transcript"];
 };
 
 export interface StorageConfig {

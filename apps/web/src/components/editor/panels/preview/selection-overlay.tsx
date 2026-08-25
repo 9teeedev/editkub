@@ -14,6 +14,11 @@ import type { MediaAsset } from "@/types/assets";
 import { getTextScaleFactor } from "@/constants/text-constants";
 import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
+import { canvasFontFamily } from "@/lib/canvas-fonts";
+import {
+	wrapCaptionWords,
+	scaleBoxWidth,
+} from "@/services/renderer/nodes/text-node";
 
 type ScaleHandle = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 type ResizeHandle = "left" | "right" | "top" | "bottom";
@@ -127,6 +132,65 @@ export function computeMediaBounds({
 	};
 }
 
+// Offscreen context reused for measuring caption text — same font metrics
+// as the renderer, so bounds hug the drawn words.
+let measureContext: CanvasRenderingContext2D | null = null;
+function getMeasureContext(): CanvasRenderingContext2D | null {
+	if (measureContext) return measureContext;
+	if (typeof document === "undefined") return null;
+	const canvas = document.createElement("canvas");
+	canvas.width = 8;
+	canvas.height = 8;
+	measureContext = canvas.getContext("2d");
+	return measureContext;
+}
+
+/**
+ * Measure a karaoke caption element with real font metrics using the
+ * renderer's own word-wrap layout — character-count estimates drift badly
+ * for Thai (combining marks) and loaded web fonts.
+ */
+function measureCaptionTextBounds({
+	element,
+	canvasWidth,
+	canvasHeight,
+}: {
+	element: TextElement;
+	canvasWidth: number;
+	canvasHeight: number;
+}): { width: number; height: number } | null {
+	const context = getMeasureContext();
+	if (!context || !element.wordTimings || element.wordTimings.length === 0) {
+		return null;
+	}
+
+	const scaleFactor = getTextScaleFactor({ canvasWidth, canvasHeight });
+	const scaledFontSize = element.fontSize * scaleFactor;
+	const fontStyle = element.fontStyle === "italic" ? "italic" : "normal";
+	const fontWeight = element.fontWeight === "bold" ? "bold" : "normal";
+	context.font = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${canvasFontFamily(element.fontFamily)}`;
+
+	const spaceWidth = context.measureText(" ").width;
+	const hasBoxWidth = element.boxWidth !== undefined && element.boxWidth > 0;
+	const maxWidth = hasBoxWidth
+		? scaleBoxWidth({
+				boxWidth: element.boxWidth as number,
+				canvasWidth,
+				canvasHeight,
+			})
+		: canvasWidth * 0.8;
+
+	const lines = wrapCaptionWords({
+		context,
+		words: element.wordTimings,
+		spaceWidth,
+		maxWidth,
+	});
+	const lineHeight = scaledFontSize * 1.3;
+	const width = Math.max(...lines.map((line) => line.width));
+	return { width, height: lines.length * lineHeight };
+}
+
 function computeTextBounds({
 	element,
 	canvasWidth,
@@ -150,7 +214,17 @@ function computeTextBounds({
 	let estimatedHeight: number;
 	const elementScale = element.transform.scale;
 
-	if (hasBoxWidth) {
+	// Karaoke captions: measure the real wrapped layout instead of
+	// estimating from character counts.
+	const measured = measureCaptionTextBounds({
+		element,
+		canvasWidth,
+		canvasHeight,
+	});
+	if (measured) {
+		estimatedWidth = measured.width;
+		estimatedHeight = measured.height;
+	} else if (hasBoxWidth) {
 		estimatedWidth = scaledBoxWidth;
 		const lineHeight = scaledFontSize * 1.3;
 		const charsPerLine = Math.max(

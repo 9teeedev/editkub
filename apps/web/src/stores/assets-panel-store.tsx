@@ -11,7 +11,6 @@ import {
 	TextIcon,
 	Settings01Icon,
 	ColorsIcon,
-	LeftToRightBlockQuoteIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
@@ -23,7 +22,6 @@ export const TAB_KEYS = [
 	"effects",
 	"transitions",
 	"captions",
-	"subtitles",
 	"filters",
 	"ai",
 	"settings",
@@ -45,7 +43,6 @@ const TAB_LABELS: Record<Tab, string> = {
 	effects: "Effects",
 	transitions: "Transitions",
 	captions: "Captions",
-	subtitles: "Subtitles",
 	filters: "Filters",
 	ai: "AI",
 	settings: "Settings",
@@ -79,10 +76,6 @@ export const tabs = {
 	captions: {
 		icon: createHugeiconsIcon({ icon: ClosedCaptionIcon }),
 		label: TAB_LABELS.captions,
-	},
-	subtitles: {
-		icon: createHugeiconsIcon({ icon: LeftToRightBlockQuoteIcon }),
-		label: TAB_LABELS.subtitles,
 	},
 	filters: {
 		icon: createHugeiconsIcon({ icon: ColorsIcon }),

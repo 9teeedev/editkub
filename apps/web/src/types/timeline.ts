@@ -187,6 +187,36 @@ export interface TextAnimations {
 /** The two independent phases a text animation can belong to. */
 export type TextAnimationPhase = "in" | "out";
 
+// ---- Caption word timing (karaoke) ----
+
+/**
+ * A single word with element-local timing (seconds from the element's
+ * `startTime`). When present on a TextElement, the renderer switches to
+ * per-word drawing and highlights the word spoken at the current time.
+ */
+export interface CaptionWordTiming {
+	text: string;
+	start: number;
+	end: number;
+}
+
+/**
+ * How the actively-spoken word is highlighted while caption word timings
+ * drive rendering:
+ * - `color` — active word is filled with the accent color
+ * - `box`   — thin outline around the active word
+ * - `block` — solid accent block behind the active word
+ * - `fill`  — accent color wipes across the active word as it is spoken
+ * - `pop`   — active word scales up with the accent color
+ */
+export type CaptionFlowStyle = "color" | "box" | "block" | "fill" | "pop";
+
+/** Per-element caption karaoke styling. */
+export interface CaptionStyle {
+	flow: CaptionFlowStyle;
+	accentColor: string;
+}
+
 // ---- Transitions ----
 
 export type TransitionType =
@@ -391,6 +421,10 @@ export interface TextElement extends BaseTimelineElement {
 	backgroundPaddingX?: number;
 	backgroundPaddingY?: number;
 	textAnimations?: TextAnimations;
+	/** Word-level timings for karaoke captions; element-local seconds. */
+	wordTimings?: CaptionWordTiming[];
+	/** Karaoke highlight styling used together with `wordTimings`. */
+	captionStyle?: CaptionStyle;
 }
 
 export interface StickerElement extends BaseTimelineElement {

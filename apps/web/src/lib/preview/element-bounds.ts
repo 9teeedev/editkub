@@ -45,6 +45,13 @@ export function getElementHalfSize({
 		const elementBoxWidth = element.boxWidth;
 		const hasBoxWidth = elementBoxWidth !== undefined && elementBoxWidth > 0;
 
+		// Thai combining marks (upper/lower vowels, tone marks) stack on
+		// the base character and take no horizontal space — counting them
+		// as full characters makes the box wider than the drawn text.
+		const layoutLength = element.content
+			.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "")
+			.length;
+
 		if (hasBoxWidth) {
 			const scaledBoxWidth = elementBoxWidth * scaleFactor;
 			const lineHeight = scaledFontSize * 1.3;
@@ -54,7 +61,7 @@ export function getElementHalfSize({
 			);
 			const lineCount = Math.max(
 				1,
-				Math.ceil(element.content.length / charsPerLine),
+				Math.ceil(layoutLength / charsPerLine),
 			);
 			return {
 				halfWidth: (scaledBoxWidth * elementScale) / 2,
@@ -64,7 +71,7 @@ export function getElementHalfSize({
 
 		return {
 			halfWidth:
-				(element.content.length * scaledFontSize * 0.6 * elementScale) / 2,
+				(layoutLength * scaledFontSize * 0.6 * elementScale) / 2,
 			halfHeight: (scaledFontSize * 1.4 * elementScale) / 2,
 		};
 	}
