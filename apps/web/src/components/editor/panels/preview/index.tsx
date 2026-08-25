@@ -13,6 +13,7 @@ import { buildScene } from "@/services/renderer/scene-builder";
 import { formatTimeCode, getLastFrameTime } from "@/lib/time";
 import { PreviewInteractionOverlay } from "./preview-interaction-overlay";
 import { VoiceoverOverlay } from "./voiceover-overlay";
+import { LayoutGuideOverlay } from "@/components/editor/layout-guide-overlay";
 import { EditableTimecode } from "@/components/editable-timecode";
 import { invokeAction } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,9 @@ import {
 	MusicNote03Icon,
 	PauseIcon,
 	PlayIcon,
+	SmartPhone01Icon,
 } from "@hugeicons/core-free-icons";
+import { useEditorStore } from "@/stores/editor-store";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMediaPreviewStore } from "@/stores/media-preview-store";
 import {
@@ -262,6 +265,8 @@ function PreviewToolbar({
 	const fps = editor.project.getActive().settings.fps;
 	const zoom = usePreviewZoomStore((s) => s.zoom);
 	const setZoom = usePreviewZoomStore((s) => s.setZoom);
+	const layoutGuidePlatform = useEditorStore((s) => s.layoutGuide.platform);
+	const toggleLayoutGuide = useEditorStore((s) => s.toggleLayoutGuide);
 
 	const zoomLabel = zoom === null ? t("Fit") : `${Math.round(zoom * 100)}%`;
 
@@ -307,6 +312,21 @@ function PreviewToolbar({
 					title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
 				>
 					<HugeiconsIcon icon={FullScreenIcon} />
+				</Button>
+
+				<Button
+					variant="text"
+					size="icon"
+					type="button"
+					onMouseDown={(event) => event.preventDefault()}
+					onClick={() => toggleLayoutGuide("tiktok")}
+					title={t("TikTok safe zone")}
+					aria-pressed={layoutGuidePlatform === "tiktok"}
+					className={cn(
+						layoutGuidePlatform === "tiktok" && "text-primary bg-accent",
+					)}
+				>
+					<HugeiconsIcon icon={SmartPhone01Icon} />
 				</Button>
 
 				<DropdownMenu>
@@ -494,6 +514,7 @@ function PreviewCanvas() {
 										: activeProject.settings.background.color,
 					}}
 				/>
+				<LayoutGuideOverlay />
 				<PreviewInteractionOverlay
 					canvasRef={canvasRef}
 					displaySize={displaySize}

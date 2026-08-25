@@ -10,7 +10,11 @@ import type { RootNode } from "@/services/renderer/nodes/root-node";
 import { buildScene } from "@/services/renderer/scene-builder";
 import { getLastFrameTime } from "@/lib/time";
 import { PreviewInteractionOverlay } from "../panels/preview/preview-interaction-overlay";
+import { LayoutGuideOverlay } from "../layout-guide-overlay";
+import { useEditorStore } from "@/stores/editor-store";
 import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
+import { SmartPhone01Icon } from "@hugeicons/core-free-icons";
+import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { invokeAction } from "@/lib/actions";
 import { PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -166,6 +170,7 @@ function MobilePreviewCanvas() {
 										: activeProject.settings.background.color,
 					}}
 				/>
+				<LayoutGuideOverlay />
 				<PreviewInteractionOverlay
 					canvasRef={canvasRef}
 					displaySize={displaySize}
@@ -177,8 +182,11 @@ function MobilePreviewCanvas() {
 
 export function MobilePreview() {
 	const editor = useEditor();
+	const { t } = useTranslation();
 	const isPlaying = editor.playback.getIsPlaying();
 	const { selectedElements } = useElementSelection();
+	const layoutGuidePlatform = useEditorStore((s) => s.layoutGuide.platform);
+	const toggleLayoutGuide = useEditorStore((s) => s.toggleLayoutGuide);
 
 	const handleTogglePlay = useCallback(() => {
 		invokeAction("toggle-play");
@@ -193,6 +201,22 @@ export function MobilePreview() {
 		<div className="relative flex min-h-[30vh] flex-1 items-center justify-center bg-black">
 			<MobilePreviewCanvas />
 			<MobileRenderTreeController />
+
+			{/* Floating safe-zone toggle (top-right, above every overlay) */}
+			<button
+				type="button"
+				className={cn(
+					"absolute top-2 right-2 z-[1200] flex size-9 items-center justify-center rounded-full backdrop-blur-sm transition-colors",
+					layoutGuidePlatform === "tiktok"
+						? "bg-primary text-primary-foreground"
+						: "bg-black/50 text-white",
+				)}
+				onClick={() => toggleLayoutGuide("tiktok")}
+				aria-pressed={layoutGuidePlatform === "tiktok"}
+				aria-label={t("TikTok safe zone")}
+			>
+				<HugeiconsIcon icon={SmartPhone01Icon} className="size-4" />
+			</button>
 
 			{/* Tap overlay to toggle play/pause */}
 			<button
