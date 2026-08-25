@@ -8,9 +8,14 @@ import { useTouchGestures } from "../hooks/use-touch-gestures";
 import { useMobileDrawerStore } from "../hooks/use-mobile-drawer";
 import { MobileTrack } from "./mobile-track";
 import { MobilePlayhead } from "./mobile-playhead";
+import { TimelineTick } from "../../panels/timeline/timeline-tick";
+import { getRulerConfig } from "@/lib/timeline/ruler-utils";
+import { EditableTimecode } from "@/components/editable-timecode";
+import { formatTimeCode } from "@/lib/time";
 import { cn } from "@/utils/ui";
 
-const TIMELINE_HEIGHT = 180;
+const TIMELINE_HEIGHT = 200;
+const RULER_HEIGHT = 20;
 const CONTENT_END_PADDING_SECONDS = 2;
 
 export function MobileTimeline() {
@@ -18,9 +23,10 @@ export function MobileTimeline() {
 	const containerRef = useRef<HTMLElement>(null);
 	const translateXRef = useRef(0);
 	const contentRef = useRef<HTMLDivElement>(null);
+	const rulerInnerRef = useRef<HTMLDivElement>(null);
 	const isDraggingElementRef = useRef(false);
 
-	const { timeToPixels, pixelsToTime, handlePan, handlePinch } =
+	const { zoomLevel, timeToPixels, pixelsToTime, handlePan, handlePinch } =
 		useTimelineScroll();
 	const closeDrawer = useMobileDrawerStore((s) => s.closeDrawer);
 
@@ -46,12 +52,17 @@ export function MobileTimeline() {
 	// RAF loop keeps the translateX in sync with playback time
 	useRafLoop(
 		useCallback(() => {
-			if (!contentRef.current) return;
 			const scrollX = getScrollX();
 			// Only write to DOM when value actually changed (avoid layout thrash)
 			if (scrollX !== translateXRef.current) {
 				translateXRef.current = scrollX;
-				contentRef.current.style.transform = `translateX(${-scrollX}px)`;
+				const transform = `translateX(${-scrollX}px)`;
+				if (contentRef.current) {
+					contentRef.current.style.transform = transform;
+				}
+				if (rulerInnerRef.current) {
+					rulerInnerRef.current.style.transform = transform;
+				}
 			}
 		}, [getScrollX]),
 	);
@@ -87,6 +98,9 @@ export function MobileTimeline() {
 
 	const tracks = editor.timeline.getTracks();
 	const contentWidth = getContentWidth();
+	const currentTime = editor.playback.getCurrentTime();
+	const totalDuration = editor.timeline.getTotalDuration();
+	const fps = editor.project.getActive()?.settings.fps ?? 30;
 
 	return (
 		<section
@@ -98,16 +112,54 @@ export function MobileTimeline() {
 			style={{ height: TIMELINE_HEIGHT }}
 			aria-label="Timeline"
 		>
+			{/* Timecode row */}
+			<div className="text-muted-foreground flex h-6 items-center gap-1 px-2 pt-0.5 text-[11px] tabular-nums">
+				<EditableTimecode
+					time={currentTime}
+					duration={totalDuration}
+					format="MM:SS"
+					fps={fps}
+					onTimeChange={({ time }) => editor.playback.seek({ time })}
+					className="text-foreground"
+				/>
+				<span>/</span>
+				<span>
+					{formatTimeCode({ timeInSeconds: totalDuration, format: "MM:SS", fps })}
+				</span>
+			</div>
+
+			{/* Ruler strip — its own translated layer, synced by the RAF loop */}
+			<div
+				className="relative overflow-hidden"
+				style={{ height: RULER_HEIGHT }}
+				aria-hidden
+			>
+				<div
+					ref={rulerInnerRef}
+					className="absolute top-0 left-0 h-full"
+					style={{
+						width: contentWidth,
+						willChange: "transform",
+					}}
+				>
+					{renderRulerTicks({
+						totalTime: totalDuration + CONTENT_END_PADDING_SECONDS,
+						zoomLevel,
+						fps,
+					})}
+				</div>
+			</div>
+
 			{/* Scrollable content layer */}
 			<div
 				ref={contentRef}
-				className="absolute top-0 left-0 h-full overflow-y-auto overflow-x-visible"
+				className="absolute bottom-0 left-0 h-[152px] overflow-y-auto overflow-x-visible"
 				style={{
 					width: contentWidth,
 					willChange: "transform",
 				}}
 			>
-				<div className="flex flex-col py-2">
+				<div className="flex flex-col pb-2">
 					{tracks.map((track, index) => (
 						<div key={track.id}>
 							{index > 0 && <div className="bg-border mx-2 h-px" />}
@@ -127,4 +179,38 @@ export function MobileTimeline() {
 			<MobilePlayhead />
 		</section>
 	);
+}
+
+function renderRulerTicks({
+	totalTime,
+	zoomLevel,
+	fps,
+}: {
+	totalTime: number;
+	zoomLevel: number;
+	fps: number;
+}) {
+	const { labelIntervalSeconds, tickIntervalSeconds } = getRulerConfig({
+		zoomLevel,
+		fps,
+	});
+
+	const tickCount = Math.floor(totalTime / tickIntervalSeconds);
+	const ticks = [];
+	for (let i = 0; i <= tickCount; i++) {
+		const time = i * tickIntervalSeconds;
+		const isLabel =
+			Math.abs(time / labelIntervalSeconds - Math.round(time / labelIntervalSeconds)) <
+			1e-6;
+		ticks.push(
+			<TimelineTick
+				key={i}
+				time={time}
+				zoomLevel={zoomLevel}
+				fps={fps}
+				showLabel={isLabel}
+			/>,
+		);
+	}
+	return ticks;
 }

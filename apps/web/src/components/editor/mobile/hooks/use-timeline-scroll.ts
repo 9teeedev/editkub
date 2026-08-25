@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { useEditor } from "@/hooks/use-editor";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 
@@ -14,13 +14,26 @@ interface TimelineScrollState {
  * Uses a "centered playhead" model: the playhead stays fixed at screen center
  * and timeline content scrolls underneath. Panning converts pixel deltas to
  * time deltas and seeks the playhead. Pinch-zoom adjusts zoom within bounds.
+ *
+ * `zoomLevel` is mirrored into state so track widths and the ruler re-render
+ * on pinch; the ref copy keeps timeToPixels/pixelsToTime always fresh without
+ * re-creating callbacks.
  */
 export function useTimelineScroll() {
 	const editor = useEditor();
-
+	const [zoomLevel, setZoomLevelState] = useState(1);
 	const stateRef = useRef<TimelineScrollState>({
 		zoomLevel: 1,
 	});
+
+	const applyZoom = useCallback((nextZoomLevel: number) => {
+		const clamped = Math.min(
+			TIMELINE_CONSTANTS.ZOOM_MAX,
+			Math.max(TIMELINE_CONSTANTS.ZOOM_MIN, nextZoomLevel),
+		);
+		stateRef.current.zoomLevel = clamped;
+		setZoomLevelState(clamped);
+	}, []);
 
 	const timeToPixels = useCallback(({ time }: { time: number }): number => {
 		return (
@@ -45,27 +58,26 @@ export function useTimelineScroll() {
 		[editor, pixelsToTime],
 	);
 
-	const handlePinch = useCallback(({ scale }: { scale: number }) => {
-		const state = stateRef.current;
-		const newZoom = state.zoomLevel * scale;
-		state.zoomLevel = Math.min(
-			TIMELINE_CONSTANTS.ZOOM_MAX,
-			Math.max(TIMELINE_CONSTANTS.ZOOM_MIN, newZoom),
-		);
-	}, []);
+	const handlePinch = useCallback(
+		({ scale }: { scale: number }) => {
+			applyZoom(stateRef.current.zoomLevel * scale);
+		},
+		[applyZoom],
+	);
 
 	const getZoomLevel = useCallback((): number => {
 		return stateRef.current.zoomLevel;
 	}, []);
 
-	const setZoomLevel = useCallback(({ zoomLevel }: { zoomLevel: number }) => {
-		stateRef.current.zoomLevel = Math.min(
-			TIMELINE_CONSTANTS.ZOOM_MAX,
-			Math.max(TIMELINE_CONSTANTS.ZOOM_MIN, zoomLevel),
-		);
-	}, []);
+	const setZoomLevel = useCallback(
+		({ zoomLevel: nextZoomLevel }: { zoomLevel: number }) => {
+			applyZoom(nextZoomLevel);
+		},
+		[applyZoom],
+	);
 
 	return {
+		zoomLevel,
 		timeToPixels,
 		pixelsToTime,
 		handlePan,

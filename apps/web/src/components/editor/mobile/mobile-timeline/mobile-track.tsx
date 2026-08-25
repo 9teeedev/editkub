@@ -16,6 +16,10 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMobileDrawerStore } from "../hooks/use-mobile-drawer";
 import { KeyframeDiamonds } from "../../panels/timeline/keyframe-diamonds";
+import { VideoThumbnailStrip } from "../../panels/timeline/video-thumbnail-strip";
+import AudioWaveform from "../../panels/timeline/audio-waveform";
+import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
+import type { MediaAsset } from "@/types/assets";
 import type {
 	TimelineTrack,
 	TimelineElement,
@@ -158,7 +162,37 @@ function computeTrim({
 	};
 }
 
-function VideoElementContent({ element }: { element: VideoElement }) {
+function VideoElementContent({
+	element,
+	mediaAsset,
+	elementWidth,
+	zoomLevel,
+}: {
+	element: VideoElement;
+	mediaAsset: MediaAsset | undefined;
+	elementWidth: number;
+	zoomLevel: number;
+}) {
+	if (mediaAsset?.type === "video" && mediaAsset.file) {
+		return (
+			<div className="relative size-full">
+				<VideoThumbnailStrip
+					mediaId={element.mediaId}
+					file={mediaAsset.file}
+					thumbnailUrl={mediaAsset.thumbnailUrl}
+					trimStart={element.trimStart}
+					duration={element.duration}
+					elementWidth={elementWidth}
+					trackHeight={MOBILE_TRACK_HEIGHT}
+					zoomLevel={zoomLevel}
+					fps={mediaAsset.fps ?? 30}
+					mediaWidth={mediaAsset.width ?? 1920}
+					mediaHeight={mediaAsset.height ?? 1080}
+				/>
+			</div>
+		);
+	}
+
 	return (
 		<>
 			<HugeiconsIcon
@@ -172,20 +206,22 @@ function VideoElementContent({ element }: { element: VideoElement }) {
 
 function ImageElementContent({
 	element,
-	thumbnailUrl,
+	mediaAsset,
 }: {
 	element: ImageElement;
-	thumbnailUrl: string | undefined;
+	mediaAsset: MediaAsset | undefined;
 }) {
-	if (thumbnailUrl) {
+	if (mediaAsset?.url) {
 		return (
-			<>
-				<div
-					className="size-8 shrink-0 rounded bg-cover bg-center"
-					style={{ backgroundImage: `url(${thumbnailUrl})` }}
-				/>
-				<span className="truncate">{element.name}</span>
-			</>
+			<div
+				className="pointer-events-none absolute inset-0"
+				style={{
+					backgroundImage: `url(${mediaAsset.url})`,
+					backgroundRepeat: "no-repeat",
+					backgroundSize: "cover",
+					backgroundPosition: "center",
+				}}
+			/>
 		);
 	}
 
@@ -197,7 +233,35 @@ function ImageElementContent({
 	);
 }
 
-function AudioElementContent({ element }: { element: AudioElement }) {
+function AudioElementContent({
+	element,
+	mediaAsset,
+}: {
+	element: AudioElement;
+	mediaAsset: MediaAsset | undefined;
+}) {
+	const audioBuffer = element.buffer;
+	const audioBlob =
+		element.sourceType === "upload" ? mediaAsset?.file : undefined;
+	const audioUrl =
+		element.sourceType === "library" ? element.sourceUrl : mediaAsset?.url;
+
+	if (audioBuffer || audioBlob || audioUrl) {
+		return (
+			<div className="flex size-full items-center px-1">
+				<AudioWaveform
+					audioBuffer={audioBuffer}
+					audioBlob={audioBlob}
+					audioUrl={audioUrl}
+					duration={element.duration}
+					volume={element.volume}
+					height={28}
+					className="w-full"
+				/>
+			</div>
+		);
+	}
+
 	return (
 		<>
 			<HugeiconsIcon
@@ -246,21 +310,32 @@ function StickerElementContent({ element }: { element: StickerElement }) {
 
 function ElementContent({
 	element,
-	thumbnailUrl,
+	mediaAsset,
+	elementWidth,
+	zoomLevel,
 }: {
 	element: TimelineElement;
-	thumbnailUrl: string | undefined;
+	mediaAsset: MediaAsset | undefined;
+	elementWidth: number;
+	zoomLevel: number;
 }) {
 	if (element.type === "video") {
-		return <VideoElementContent element={element} />;
-	}
-	if (element.type === "image") {
 		return (
-			<ImageElementContent element={element} thumbnailUrl={thumbnailUrl} />
+			<VideoElementContent
+				element={element}
+				mediaAsset={mediaAsset}
+				elementWidth={elementWidth}
+				zoomLevel={zoomLevel}
+			/>
 		);
 	}
+	if (element.type === "image") {
+		return <ImageElementContent element={element} mediaAsset={mediaAsset} />;
+	}
 	if (element.type === "audio") {
-		return <AudioElementContent element={element} />;
+		return (
+			<AudioElementContent element={element} mediaAsset={mediaAsset} />
+		);
 	}
 	if (element.type === "text") {
 		return <TextElementContent element={element} />;
@@ -269,6 +344,30 @@ function ElementContent({
 		return <StickerElementContent element={element} />;
 	}
 	return <span className="truncate">{(element as { name: string }).name}</span>;
+}
+
+/** True when the element renders an edge-to-edge visual (no label padding). */
+function hasFullBleedVisual({
+	element,
+	mediaAsset,
+}: {
+	element: TimelineElement;
+	mediaAsset: MediaAsset | undefined;
+}) {
+	if (element.type === "video") {
+		return mediaAsset?.type === "video" && !!mediaAsset.file;
+	}
+	if (element.type === "image") {
+		return !!mediaAsset?.url;
+	}
+	if (element.type === "audio") {
+		return (
+			!!element.buffer ||
+			(element.sourceType === "library" && !!element.sourceUrl) ||
+			(element.sourceType === "upload" && !!mediaAsset?.file)
+		);
+	}
+	return false;
 }
 
 interface MobileTrackProps {
@@ -579,7 +678,10 @@ export function MobileTrack({
 		};
 	}, [clearLongPressTimer, stopAutoScroll]);
 
-	return (
+		const pxPerSecond = timeToPixels({ time: 1 }) - timeToPixels({ time: 0 });
+		const zoomLevel = pxPerSecond / TIMELINE_CONSTANTS.PIXELS_PER_SECOND;
+
+		return (
 			<div className="relative w-full" style={{ height: MOBILE_TRACK_HEIGHT }}>
 				{track.elements.map((element) => {
 					const preview =
@@ -597,35 +699,38 @@ export function MobileTrack({
 						elementId: element.id,
 					});
 
-				const thumbnailUrl =
-					element.type === "image"
-						? (mediaAssets.find((a) => a.id === element.mediaId)?.url ??
-							undefined)
-						: undefined;
+					const mediaAsset =
+						"mediaId" in element
+							? mediaAssets.find((a) => a.id === element.mediaId)
+							: undefined;
+					const elementWidth = Math.max(width, 4);
+					const fullBleed = hasFullBleedVisual({ element, mediaAsset });
 
-				const isVideoTrack = track.type === "video";
+					const isVideoTrack = track.type === "video";
 
-				return (
-					<Fragment key={element.id}>
-					<button
-						ref={(node) => {
-							if (node) {
-								elementRefsMap.current.set(element.id, node);
-							} else {
-								elementRefsMap.current.delete(element.id);
-							}
-						}}
-						type="button"
-						className={cn(
-							"absolute top-0 flex items-center gap-1.5 overflow-hidden rounded-md px-2 text-xs text-white",
-							isVideoTrack ? "bg-blue-600" : trackColor,
-							selected && "ring-primary ring-2",
-						)}
-						style={{
-							left,
-							width: Math.max(width, 4),
-							height: MOBILE_TRACK_HEIGHT,
-						}}
+					return (
+						<Fragment key={element.id}>
+						<button
+							ref={(node) => {
+								if (node) {
+									elementRefsMap.current.set(element.id, node);
+								} else {
+									elementRefsMap.current.delete(element.id);
+								}
+							}}
+							type="button"
+							className={cn(
+								"absolute top-0 flex items-center overflow-hidden rounded-md text-xs text-white",
+								fullBleed ? "p-0" : "gap-1.5 px-2",
+								isVideoTrack && !fullBleed && "bg-blue-600",
+								!isVideoTrack && !fullBleed && trackColor,
+								selected && "ring-primary ring-2",
+							)}
+							style={{
+								left,
+								width: elementWidth,
+								height: MOBILE_TRACK_HEIGHT,
+							}}
 						onClick={() => {
 							if (dragRef.current.moved) return;
 							if (selected) {
@@ -665,8 +770,13 @@ export function MobileTrack({
 							handleTouchEnd();
 						}}
 					>
-					<ElementContent element={element} thumbnailUrl={thumbnailUrl} />
-						</button>
+						<ElementContent
+							element={element}
+							mediaAsset={mediaAsset}
+							elementWidth={elementWidth}
+							zoomLevel={zoomLevel}
+						/>
+							</button>
 
 						{/* Trim handles (touch) for the selected clip. */}
 						{selected && (
