@@ -206,6 +206,7 @@ export function MobilePreview() {
 
 	return (
 		<div
+			data-preview-container
 			className="bg-background relative flex w-full items-center justify-center"
 			style={
 				hasCanvas

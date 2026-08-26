@@ -3,6 +3,7 @@
 import { useRef, useCallback } from "react";
 import { useEditor } from "@/hooks/use-editor";
 import { useRafLoop } from "@/hooks/use-raf-loop";
+import { invokeAction } from "@/lib/actions";
 import { useTimelineScroll } from "../hooks/use-timeline-scroll";
 import { useTouchGestures } from "../hooks/use-touch-gestures";
 import { useMobileDrawerStore } from "../hooks/use-mobile-drawer";
@@ -13,6 +14,14 @@ import { getRulerConfig } from "@/lib/timeline/ruler-utils";
 import { EditableTimecode } from "@/components/editable-timecode";
 import { formatTimeCode } from "@/lib/time";
 import { cn } from "@/utils/ui";
+import {
+	Backward01Icon,
+	FullScreenIcon,
+	PauseIcon,
+	PlayIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 
 const TIMELINE_MIN_HEIGHT = 180;
 const RULER_HEIGHT = 20;
@@ -100,7 +109,24 @@ export function MobileTimeline() {
 	const contentWidth = getContentWidth();
 	const currentTime = editor.playback.getCurrentTime();
 	const totalDuration = editor.timeline.getTotalDuration();
+	const isPlaying = editor.playback.getIsPlaying();
 	const fps = editor.project.getActive()?.settings.fps ?? 30;
+	const { t } = useTranslation();
+
+	const handlePlayPause = useCallback(() => {
+		invokeAction("toggle-play");
+	}, []);
+
+	const handleBackToStart = useCallback(() => {
+		editor.playback.seek({ time: 0 });
+	}, [editor.playback]);
+
+	const handleFullscreen = useCallback(() => {
+		const previewEl = document.querySelector("[data-preview-container]");
+		if (previewEl instanceof HTMLElement) {
+			previewEl.requestFullscreen();
+		}
+	}, []);
 
 	return (
 		<section
@@ -112,20 +138,45 @@ export function MobileTimeline() {
 			style={{ minHeight: TIMELINE_MIN_HEIGHT }}
 			aria-label="Timeline"
 		>
-			{/* Timecode row */}
-			<div className="text-muted-foreground flex h-6 flex-none items-center gap-1 px-2 pt-0.5 text-[11px] tabular-nums">
-				<EditableTimecode
-					time={currentTime}
-					duration={totalDuration}
-					format="MM:SS"
-					fps={fps}
-					onTimeChange={({ time }) => editor.playback.seek({ time })}
-					className="text-foreground"
-				/>
-				<span>/</span>
-				<span>
-					{formatTimeCode({ timeInSeconds: totalDuration, format: "MM:SS", fps })}
-				</span>
+			{/* Timecode + playback controls */}
+			<div className="text-muted-foreground flex h-8 flex-none items-center gap-1 px-1 text-[11px] tabular-nums">
+				<div className="flex min-w-0 items-center gap-1 px-1">
+					<EditableTimecode
+						time={currentTime}
+						duration={totalDuration}
+						format="MM:SS"
+						fps={fps}
+						onTimeChange={({ time }) => editor.playback.seek({ time })}
+						className="text-foreground"
+					/>
+					<span>/</span>
+					<span>
+						{formatTimeCode({
+							timeInSeconds: totalDuration,
+							format: "MM:SS",
+							fps,
+						})}
+					</span>
+				</div>
+
+				<div className="ml-auto flex items-center">
+					<ControlButton
+						icon={Backward01Icon}
+						label={t("Back to start")}
+						onClick={handleBackToStart}
+					/>
+					<ControlButton
+						icon={isPlaying ? PauseIcon : PlayIcon}
+						label={isPlaying ? t("Pause") : t("Play")}
+						onClick={handlePlayPause}
+						highlight
+					/>
+					<ControlButton
+						icon={FullScreenIcon}
+						label={t("Enter fullscreen")}
+						onClick={handleFullscreen}
+					/>
+				</div>
 			</div>
 
 			{/* Ruler strip — its own translated layer, synced by the RAF loop */}
@@ -213,4 +264,36 @@ function renderRulerTicks({
 		);
 	}
 	return ticks;
+}
+
+/** Compact icon button for the mobile timeline control row. */
+function ControlButton({
+	icon,
+	label,
+	onClick,
+	highlight,
+}: {
+	icon: Parameters<typeof HugeiconsIcon>[0]["icon"];
+	label: string;
+	onClick: () => void;
+	highlight?: boolean;
+}) {
+	return (
+		<button
+			type="button"
+			className={cn(
+				"flex size-8 items-center justify-center rounded-md transition-colors active:bg-muted",
+				highlight ? "text-foreground" : "text-muted-foreground",
+			)}
+			onClick={(event) => {
+				event.stopPropagation();
+				onClick();
+			}}
+			onTouchStart={(event) => event.stopPropagation()}
+			onTouchEnd={(event) => event.stopPropagation()}
+			aria-label={label}
+		>
+			<HugeiconsIcon icon={icon} className="size-4" />
+		</button>
+	);
 }
