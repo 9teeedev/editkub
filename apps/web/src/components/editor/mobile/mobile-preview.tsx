@@ -187,6 +187,7 @@ export function MobilePreview() {
 	const { selectedElements } = useElementSelection();
 	const layoutGuidePlatform = useEditorStore((s) => s.layoutGuide.platform);
 	const toggleLayoutGuide = useEditorStore((s) => s.toggleLayoutGuide);
+	const { width: canvasWidth, height: canvasHeight } = usePreviewSize();
 
 	const handleTogglePlay = useCallback(() => {
 		invokeAction("toggle-play");
@@ -197,9 +198,27 @@ export function MobilePreview() {
 	// clear the selection and bring it back.
 	const showPlayButton = !isPlaying && selectedElements.length === 0;
 
+	// The preview region wraps the canvas aspect (CapCut-style) instead of
+	// taking all leftover height: a landscape video on a portrait phone sits
+	// right under the header and the timeline absorbs the freed space. Flex
+	// shrink still lets a portrait canvas consume the full column.
+	const hasCanvas = !!canvasWidth && !!canvasHeight;
+
 	return (
-		<div className="relative flex min-h-[30vh] flex-1 items-center justify-center bg-black">
-			<MobilePreviewCanvas />
+		<div
+			className="bg-background relative flex w-full items-center justify-center"
+			style={
+				hasCanvas
+					? {
+							aspectRatio: `${canvasWidth} / ${canvasHeight}`,
+							minHeight: 120,
+						}
+					: { minHeight: "30vh" }
+			}
+		>
+			<div className="absolute inset-0 flex items-center justify-center bg-black">
+				<MobilePreviewCanvas />
+			</div>
 			<MobileRenderTreeController />
 
 			{/* Floating safe-zone toggle (top-right, above every overlay) */}

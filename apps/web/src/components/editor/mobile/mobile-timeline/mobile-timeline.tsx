@@ -14,7 +14,7 @@ import { EditableTimecode } from "@/components/editable-timecode";
 import { formatTimeCode } from "@/lib/time";
 import { cn } from "@/utils/ui";
 
-const TIMELINE_HEIGHT = 200;
+const TIMELINE_MIN_HEIGHT = 180;
 const RULER_HEIGHT = 20;
 const CONTENT_END_PADDING_SECONDS = 2;
 
@@ -106,14 +106,14 @@ export function MobileTimeline() {
 		<section
 			ref={containerRef}
 			className={cn(
-				"bg-background relative overflow-hidden border-t",
+				"bg-background relative flex min-h-0 flex-1 flex-col overflow-hidden border-t",
 				"touch-none select-none",
 			)}
-			style={{ height: TIMELINE_HEIGHT }}
+			style={{ minHeight: TIMELINE_MIN_HEIGHT }}
 			aria-label="Timeline"
 		>
 			{/* Timecode row */}
-			<div className="text-muted-foreground flex h-6 items-center gap-1 px-2 pt-0.5 text-[11px] tabular-nums">
+			<div className="text-muted-foreground flex h-6 flex-none items-center gap-1 px-2 pt-0.5 text-[11px] tabular-nums">
 				<EditableTimecode
 					time={currentTime}
 					duration={totalDuration}
@@ -130,7 +130,7 @@ export function MobileTimeline() {
 
 			{/* Ruler strip — its own translated layer, synced by the RAF loop */}
 			<div
-				className="relative overflow-hidden"
+				className="relative flex-none overflow-hidden"
 				style={{ height: RULER_HEIGHT }}
 				aria-hidden
 			>
@@ -153,7 +153,7 @@ export function MobileTimeline() {
 			{/* Scrollable content layer */}
 			<div
 				ref={contentRef}
-				className="absolute bottom-0 left-0 h-[152px] overflow-y-auto overflow-x-visible"
+				className="relative min-h-0 flex-1 overflow-y-auto overflow-x-visible"
 				style={{
 					width: contentWidth,
 					willChange: "transform",
