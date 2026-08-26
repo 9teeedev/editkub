@@ -3,7 +3,9 @@
 import {
 	AiBrain01Icon,
 	ArrowLeft01Icon,
+	ArrowLeftIcon,
 	ArrowRightDoubleIcon,
+	ArrowRightIcon,
 	ClosedCaptionIcon,
 	ColorsIcon,
 	Delete02Icon,
@@ -138,12 +140,12 @@ function ClipToolbar({
 
 	return (
 		<nav
-			className="bg-background flex items-center justify-around border-t px-1 pb-[calc(0.375rem+env(safe-area-inset-bottom))] pt-1.5"
+			className="bg-background flex items-center gap-0.5 overflow-x-auto border-t px-1 pb-[calc(0.375rem+env(safe-area-inset-bottom))] pt-1.5 [&::-webkit-scrollbar]:hidden"
 			aria-label={t("Edit")}
 		>
 			<button
 				type="button"
-				className="flex flex-col items-center gap-0.5 rounded-md px-3 py-1 text-xs text-muted-foreground transition-colors"
+				className="flex shrink-0 flex-col items-center gap-0.5 rounded-md px-2.5 py-1 text-xs text-muted-foreground transition-colors"
 				onClick={onBack}
 				onKeyDown={(event) => {
 					if (event.key === "Enter" || event.key === " ") {
@@ -161,6 +163,16 @@ function ClipToolbar({
 				icon={ScissorIcon}
 				label={t("Split")}
 				onClick={handleSplit}
+			/>
+			<ToolbarTool
+				icon={ArrowLeftIcon}
+				label={t("Split left")}
+				onClick={() => invokeAction("split-left")}
+			/>
+			<ToolbarTool
+				icon={ArrowRightIcon}
+				label={t("Split right")}
+				onClick={() => invokeAction("split-right")}
 			/>
 			<ToolbarTool
 				icon={Delete02Icon}
@@ -188,7 +200,7 @@ function ToolbarTool({
 	return (
 		<button
 			type="button"
-			className="flex flex-col items-center gap-0.5 rounded-md px-3 py-1 text-xs text-foreground transition-colors active:text-primary"
+			className="flex shrink-0 flex-col items-center gap-0.5 rounded-md px-2.5 py-1 text-xs text-foreground transition-colors active:text-primary"
 			onClick={onClick}
 			onKeyDown={(event) => {
 				if (event.key === "Enter" || event.key === " ") {
