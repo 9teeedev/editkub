@@ -138,8 +138,8 @@ export function MobileTimeline() {
 			style={{ minHeight: TIMELINE_MIN_HEIGHT }}
 			aria-label="Timeline"
 		>
-			{/* Timecode + playback controls */}
-			<div className="text-muted-foreground flex h-8 flex-none items-center gap-1 px-1 text-[11px] tabular-nums">
+			{/* Timecode + playback controls (centered) */}
+			<div className="text-muted-foreground bg-background sticky top-0 z-30 grid h-8 flex-none grid-cols-[1fr_auto_1fr] items-center border-b px-1 text-[11px] tabular-nums">
 				<div className="flex min-w-0 items-center gap-1 px-1">
 					<EditableTimecode
 						time={currentTime}
@@ -159,7 +159,7 @@ export function MobileTimeline() {
 					</span>
 				</div>
 
-				<div className="ml-auto flex items-center">
+				<div className="flex items-center">
 					<ControlButton
 						icon={Backward01Icon}
 						label={t("Back to start")}
@@ -177,6 +177,8 @@ export function MobileTimeline() {
 						onClick={handleFullscreen}
 					/>
 				</div>
+
+				<div />
 			</div>
 
 			{/* Ruler strip — its own translated layer, synced by the RAF loop */}
