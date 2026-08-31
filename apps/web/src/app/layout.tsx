@@ -1,5 +1,6 @@
 import Script from "next/script";
 import type { Viewport } from "next";
+import { ThemeProvider } from "next-themes";
 
 import "./globals.css";
 import { baseMetaData } from "./metadata";
@@ -50,7 +51,13 @@ export default async function RootLayout({
 				/>
 			</head>
 			<body className="font-sans antialiased">
-				{children}
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="dark"
+					disableTransitionOnChange={true}
+				>
+					{children}
+				</ThemeProvider>
 			</body>
 		</html>
 	);

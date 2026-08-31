@@ -1,4 +1,3 @@
-import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/components/providers/i18n-provider";
@@ -27,16 +26,10 @@ export default async function LocaleLayout({
 			messages={messages}
 			routingStrategy={i18nConfig.routingStrategy}
 		>
-			<ThemeProvider
-				attribute="class"
-				defaultTheme="dark"
-				disableTransitionOnChange={true}
-			>
-				<TooltipProvider>
-					<Toaster />
-					{children}
-				</TooltipProvider>
-			</ThemeProvider>
+			<TooltipProvider>
+				<Toaster />
+				{children}
+			</TooltipProvider>
 		</I18nProvider>
 	);
 }
