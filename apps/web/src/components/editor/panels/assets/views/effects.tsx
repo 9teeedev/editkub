@@ -5,10 +5,13 @@ import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DraggableItem } from "@/components/editor/panels/assets/draggable-item";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { BlurIcon } from "@hugeicons/core-free-icons";
+import { BlurIcon, SlidersVerticalIcon } from "@hugeicons/core-free-icons";
 import { useEditor } from "@/hooks/use-editor";
 import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
-import { buildBlurEffectElement } from "@/lib/timeline/element-utils";
+import {
+	buildAdjustmentElement,
+	buildBlurEffectElement,
+} from "@/lib/timeline/element-utils";
 import { applyVideoEffect, VFX_PRESETS, type VfxPreset } from "@/lib/renderer/video-effects";
 import { createCanvas } from "@/lib/renderer/chroma-key";
 import { toast } from "sonner";
@@ -51,6 +54,27 @@ export function EffectsView() {
 						containerClassName="w-full"
 						onAddToTimeline={({ currentTime }) => {
 							const element = buildBlurEffectElement({
+								startTime: currentTime,
+							});
+							editor.timeline.insertElement({
+								element,
+								placement: { mode: "auto" },
+							});
+						}}
+					/>
+					<DraggableItem
+						name={t("Adjustment")}
+						dragData={{
+							id: "adjustment",
+							type: "adjustment",
+							name: "Adjustment layer",
+						}}
+						aspectRatio={16 / 9}
+						preview={<AdjustmentPreview />}
+						shouldShowLabel={true}
+						containerClassName="w-full"
+						onAddToTimeline={({ currentTime }) => {
+							const element = buildAdjustmentElement({
 								startTime: currentTime,
 							});
 							editor.timeline.insertElement({
@@ -251,6 +275,27 @@ function BlurPreview() {
 				style={{ backdropFilter: "blur(6px)" }}
 			>
 				<HugeiconsIcon icon={BlurIcon} className="text-white/80 size-8" />
+			</div>
+		</div>
+	);
+}
+
+function AdjustmentPreview() {
+	return (
+		<div className="relative size-full">
+			<div
+				className="size-full rounded-sm"
+				style={{
+					background:
+						"linear-gradient(135deg, #f43f5e 0%, #f59e0b 50%, #3b82f6 100%)",
+					filter: "saturate(1.6) contrast(1.15) brightness(1.05)",
+				}}
+			/>
+			<div className="absolute inset-0 flex items-center justify-center rounded-sm bg-black/25">
+				<HugeiconsIcon
+					icon={SlidersVerticalIcon}
+					className="size-8 text-white/90"
+				/>
 			</div>
 		</div>
 	);

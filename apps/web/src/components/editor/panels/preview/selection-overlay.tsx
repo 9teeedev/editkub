@@ -648,7 +648,7 @@ export function SelectionOverlay({
 	});
 
 	const visibleElements = elementsWithTracks.filter(({ element }) => {
-		if (element.type === "audio") return false;
+		if (element.type === "audio" || element.type === "adjustment") return false;
 		return (
 			currentTime >= element.startTime &&
 			currentTime < element.startTime + element.duration

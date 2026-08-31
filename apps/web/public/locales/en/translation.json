@@ -821,5 +821,18 @@
   "kaf60f42e": "SRT import & export",
   "k7bab6d66": "Import SRT files as captions or export your transcript as SRT.",
   "k949b8af0": "Crop & mobile timeline editing",
-  "kb234d8e1": "Cut-away crop plus split and trim tools on mobile."
+  "kb234d8e1": "Cut-away crop plus split and trim tools on mobile.",
+  "k962bd533": "Brightness",
+  "k5a3b585e": "Contrast",
+  "k6577ae58": "Saturation",
+  "k38d2a5bb": "Temperature",
+  "k8e3b444a": "Tint",
+  "kee581d0e": "Hue",
+  "ke8e32c64": "Sharpen",
+  "k8a0f3a45": "Adjustment layer",
+  "kb837e3f9": "Adjustment track",
+  "kb942797e": "Applies to every clip below this layer.",
+  "kb18ac46a": "Reset {{name}}",
+  "k1d32752e": "Adjustment layers",
+  "kcfb8e5c7": "Apply color adjustments to every clip below a layer, with a dedicated timeline span."
 }

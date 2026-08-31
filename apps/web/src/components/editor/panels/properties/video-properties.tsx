@@ -29,6 +29,7 @@ import type {
 } from "@/types/timeline";
 import { SPEED_PRESETS, formatSpeedLabel } from "@/lib/timeline/speed-utils";
 import { FILTER_PRESETS } from "@/constants/filter-constants";
+import { ADJUSTMENT_DEFAULTS } from "@/constants/adjustment-constants";
 import { invokeAction } from "@/lib/actions";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Button } from "@/components/ui/button";
@@ -288,17 +289,6 @@ export function VideoProperties({
 			apply(parsed);
 		}
 		initial.current = null;
-	};
-
-	const ADJUSTMENT_DEFAULTS: AdjustmentControls = {
-		brightness: 1,
-		contrast: 1,
-		saturation: 1,
-		temperature: 0,
-		tint: 0,
-		hue: 0,
-		vignette: 0,
-		sharpen: 0,
 	};
 
 	const getAdjustment = (key: keyof AdjustmentControls): number => {

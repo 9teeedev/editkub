@@ -56,6 +56,7 @@ function isCompatible({
 	if (elementType === "audio") return trackType === "audio";
 	if (elementType === "sticker") return trackType === "sticker";
 	if (elementType === "blur-effect") return trackType === "effect";
+	if (elementType === "adjustment") return trackType === "adjustment";
 	if (elementType === "video" || elementType === "image") {
 		return trackType === "video";
 	}

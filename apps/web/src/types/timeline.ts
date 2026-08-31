@@ -8,7 +8,7 @@ export interface TScene {
 	updatedAt: Date;
 }
 
-export type TrackType = "video" | "text" | "audio" | "sticker" | "effect";
+export type TrackType = "video" | "text" | "audio" | "sticker" | "effect" | "adjustment";
 
 interface BaseTrack {
 	id: string;
@@ -48,12 +48,19 @@ export interface EffectTrack extends BaseTrack {
 	hidden: boolean;
 }
 
+export interface AdjustmentTrack extends BaseTrack {
+	type: "adjustment";
+	elements: AdjustmentElement[];
+	hidden: boolean;
+}
+
 export type TimelineTrack =
 	| VideoTrack
 	| TextTrack
 	| AudioTrack
 	| StickerTrack
-	| EffectTrack;
+	| EffectTrack
+	| AdjustmentTrack;
 
 export interface Transform {
 	scale: number;
@@ -457,6 +464,18 @@ export interface BlurEffectElement extends BaseTimelineElement {
 	keyframes?: ElementKeyframes;
 }
 
+/**
+ * Adjustment layer — a full-canvas color pass. During the element's time span
+ * its AdjustmentControls apply to every visible clip on tracks BELOW it in the
+ * timeline stack. No on-canvas transform: it is edited only in the properties
+ * panel and via its timeline span (move/trim/split).
+ */
+export interface AdjustmentElement extends BaseTimelineElement {
+	type: "adjustment";
+	adjustments: AdjustmentControls;
+	hidden?: boolean;
+}
+
 
 export type TimelineElement =
 	| AudioElement
@@ -464,7 +483,8 @@ export type TimelineElement =
 	| ImageElement
 	| TextElement
 	| StickerElement
-	| BlurEffectElement;
+	| BlurEffectElement
+	| AdjustmentElement;
 
 export type ElementType = TimelineElement["type"];
 
@@ -478,13 +498,15 @@ export type CreateImageElement = Omit<ImageElement, "id">;
 export type CreateTextElement = Omit<TextElement, "id">;
 export type CreateStickerElement = Omit<StickerElement, "id">;
 export type CreateBlurEffectElement = Omit<BlurEffectElement, "id">;
+export type CreateAdjustmentElement = Omit<AdjustmentElement, "id">;
 export type CreateTimelineElement =
 	| CreateAudioElement
 	| CreateVideoElement
 	| CreateImageElement
 	| CreateTextElement
 	| CreateStickerElement
-	| CreateBlurEffectElement;
+	| CreateBlurEffectElement
+	| CreateAdjustmentElement;
 
 // ---- Drag State ----
 

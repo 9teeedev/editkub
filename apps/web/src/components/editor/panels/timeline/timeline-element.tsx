@@ -52,6 +52,7 @@ import {
 	Edit02Icon,
 	AiVoiceGeneratorIcon,
 	BlurIcon,
+	SlidersVerticalIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { uppercase } from "@/utils/string";
@@ -413,6 +414,8 @@ function ElementContent({
 	zoomLevel: number;
 	mediaAssets: MediaAsset[];
 }) {
+	const { t } = useTranslation();
+
 	if (element.type === "text") {
 		return (
 			<div className="flex size-full items-center justify-start pl-2">
@@ -444,6 +447,18 @@ function ElementContent({
 				<span className="truncate text-xs text-white">
 					{element.name} ({element.blurIntensity}%)
 				</span>
+			</div>
+		);
+	}
+
+	if (element.type === "adjustment") {
+		return (
+			<div className="flex size-full items-center gap-2 pl-2">
+				<HugeiconsIcon
+					icon={SlidersVerticalIcon}
+					className="size-4 shrink-0 text-white"
+				/>
+				<span className="truncate text-xs text-white">{t(element.name)}</span>
 			</div>
 		);
 	}

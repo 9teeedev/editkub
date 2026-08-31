@@ -821,5 +821,18 @@
   "kaf60f42e": "Importação e exportação de SRT",
   "k7bab6d66": "Importe arquivos SRT como legendas ou exporte sua transcrição como SRT.",
   "k949b8af0": "Recorte e edição de linha do tempo no celular",
-  "kb234d8e1": "Recorte cut-away e ferramentas de divisão e aparagem no celular."
+  "kb234d8e1": "Recorte cut-away e ferramentas de divisão e aparagem no celular.",
+  "k962bd533": "Brilho",
+  "k5a3b585e": "Contraste",
+  "k6577ae58": "Saturação",
+  "k38d2a5bb": "Temperatura",
+  "k8e3b444a": "Matiz",
+  "kee581d0e": "Tom",
+  "ke8e32c64": "Nitidez",
+  "k8a0f3a45": "Camada de ajuste",
+  "kb837e3f9": "Faixa de ajuste",
+  "kb942797e": "Aplica ajustes de cor a cada clipe abaixo desta camada.",
+  "kb18ac46a": "Redefinir {{name}}",
+  "k1d32752e": "Camadas de ajuste",
+  "kcfb8e5c7": "Aplique ajustes de cor a todos os clipes abaixo de uma camada, com um intervalo dedicado na linha do tempo."
 }

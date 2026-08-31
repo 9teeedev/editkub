@@ -821,5 +821,18 @@
   "kaf60f42e": "Import et export SRT",
   "k7bab6d66": "Importez des fichiers SRT comme sous-titres ou exportez votre transcription en SRT.",
   "k949b8af0": "Recadrage et montage de la timeline sur mobile",
-  "kb234d8e1": "Recadrage cut-away et outils de découpe et de rognage sur mobile."
+  "kb234d8e1": "Recadrage cut-away et outils de découpe et de rognage sur mobile.",
+  "k962bd533": "Luminosité",
+  "k5a3b585e": "Contraste",
+  "k6577ae58": "Saturation",
+  "k38d2a5bb": "Température",
+  "k8e3b444a": "Teinte",
+  "kee581d0e": "Teinte",
+  "ke8e32c64": "Netteté",
+  "k8a0f3a45": "Calque de réglage",
+  "kb837e3f9": "Piste de réglage",
+  "kb942797e": "Applique les réglages de couleur à chaque clip sous ce calque.",
+  "kb18ac46a": "Réinitialiser {{name}}",
+  "k1d32752e": "Calques de réglage",
+  "kcfb8e5c7": "Appliquez des réglages de couleur à chaque clip sous un calque, avec une durée dédiée dans la timeline."
 }

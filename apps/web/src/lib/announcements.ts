@@ -30,6 +30,15 @@ export interface Announcement {
  */
 export const ANNOUNCEMENTS: Announcement[] = [
 	{
+		id: "2026-08-31-adjustment-layers",
+		tag: "new",
+		date: "2026-08-31",
+		title: "Adjustment layers",
+		description:
+			"Apply color adjustments to every clip below a layer, with a dedicated timeline span.",
+		cta: { label: "Try it", panel: "effects" },
+	},
+	{
 		id: "2026-08-31-karaoke-captions",
 		tag: "new",
 		date: "2026-08-31",

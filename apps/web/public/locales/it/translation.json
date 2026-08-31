@@ -821,5 +821,18 @@
   "kaf60f42e": "Importazione ed esportazione SRT",
   "k7bab6d66": "Importa file SRT come sottotitoli o esporta la tua trascrizione in SRT.",
   "k949b8af0": "Ritaglio e modifica della timeline su mobile",
-  "kb234d8e1": "Ritaglio cut-away e strumenti di divisione e rifinitura su mobile."
+  "kb234d8e1": "Ritaglio cut-away e strumenti di divisione e rifinitura su mobile.",
+  "k962bd533": "Luminosità",
+  "k5a3b585e": "Contrasto",
+  "k6577ae58": "Saturazione",
+  "k38d2a5bb": "Temperatura",
+  "k8e3b444a": "Tonalità",
+  "kee581d0e": "Tono",
+  "ke8e32c64": "Nitidezza",
+  "k8a0f3a45": "Livello di regolazione",
+  "kb837e3f9": "Traccia regolazione",
+  "kb942797e": "Applica le regolazioni del colore a ogni clip sotto questo livello.",
+  "kb18ac46a": "Reimposta {{name}}",
+  "k1d32752e": "Livelli di regolazione",
+  "kcfb8e5c7": "Applica le regolazioni del colore a ogni clip sotto un livello, con un intervallo dedicato nella timeline."
 }

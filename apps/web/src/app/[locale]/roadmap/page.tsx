@@ -133,8 +133,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Sound Effects Library",
 				description:
-					"Built-in royalty-free SFX library (whoosh, pop, ding, transition sounds, impact, UI sounds). Searchable by category and mood. Drag-to-timeline with auto-trim to clip boundary. Volume + fade controls per SFX.",
-				status: { text: "Not started", type: "default" }
+					"Searchable SFX library with pagination, a commercial-use filter, and a saved/favourites list. Add sounds straight to the timeline; volume, pan, fade and auto-duck per clip.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Music & Song Library",
@@ -295,14 +295,14 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Custom Subtitle System",
 				description:
-					"Full subtitle editor beyond auto-captions: per-word timing control, word-by-word highlight (karaoke style), custom subtitle duration presets (1-word, 2-word, 3-word per display), font/size/color/stroke/ shadow per subtitle, position drag on canvas, SRT/VTT import-export, style presets (TikTok, YouTube, Broadcast, Karaoke).",
-				status: { text: "Not started", type: "default" },
+					"Transcript-based subtitle system: word-level timestamps (local Whisper or remote providers), karaoke word highlighting, words-per-display presets (1–6 words), an editable transcript that stays in sync across panel, timeline and canvas, caption templates plus a batch Style tab, and SRT import & export.",
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Adjustment Layers",
 				description:
 					"A dedicated adjustment-layer track type whose brightness/contrast/saturation/temperature/tint/hue/vignette/sharpen values affect every visible clip on tracks below during its time span. Non-destructive, draggable, saveable.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 		],
 	},
@@ -321,18 +321,6 @@ const roadmapPhases: RoadmapPhase[] = [
 				description:
 					"Typewriter, glitch, bounce, slide-in, karaoke-style highlight. Animated text presets library. Per-word timing.",
 				status: { text: "Completed", type: "complete" },
-			},
-			{
-				title: "Drawing & Annotation",
-				description:
-					"Freehand draw on canvas, arrow/shape tools, annotation overlay tracks. Pressure-sensitive stylus support.",
-				status: { text: "Not started", type: "default" },
-			},
-			{
-				title: "Screen Recording",
-				description:
-					"In-browser screen capture via `getDisplayMedia()`. Record tab, window, or full screen. Direct-to-timeline insert.",
-				status: { text: "Not started", type: "default" },
 			},
 			{
 				title: "Voiceover Recording",
@@ -374,7 +362,7 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Mobile Responsive Editor",
 				description:
 					"Touch-optimized timeline, gesture controls (pinch-zoom, swipe-trim). Responsive panel layout for tablets and phones.",
-				status: { text: "Not started", type: "default" },
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "“Edit with Editkub” Badge",
