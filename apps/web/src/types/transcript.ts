@@ -30,6 +30,23 @@ export interface TranscriptSegment {
 export type TranscriptWordTiming = "precise" | "estimated";
 
 /**
+ * User style overrides applied to EVERY derived caption element on top of
+ * the base style + template (see derive-captions). Edited from the
+ * Captions Style tab so the whole set restyles together and survives
+ * rebuilds.
+ */
+export interface CaptionStyleOverride {
+	fontFamily?: string;
+	fontSize?: number;
+	color?: string;
+	strokeColor?: string;
+	strokeWidth?: number;
+	/** "transparent" disables the background box. */
+	backgroundColor?: string;
+	backgroundOpacity?: number;
+}
+
+/**
  * Project-level transcript: the source of truth for captions. Timeline
  * caption elements are derived from this (see `lib/transcript`) so text
  * edits, regrouping, and template changes all rebuild deterministically.
@@ -47,6 +64,7 @@ export interface TranscriptData {
 	accentColor: string;
 	/** Text track that holds the derived caption elements. */
 	captionTrackId: string | null;
+	styleOverride?: CaptionStyleOverride;
 	segments: TranscriptSegment[];
 }
 

@@ -11,8 +11,9 @@ import { deriveCaptionElements } from "./derive-captions";
  *
  * The caption track is created on first generation and then reused, so
  * manually added neighbor tracks are never touched. Element ids are
- * regenerated on each rebuild — caption elements are always derived
- * data, never hand-authored.
+ * deterministic per transcript group (`caption-{segmentId}-{chunkIndex}`)
+ * so the selection and properties panel stay bound across rebuilds —
+ * caption elements are always derived data, never hand-authored.
  */
 export function rebuildCaptionTrack({
 	editor,
@@ -44,7 +45,10 @@ export function rebuildCaptionTrack({
 	});
 	const elements: TimelineElement[] = created.map((element) => ({
 		...element,
-		id: crypto.randomUUID(),
+		id:
+			element.captionGroupId !== undefined
+				? `caption-${element.captionGroupId.replace(":", "-")}`
+				: crypto.randomUUID(),
 	})) as TimelineElement[];
 
 	editor.command.execute({

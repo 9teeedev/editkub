@@ -29,19 +29,26 @@ import type {
 	TranscriptionProgress,
 	TranscriptionResult,
 } from "@/types/transcription";
-import type { CaptionFlowStyle, TranscriptData } from "@/types/transcript";
+import type {
+	CaptionFlowStyle,
+	CaptionStyleOverride,
+	TranscriptData,
+} from "@/types/transcript";
 import { transcriptionService } from "@/services/transcription/service";
 import { decodeAudioToFloat32 } from "@/lib/media/audio";
 import { transcribeRemote } from "@/lib/transcription/remote-transcribe";
 import {
-	applyGroupTextEdit,
 	buildSentenceSegments,
 	extractWordsFromSegments,
 	joinWordTexts,
 	type CaptionGroup,
 } from "@/lib/transcript/group-words";
-import { getTranscriptCaptionGroups } from "@/lib/transcript/derive-captions";
+import {
+	getTranscriptCaptionGroups,
+	CAPTION_BASE_STYLE,
+} from "@/lib/transcript/derive-captions";
 import { rebuildCaptionTrack } from "@/lib/transcript/sync-captions";
+import { editCaptionGroupText } from "@/lib/transcript/edit-captions";
 import {
 	parseSrt,
 	serializeSrt,
@@ -51,6 +58,9 @@ import {
 import { shareOrDownloadFile } from "@/lib/download";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { useTranscriptStore } from "@/stores/transcript-store";
+import { Slider } from "@/components/ui/slider";
+import { FontPicker } from "@/components/ui/font-picker";
+import type { FontFamily } from "@/constants/font-constants";
 import { Spinner } from "@/components/ui/spinner";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
@@ -215,6 +225,7 @@ export function Captions() {
 					{ value: "generate", label: t("Generate"), content: <GenerateCaptionsView onGenerated={() => setSubTab("text")} /> },
 					{ value: "text", label: t("Text"), content: <TranscriptTextView onNeedGenerate={() => setSubTab("generate")} /> },
 					{ value: "templates", label: t("Templates"), content: <CaptionTemplatesView onNeedGenerate={() => setSubTab("generate")} /> },
+					{ value: "style", label: t("Style"), content: <CaptionStyleView onNeedGenerate={() => setSubTab("generate")} /> },
 				]}
 				className="flex min-h-0 flex-1 flex-col"
 			/>
@@ -663,43 +674,8 @@ function TranscriptTextView({ onNeedGenerate }: { onNeedGenerate: () => void }) 
 	);
 
 	const commitEdit = (group: CaptionGroup, text: string) => {
-		const current = useTranscriptStore.getState().transcript;
-		if (!current) return;
-		const segment = current.segments.find((s) => s.id === group.segmentId);
-		if (!segment) return;
-
-		const chunkIndex = Number.parseInt(group.id.split(":")[1] ?? "0", 10);
-		const start = chunkIndex * current.wordsPerGroup;
-		const replaced = applyGroupTextEdit({
-			words: segment.words.slice(start, start + current.wordsPerGroup),
-			text,
-		});
-		// Empty edits are ignored — deleting a caption line via the
-		// transcript is not supported yet.
-		if (replaced.length === 0) return;
-
-		const words = [
-			...segment.words.slice(0, start),
-			...replaced,
-			...segment.words.slice(start + group.words.length),
-		];
-		const nextSegment = {
-			...segment,
-			words,
-			text: joinWordTexts(words.map((w) => w.text)),
-			start: words[0].start,
-			end: words[words.length - 1].end,
-		};
-		const next = {
-			...current,
-			segments: current.segments.map((s) =>
-				s.id === segment.id ? nextSegment : s,
-			),
-		};
-		useTranscriptStore.getState().init(next);
-		rebuildCaptionTrack({ editor, transcript: next });
+		editCaptionGroupText({ editor, groupId: group.id, text });
 	};
-
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex items-center justify-between">
@@ -898,6 +874,272 @@ function CaptionTemplatesView({ onNeedGenerate }: { onNeedGenerate: () => void }
 						title={t("Accent color")}
 					/>
 				</div>
+			</div>
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Style (batch caption styling)
+// ---------------------------------------------------------------------------
+
+const STYLE_COLOR_PRESETS = [
+	"#ffffff",
+	"#000000",
+	"#f97316",
+	"#fbbf24",
+	"#22d3ee",
+	"#4ade80",
+	"#a78bfa",
+	"#f43f5e",
+];
+
+function StyleColorRow({
+	label,
+	value,
+	onChange,
+	transparentOption = false,
+}: {
+	label: string;
+	value: string;
+	onChange: (color: string) => void;
+	transparentOption?: boolean;
+}) {
+	const { t } = useTranslation();
+	return (
+		<div className="flex flex-col gap-2">
+			<Label>{label}</Label>
+			<div className="flex flex-wrap items-center gap-2">
+				{transparentOption && (
+					<button
+						type="button"
+						aria-label={t("None")}
+						onClick={() => onChange("transparent")}
+						className={cn(
+							"grid size-6 place-items-center rounded-full border-2 bg-secondary text-[10px] text-muted-foreground",
+							value === "transparent"
+								? "border-foreground"
+								: "border-transparent",
+						)}
+					>
+						✕
+					</button>
+				)}
+				{STYLE_COLOR_PRESETS.map((color) => (
+					<button
+						key={color}
+						type="button"
+						aria-label={color}
+						onClick={() => onChange(color)}
+						className={cn(
+							"size-6 rounded-full border-2",
+							value === color ? "border-foreground" : "border-transparent",
+						)}
+						style={{ backgroundColor: color }}
+					/>
+				))}
+				<input
+					type="color"
+					value={value === "transparent" ? "#000000" : value}
+					onChange={(e) => onChange(e.target.value)}
+					className="border-border size-6 cursor-pointer rounded-full border-2 bg-transparent p-0"
+					title={label}
+				/>
+			</div>
+		</div>
+	);
+}
+
+function CaptionStyleView({ onNeedGenerate }: { onNeedGenerate: () => void }) {
+	const { t } = useTranslation();
+	const editor = useEditor();
+	const transcript = useTranscriptStore((s) => s.transcript);
+	const [fontSizeDraft, setFontSizeDraft] = useState<number | null>(null);
+	const [strokeWidthDraft, setStrokeWidthDraft] = useState<number | null>(
+		null,
+	);
+	const [bgOpacityDraft, setBgOpacityDraft] = useState<number | null>(null);
+
+	if (!transcript) {
+		return <EmptyTranscriptState onNeedGenerate={onNeedGenerate} />;
+	}
+
+	const override = transcript.styleOverride ?? {};
+
+	// One rebuild per committed change — sliders commit on release so a
+	// drag doesn't spam undo entries.
+	const apply = (
+		patch: Partial<CaptionStyleOverride> & { accentColor?: string },
+	) => {
+		const current = useTranscriptStore.getState().transcript;
+		if (!current) return;
+		const { accentColor, ...stylePatch } = patch;
+		const next = {
+			...current,
+			...(accentColor !== undefined ? { accentColor } : {}),
+			styleOverride: { ...current.styleOverride, ...stylePatch },
+		};
+		useTranscriptStore.getState().init(next);
+		rebuildCaptionTrack({ editor, transcript: next });
+	};
+
+	const resetStyle = () => {
+		const current = useTranscriptStore.getState().transcript;
+		if (!current) return;
+		const next = { ...current, styleOverride: undefined };
+		useTranscriptStore.getState().init(next);
+		rebuildCaptionTrack({ editor, transcript: next });
+	};
+
+	const fontSize =
+		fontSizeDraft ?? override.fontSize ?? CAPTION_BASE_STYLE.fontSize;
+	const strokeWidth =
+		strokeWidthDraft ??
+		override.strokeWidth ??
+		CAPTION_BASE_STYLE.stroke.width;
+	const backgroundColor = override.backgroundColor ?? "transparent";
+	const bgOpacity =
+		bgOpacityDraft ?? override.backgroundOpacity ?? CAPTION_BASE_STYLE.opacity;
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="flex items-center justify-between">
+				<span className="text-muted-foreground text-xs">
+					{t("Changes apply to all captions")}
+				</span>
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-7 px-2 text-xs"
+					onClick={resetStyle}
+				>
+					{t("Reset")}
+				</Button>
+			</div>
+
+			<div className="flex flex-col gap-2">
+				<Label>{t("Font")}</Label>
+				<FontPicker
+					defaultValue={(override.fontFamily ?? "Kanit") as FontFamily}
+					onValueChange={(value) => apply({ fontFamily: value })}
+				/>
+			</div>
+
+			<div className="flex flex-col gap-2">
+				<div className="flex items-center justify-between">
+					<Label>{t("Font size")}</Label>
+					<span className="text-muted-foreground text-xs tabular-nums">
+						{fontSize}
+					</span>
+				</div>
+				<Slider
+					min={6}
+					max={20}
+					step={1}
+					value={[fontSize]}
+					onValueChange={([value]) => setFontSizeDraft(value)}
+					onValueCommit={([value]) => {
+						apply({ fontSize: value });
+						setFontSizeDraft(null);
+					}}
+				/>
+			</div>
+
+			<StyleColorRow
+				label={t("Text color")}
+				value={override.color ?? CAPTION_BASE_STYLE.color}
+				onChange={(color) => apply({ color })}
+			/>
+
+			<StyleColorRow
+				label={t("Stroke color")}
+				value={
+					override.strokeColor ?? CAPTION_BASE_STYLE.stroke.color
+				}
+				onChange={(color) => apply({ strokeColor: color })}
+			/>
+
+			<div className="flex flex-col gap-2">
+				<div className="flex items-center justify-between">
+					<Label>{t("Stroke width")}</Label>
+					<span className="text-muted-foreground text-xs tabular-nums">
+						{strokeWidth}
+					</span>
+				</div>
+				<Slider
+					min={0}
+					max={16}
+					step={1}
+					value={[strokeWidth]}
+					onValueChange={([value]) => setStrokeWidthDraft(value)}
+					onValueCommit={([value]) => {
+						apply({ strokeWidth: value });
+						setStrokeWidthDraft(null);
+					}}
+				/>
+			</div>
+
+			<StyleColorRow
+				label={t("Accent color")}
+				value={transcript.accentColor}
+				onChange={(color) => apply({ accentColor: color })}
+			/>
+
+			<StyleColorRow
+				label={t("Background")}
+				value={backgroundColor}
+				onChange={(color) => apply({ backgroundColor: color })}
+				transparentOption
+			/>
+
+			<div className="flex flex-col gap-2">
+				<div className="flex items-center justify-between">
+					<Label>{t("Background opacity")}</Label>
+					<span className="text-muted-foreground text-xs tabular-nums">
+						{Math.round(bgOpacity * 100)}%
+					</span>
+				</div>
+				<Slider
+					min={0}
+					max={100}
+					step={5}
+					value={[Math.round(bgOpacity * 100)]}
+					onValueChange={([value]) => setBgOpacityDraft(value / 100)}
+					onValueCommit={([value]) => {
+						apply({ backgroundOpacity: value / 100 });
+						setBgOpacityDraft(null);
+					}}
+					disabled={backgroundColor === "transparent"}
+				/>
+			</div>
+
+			<div className="flex flex-col gap-2">
+				<Label>{t("Words per display")}</Label>
+				<Select
+					value={String(transcript.wordsPerGroup)}
+					onValueChange={(value) => {
+						const parsed = Number.parseInt(value, 10);
+						if (Number.isNaN(parsed)) return;
+						updateWordsPerGroup({
+							editor,
+							wordsPerGroup: Math.min(6, Math.max(1, parsed)),
+						});
+					}}
+				>
+					<SelectTrigger>
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{[1, 2, 3, 4, 5, 6].map((count) => (
+							<SelectItem key={count} value={String(count)}>
+								{count}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<p className="text-muted-foreground text-xs">
+					{t("How many words appear on screen at once.")}
+				</p>
 			</div>
 		</div>
 	);

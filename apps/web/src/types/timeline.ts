@@ -425,6 +425,12 @@ export interface TextElement extends BaseTimelineElement {
 	wordTimings?: CaptionWordTiming[];
 	/** Karaoke highlight styling used together with `wordTimings`. */
 	captionStyle?: CaptionStyle;
+	/**
+	 * Transcript group this element was derived from (`${segmentId}:${chunkIndex}`).
+	 * Present only on derived caption elements — content edits for these must
+	 * go through the transcript, never `element.content` directly.
+	 */
+	captionGroupId?: string;
 }
 
 export interface StickerElement extends BaseTimelineElement {

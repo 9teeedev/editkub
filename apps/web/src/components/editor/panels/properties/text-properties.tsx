@@ -39,6 +39,7 @@ import {
 	type TextStylePreset,
 } from "@/constants/text-style-presets";
 import { cn } from "@/utils/ui";
+import { editCaptionGroupText } from "@/lib/transcript/edit-captions";
 
 interface TextElementRef {
 	element: TextElement;
@@ -398,51 +399,84 @@ export function TextProperties({
 							hasBorderTop={false}
 							collapsible={false}
 						>
-							<Textarea
-								placeholder="Name"
-								value={contentDisplay}
-								className="bg-accent min-h-20"
-								onFocus={() => {
-									isEditingContent.current = true;
-									contentDraft.current = element.content;
-									initialContentRef.current = element.content;
-									forceRender();
-								}}
-								onChange={(event) => {
-									contentDraft.current = event.target.value;
-									forceRender();
-									if (initialContentRef.current === null) {
+								<Textarea
+									placeholder="Name"
+									value={contentDisplay}
+									className="bg-accent min-h-20"
+									onFocus={() => {
+										isEditingContent.current = true;
+										contentDraft.current = element.content;
 										initialContentRef.current = element.content;
-									}
-									editor.timeline.updateElements({
-										updates: buildBatchUpdates({
-											content: event.target.value,
-										}),
-										pushHistory: false,
-									});
-								}}
-								onBlur={() => {
-									if (initialContentRef.current !== null) {
-										const finalContent = contentDraft.current;
+										forceRender();
+									}}
+									onChange={(event) => {
+										contentDraft.current = event.target.value;
+										forceRender();
+										// Derived caption elements are never hand-edited —
+										// the transcript is the source of truth, so caption
+										// content commits through it on blur instead.
+										if (
+											element.captionGroupId !== undefined &&
+											element.wordTimings !== undefined
+										) {
+											return;
+										}
+										if (initialContentRef.current === null) {
+											initialContentRef.current = element.content;
+										}
 										editor.timeline.updateElements({
 											updates: buildBatchUpdates({
-												content: initialContentRef.current,
+												content: event.target.value,
 											}),
 											pushHistory: false,
 										});
-										editor.timeline.updateElements({
-											updates: buildBatchUpdates({
-												content: finalContent,
-											}),
-											pushHistory: true,
-										});
-										initialContentRef.current = null;
-									}
-									isEditingContent.current = false;
-									contentDraft.current = "";
-									forceRender();
-								}}
-							/>
+									}}
+									onBlur={() => {
+										const finalText = contentDraft.current.trim();
+										const initialText = initialContentRef.current;
+										const changed =
+											initialText === null || finalText !== initialText.trim();
+										if (
+											element.captionGroupId !== undefined &&
+											element.wordTimings !== undefined
+										) {
+											// Skip the transcript rebuild entirely on no-op blurs —
+											// a rebuild would push an empty undo entry.
+											const handled = changed
+												? editCaptionGroupText({
+														editor,
+														groupId: element.captionGroupId,
+														text: finalText,
+													})
+												: true;
+											if (handled) {
+												isEditingContent.current = false;
+												contentDraft.current = "";
+												initialContentRef.current = null;
+												forceRender();
+												return;
+											}
+										}
+										if (initialContentRef.current !== null) {
+											editor.timeline.updateElements({
+												updates: buildBatchUpdates({
+													content: initialContentRef.current,
+												}),
+												pushHistory: false,
+											});
+											editor.timeline.updateElements({
+												updates: buildBatchUpdates({
+													content: finalText,
+												}),
+												pushHistory: true,
+											});
+											initialContentRef.current = null;
+										}
+										isEditingContent.current = false;
+										contentDraft.current = "";
+										forceRender();
+									}}
+								/>
 						</PropertyGroup>
 						<PropertyGroup title={t("Typography")} collapsible={false}>
 							<div className="space-y-6">

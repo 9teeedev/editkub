@@ -769,6 +769,7 @@
   "kf6060100": "Remove silence",
   "kf643660a": "Remove bookmark",
   "kf68f03c7": "Sounds",
+  "kf6a773f5": "Sample",
   "kf71e6c3d": "Project exported",
   "kf7cdd1e7": "Reference Images",
   "kf82c9c5c": "Is Editkub a good alternative to CapCut?",
@@ -803,5 +804,11 @@
   "kfede759e": "Precise",
   "kff14c2cb": "Delete {{num}} projects?",
   "kff396558": "Character name",
-  "kff9b9bf4": "Edit videos,"
+  "kff9b9bf4": "Edit videos,",
+  "k76175638": "Changes apply to all captions",
+  "k915c9049": "Reset",
+  "k85cb4e70": "Text color",
+  "kfc7a115f": "Stroke color",
+  "k16361c99": "Stroke width",
+  "kaf0f4740": "Background opacity"
 }

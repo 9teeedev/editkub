@@ -16,8 +16,8 @@ import {
  * clearly. Users can restyle a selected caption via the text properties
  * panel afterwards.
  */
-const CAPTION_BASE_STYLE = {
-	fontSize: 12,
+export const CAPTION_BASE_STYLE = {
+	fontSize: 10,
 	fontFamily: "Kanit",
 	color: "#ffffff",
 	backgroundColor: "transparent",
@@ -26,7 +26,7 @@ const CAPTION_BASE_STYLE = {
 	fontStyle: "normal" as const,
 	textDecoration: "none" as const,
 	opacity: 1,
-	stroke: { color: "#000000", width: 10 },
+	stroke: { color: "#000000", width: 6 },
 };
 
 /**
@@ -65,6 +65,7 @@ export function deriveCaptionElements({
 	canvasHeight?: number;
 }): CreateTextElement[] {
 	const template = getCaptionTemplate(transcript.templateId);
+	const override = transcript.styleOverride;
 	const groups = getTranscriptCaptionGroups({ transcript });
 	const scaleFactor = getTextScaleFactor({ canvasWidth, canvasHeight });
 	const boxWidth = Math.round(
@@ -80,8 +81,22 @@ export function deriveCaptionElements({
 		);
 		return {
 			...CAPTION_BASE_STYLE,
+			...(override?.fontFamily ? { fontFamily: override.fontFamily } : {}),
+			...(override?.fontSize ? { fontSize: override.fontSize } : {}),
+			...(override?.color ? { color: override.color } : {}),
+			...(override?.backgroundColor
+				? { backgroundColor: override.backgroundColor }
+				: {}),
+			...(override?.backgroundOpacity !== undefined
+				? { backgroundOpacity: override.backgroundOpacity }
+				: {}),
+			stroke: {
+				color: override?.strokeColor ?? CAPTION_BASE_STYLE.stroke.color,
+				width: override?.strokeWidth ?? CAPTION_BASE_STYLE.stroke.width,
+			},
 			type: "text" as const,
 			name: `Caption ${index + 1}`,
+			captionGroupId: group.id,
 			transform: {
 				scale: 1,
 				position: { x: 0, y: positionY },

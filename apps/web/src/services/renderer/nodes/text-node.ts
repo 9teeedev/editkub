@@ -102,9 +102,18 @@ function isThaiText(text: string): boolean {
 }
 
 /**
+ * Gap between consecutive Thai words, as a fraction of a space width.
+ * Thai has no inter-word spaces, but karaoke highlighting reads much
+ * better with a thin visible gap between words (tamsub-style) than with
+ * words glued together.
+ */
+const THAI_WORD_GAP_FRACTION = 0.2;
+
+/**
  * Wrap caption words into lines. Words are never split; a line breaks
  * when the next word (plus separator) would exceed maxWidth. Thai words
- * are laid out without separators, everything else with a space.
+ * are laid out with a thin gap (fraction of a space), everything else
+ * with a full space.
  *
  * Exported so the preview selection overlay can measure caption elements
  * with the exact same layout the renderer draws.
@@ -130,8 +139,8 @@ export function wrapCaptionWords({
 		const separator =
 			previous === undefined
 				? 0
-				: isThaiText(previous.timing.text) && isThaiText(timing.text)
-					? 0
+					: isThaiText(previous.timing.text) && isThaiText(timing.text)
+					? spaceWidth * THAI_WORD_GAP_FRACTION
 					: spaceWidth;
 		if (current.length > 0 && currentWidth + separator + width > maxWidth) {
 			lines.push({ words: current, width: currentWidth });
