@@ -810,5 +810,16 @@
   "k85cb4e70": "Text color",
   "kfc7a115f": "Stroke color",
   "k16361c99": "Stroke width",
-  "kaf0f4740": "Background opacity"
+  "kaf0f4740": "Background opacity",
+  "kcbd41f1e": "What's new",
+  "k27dfa3cd": "View roadmap",
+  "k68e294d0": "Try it",
+  "k50cd5cf0": "Improved",
+  "k5f08e136": "Fixed",
+  "k64b12a44": "Karaoke captions",
+  "kc47da73": "Word-synced captions from your transcript, with templates and a Style tab.",
+  "kaf60f42e": "SRT import & export",
+  "k7bab6d66": "Import SRT files as captions or export your transcript as SRT.",
+  "k949b8af0": "Crop & mobile timeline editing",
+  "kb234d8e1": "Cut-away crop plus split and trim tools on mobile."
 }

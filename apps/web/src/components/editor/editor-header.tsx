@@ -28,6 +28,7 @@ import {
 	OrientationPotraitToLandscapeIcon,
 } from "@hugeicons/core-free-icons";
 import { FeedbackTrigger } from "@/components/feedback/feedback-trigger";
+import { AnnouncementBell } from "./announcement-bell";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ShortcutsDialog } from "./dialogs/shortcuts-dialog";
 import Image from "next/image";
@@ -59,6 +60,7 @@ export function EditorHeader() {
 						<HugeiconsIcon icon={BubbleChatIcon} className="size-4" />
 					</Button>
 				</FeedbackTrigger>
+				<AnnouncementBell />
 				<LanguageToggle />
 				<ThemeToggle />
 				<LayoutToggle />

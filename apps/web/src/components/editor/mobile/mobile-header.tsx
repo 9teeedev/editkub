@@ -23,6 +23,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
+import { AnnouncementBell } from "../announcement-bell";
 import { useMobileDrawerStore } from "./hooks/use-mobile-drawer";
 
 export function MobileHeader() {
@@ -95,6 +96,8 @@ export function MobileHeader() {
 			</div>
 
 			<div className="flex items-center gap-1">
+				<AnnouncementBell />
+
 				<Button
 					type="button"
 					variant="ghost"
