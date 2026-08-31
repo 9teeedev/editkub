@@ -2,6 +2,10 @@ import type { CanvasRenderer } from "../canvas-renderer";
 import { BaseNode } from "./base-node";
 import type { CaptionWordTiming, TextElement } from "@/types/timeline";
 import { getTextScaleFactor } from "@/constants/text-constants";
+import {
+	isCaptionWordVisible,
+	resolveCaptionFlowFrame,
+} from "@/constants/caption-templates";
 import { canvasFontFamily } from "@/lib/canvas-fonts";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 import { resolveTextAnimations } from "@/lib/timeline/text-animation-utils";
@@ -96,6 +100,68 @@ export interface LaidOutLine {
 	width: number;
 }
 
+/** Paint the active word last so its animated treatment stays above siblings. */
+export function orderCaptionWordsForPaint(
+	words: LaidOutWord[],
+	active: number,
+): LaidOutWord[] {
+	const activeWord = words.find((word) => word.index === active);
+	return activeWord
+		? [...words.filter((word) => word !== activeWord), activeWord]
+		: words;
+}
+
+/** Draw the complete rounded Box Outline treatment for one active word. */
+export function drawCaptionBoxOutline({
+	context,
+	text,
+	wordX,
+	lineY,
+	wordWidth,
+	ascent,
+	descent,
+	scaledFontSize,
+	accentColor,
+	entrance,
+}: {
+	context: RenderContext;
+	text: string;
+	wordX: number;
+	lineY: number;
+	wordWidth: number;
+	ascent: number;
+	descent: number;
+	scaledFontSize: number;
+	accentColor: string;
+	entrance: number;
+}) {
+	const pad = scaledFontSize * 0.1;
+	const boxX = wordX - pad;
+	const boxY = lineY - ascent - pad * 0.5;
+	const boxWidth = wordWidth + pad * 2;
+	const boxHeight = ascent + descent + pad;
+	const radius = Math.min(scaledFontSize * 0.2, boxWidth / 2, boxHeight / 2);
+
+	context.save();
+	const baseAlpha = context.globalAlpha;
+	context.beginPath();
+	if (context.roundRect) {
+		context.roundRect(boxX, boxY, boxWidth, boxHeight, radius);
+	} else {
+		context.rect(boxX, boxY, boxWidth, boxHeight);
+	}
+	context.fillStyle = accentColor;
+	context.globalAlpha = baseAlpha * entrance * 0.18;
+	context.fill();
+	context.strokeStyle = accentColor;
+	context.lineWidth = Math.max(2, scaledFontSize * 0.05);
+	context.globalAlpha = baseAlpha * entrance;
+	context.stroke();
+	context.fillStyle = accentColor;
+	context.fillText(text, wordX, lineY);
+	context.restore();
+}
+
 /** True when the text contains Thai characters (written without spaces). */
 function isThaiText(text: string): boolean {
 	return /[\u0E00-\u0E7F]/.test(text);
@@ -139,7 +205,7 @@ export function wrapCaptionWords({
 		const separator =
 			previous === undefined
 				? 0
-					: isThaiText(previous.timing.text) && isThaiText(timing.text)
+				: isThaiText(previous.timing.text) && isThaiText(timing.text)
 					? spaceWidth * THAI_WORD_GAP_FRACTION
 					: spaceWidth;
 		if (current.length > 0 && currentWidth + separator + width > maxWidth) {
@@ -432,20 +498,21 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		const prevAlign = context.textAlign;
 		context.textAlign = "left";
 
-		for (const laid of line.words) {
+		for (const laid of orderCaptionWordsForPaint(line.words, active)) {
 			const wordX = lineX + laid.x;
 			const isActive = laid.index === active;
 			const timing = laid.timing;
-			const progress =
-				isActive && timing.end > timing.start
-					? Math.min(
-							1,
-							Math.max(0, (localTime - timing.start) / (timing.end - timing.start)),
-						)
-					: 0;
+			if (!isCaptionWordVisible({ flow, localTime, start: timing.start })) {
+				continue;
+			}
+			const isPopping = isActive && flow === "pop";
+			const frame = resolveCaptionFlowFrame({
+				elapsed: localTime - timing.start,
+				duration: timing.end - timing.start,
+			});
 
 			// Outline first (with shadow, like the plain paths), then fill.
-			if (stroke && stroke.width > 0) {
+			if (!isPopping && stroke && stroke.width > 0) {
 				if (this.params.shadow) {
 					context.shadowColor = this.params.shadow.color;
 					context.shadowOffsetX = this.params.shadow.offsetX;
@@ -464,7 +531,8 @@ export class TextNode extends BaseNode<TextNodeParams> {
 				}
 			}
 
-			if (!isActive || flow === "box") {
+			// Keep the base word visible while its active effect animates on top.
+			if (!isPopping) {
 				context.fillStyle = this.params.color;
 				context.fillText(timing.text, wordX, lineY);
 			}
@@ -472,57 +540,78 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			if (!isActive) continue;
 
 			if (flow === "color") {
+				context.save();
+				context.globalAlpha *= frame.entrance;
 				context.fillStyle = accent;
 				context.fillText(timing.text, wordX, lineY);
+				context.restore();
 			} else if (flow === "box") {
-				const pad = scaledFontSize * 0.1;
-				context.strokeStyle = accent;
-				context.lineWidth = Math.max(2, scaledFontSize * 0.05);
-				context.strokeRect(
-					wordX - pad,
-					lineY - ascent - pad * 0.5,
-					laid.width + pad * 2,
-					ascent + descent + pad,
-				);
+				drawCaptionBoxOutline({
+					context,
+					text: timing.text,
+					wordX,
+					lineY,
+					wordWidth: laid.width,
+					ascent,
+					descent,
+					scaledFontSize,
+					accentColor: accent,
+					entrance: frame.entrance,
+				});
 			} else if (flow === "block") {
 				const pad = scaledFontSize * 0.12;
-				const prevAlpha = context.globalAlpha;
-				context.globalAlpha = prevAlpha * 0.9;
-				context.fillStyle = accent;
-				if (context.roundRect) {
-					context.beginPath();
-					context.roundRect(
-						wordX - pad,
-						lineY - ascent - pad * 0.6,
-						laid.width + pad * 2,
-						ascent + descent + pad * 1.2,
-						scaledFontSize * 0.15,
-					);
-					context.fill();
-				} else {
-					context.fillRect(
-						wordX - pad,
-						lineY - lineHeight / 2,
-						laid.width + pad * 2,
-						lineHeight,
-					);
+				const blockWidth = (laid.width + pad * 2) * frame.entrance;
+				if (blockWidth > 0) {
+					context.save();
+					context.globalAlpha *= 0.9;
+					context.fillStyle = accent;
+					if (context.roundRect) {
+						context.beginPath();
+						context.roundRect(
+							wordX - pad,
+							lineY - ascent - pad * 0.6,
+							blockWidth,
+							ascent + descent + pad * 1.2,
+							Math.min(scaledFontSize * 0.15, blockWidth / 2),
+						);
+						context.fill();
+					} else {
+						context.fillRect(
+							wordX - pad,
+							lineY - lineHeight / 2,
+							blockWidth,
+							lineHeight,
+						);
+					}
+					context.restore();
 				}
-				context.globalAlpha = prevAlpha;
 				context.fillStyle = this.params.color;
 				context.fillText(timing.text, wordX, lineY);
 			} else if (flow === "fill") {
 				context.save();
 				context.beginPath();
-				context.rect(wordX, lineY - lineHeight, laid.width * progress, lineHeight * 2);
+				context.rect(
+					wordX,
+					lineY - lineHeight,
+					laid.width * frame.progress,
+					lineHeight * 2,
+				);
 				context.clip();
 				context.fillStyle = accent;
 				context.fillText(timing.text, wordX, lineY);
 				context.restore();
 			} else if (flow === "pop") {
 				context.save();
+				context.globalAlpha *= frame.entrance;
 				context.translate(wordX + laid.width / 2, lineY);
-				context.scale(1.12, 1.12);
+				context.scale(frame.popScale, frame.popScale);
 				context.translate(-(wordX + laid.width / 2), -lineY);
+				if (stroke && stroke.width > 0) {
+					context.strokeStyle = stroke.color;
+					context.lineWidth = stroke.width * 2;
+					context.lineJoin = "round";
+					context.strokeText(timing.text, wordX, lineY);
+				}
 				context.fillStyle = accent;
 				context.fillText(timing.text, wordX, lineY);
 				context.restore();

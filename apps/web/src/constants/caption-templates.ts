@@ -41,6 +41,51 @@ export const CAPTION_FLOW_TEMPLATES: CaptionTemplate[] = [
 
 export const DEFAULT_CAPTION_TEMPLATE_ID = CAPTION_FLOW_TEMPLATES[0].templateId;
 
+/** Pop captions reveal words only after their own timestamp starts. */
+export function isCaptionWordVisible({
+	flow,
+	localTime,
+	start,
+}: {
+	flow: CaptionTemplate["flow"];
+	localTime: number;
+	start: number;
+}) {
+	return flow !== "pop" || localTime >= start;
+}
+
+/** Frame values shared by canvas caption-flow animations. */
+export function resolveCaptionFlowFrame({
+	elapsed,
+	duration,
+}: {
+	elapsed: number;
+	duration: number;
+}) {
+	const safeDuration = Math.max(duration, 0.001);
+	const clampedElapsed = Math.min(safeDuration, Math.max(0, elapsed));
+	const progress = clampedElapsed / safeDuration;
+	const entranceDuration = Math.min(0.18, Math.max(0.08, safeDuration * 0.35));
+	const entranceProgress = Math.min(1, clampedElapsed / entranceDuration);
+	const entrance = 1 - (1 - entranceProgress) ** 3;
+	const popDuration = Math.min(0.32, Math.max(0.16, safeDuration * 0.5));
+	const popProgress = Math.min(1, clampedElapsed / popDuration);
+	const popScale =
+		popProgress >= 1
+			? 1
+			: popProgress < 0.55
+				? 0.65 +
+					(1.16 - 0.65) * (1 - (1 - popProgress / 0.55) ** 3)
+				: 1.16 +
+					(1 - 1.16) * (1 - (1 - (popProgress - 0.55) / 0.45) ** 3);
+
+	return {
+		progress,
+		entrance,
+		popScale,
+	};
+}
+
 export function getCaptionTemplate(templateId: string): CaptionTemplate {
 	return (
 		CAPTION_FLOW_TEMPLATES.find((t) => t.templateId === templateId) ??

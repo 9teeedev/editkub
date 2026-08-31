@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
+import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { PanelBaseView as BaseView } from "@/components/editor/panels/panel-base-view";
 import {
@@ -676,6 +677,7 @@ function TranscriptTextView({ onNeedGenerate }: { onNeedGenerate: () => void }) 
 	const commitEdit = (group: CaptionGroup, text: string) => {
 		editCaptionGroupText({ editor, groupId: group.id, text });
 	};
+
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex items-center justify-between">
@@ -806,6 +808,9 @@ function CaptionTemplatesView({ onNeedGenerate }: { onNeedGenerate: () => void }
 	const { t } = useTranslation();
 	const editor = useEditor();
 	const transcript = useTranscriptStore((s) => s.transcript);
+	const [previewingTemplateId, setPreviewingTemplateId] = useState<string | null>(
+		null,
+	);
 
 	if (!transcript) {
 		return <EmptyTranscriptState onNeedGenerate={onNeedGenerate} />;
@@ -824,11 +829,25 @@ function CaptionTemplatesView({ onNeedGenerate }: { onNeedGenerate: () => void }
 			<div className="grid grid-cols-2 gap-2">
 				{CAPTION_FLOW_TEMPLATES.map((template) => {
 					const selected = transcript.templateId === template.templateId;
+					const previewing = previewingTemplateId === template.templateId;
 					return (
 						<button
 							key={template.templateId}
 							type="button"
-							onClick={() => apply({ templateId: template.templateId })}
+							onClick={() =>
+								apply({
+									templateId: template.templateId,
+									accentColor: template.accentColor,
+								})
+							}
+							onMouseEnter={() => setPreviewingTemplateId(template.templateId)}
+							onMouseLeave={(event) => {
+								if (document.activeElement !== event.currentTarget) {
+									setPreviewingTemplateId(null);
+								}
+							}}
+							onFocus={() => setPreviewingTemplateId(template.templateId)}
+							onBlur={() => setPreviewingTemplateId(null)}
 							className={cn(
 								"rounded-md border p-3 text-left transition-colors",
 								selected
@@ -838,7 +857,10 @@ function CaptionTemplatesView({ onNeedGenerate }: { onNeedGenerate: () => void }
 						>
 							<TemplatePreview
 								flow={template.flow}
-								accentColor={transcript.accentColor}
+								accentColor={
+									selected ? transcript.accentColor : template.accentColor
+								}
+								isAnimating={previewing}
 							/>
 							<p className="mt-2 text-xs font-medium">
 								{t(template.templateName)}
@@ -1149,34 +1171,165 @@ function CaptionStyleView({ onNeedGenerate }: { onNeedGenerate: () => void }) {
 function TemplatePreview({
 	flow,
 	accentColor,
+	isAnimating,
 }: {
 	flow: CaptionFlowStyle;
 	accentColor: string;
+	isAnimating: boolean;
 }) {
+	const { t } = useTranslation();
+	const reduceMotion = useReducedMotion();
+	const animate = isAnimating && !reduceMotion;
+	const accentTint = `${accentColor}2e`;
+	const previewWords = [t("Sample"), t("Captions"), t("Text")];
+	if (flow === "pop") {
+		return (
+			<div className="flex items-center justify-center gap-1 rounded-sm bg-black/80 px-2 py-3 text-sm font-bold text-white">
+				{previewWords.map((word, index) => {
+					const start = 0.04 + index * 0.22;
+					return (
+						<motion.span
+							key={word}
+							className="relative inline-block"
+							animate={
+								animate
+									? {
+											opacity: [0, 0, 1, 1, 1, 0],
+											scale: [0.65, 0.65, 1.16, 1, 1, 0.65],
+											color: [
+												"#ffffff",
+												"#ffffff",
+												accentColor,
+												"#ffffff",
+												"#ffffff",
+												"#ffffff",
+											],
+											zIndex: [0, 0, 2, 1, 1, 0],
+										}
+									: {
+											opacity: 1,
+											scale: index === 1 ? 1.15 : 1,
+											color: index === 1 ? accentColor : "#ffffff",
+											zIndex: 1,
+										}
+							}
+							transition={{
+								duration: animate ? 2.4 : 0.15,
+								times: [0, start, start + 0.08, start + 0.16, 0.9, 1],
+								ease: [0.16, 1, 0.3, 1],
+								repeat: animate ? Number.POSITIVE_INFINITY : 0,
+								repeatDelay: animate ? 0.35 : 0,
+							}}
+						>
+							{word}
+						</motion.span>
+					);
+				})}
+			</div>
+		);
+	}
+	const effectStyle =
+		flow === "color"
+			? { color: accentColor }
+			: flow === "box"
+				? {
+						boxShadow: `inset 0 0 0 1.5px ${accentColor}`,
+						backgroundColor: accentTint,
+						borderRadius: 6,
+						color: accentColor,
+						padding: "0 3px",
+					}
+				: flow === "block"
+					? {
+							backgroundColor: accentColor,
+							borderRadius: 3,
+							padding: "0 3px",
+						}
+					: flow === "fill"
+						? {
+								backgroundImage: `linear-gradient(90deg, ${accentColor} 50%, #ffffff 50%)`,
+								backgroundPosition: "50% 0",
+								backgroundSize: "200% 100%",
+								WebkitBackgroundClip: "text",
+								backgroundClip: "text",
+								color: "transparent",
+							}
+						: {
+								color: accentColor,
+								display: "inline-block",
+							};
+	const staticStyle = {
+		position: "relative" as const,
+		zIndex: 1,
+		...effectStyle,
+	};
+	const animation = !animate
+		? flow === "color"
+			? { color: accentColor }
+			: flow === "box"
+				? {
+						boxShadow: `inset 0 0 0 1.5px ${accentColor}`,
+						backgroundColor: accentTint,
+						color: accentColor,
+					}
+				: flow === "block"
+					? { backgroundColor: accentColor }
+					: flow === "fill"
+						? { backgroundPosition: "50% 0" }
+						: { color: accentColor, scale: 1.15 }
+		: flow === "color"
+			? { color: ["#ffffff", accentColor, accentColor, "#ffffff"] }
+			: flow === "box"
+				? {
+						boxShadow: [
+							"inset 0 0 0 1.5px transparent",
+							`inset 0 0 0 1.5px ${accentColor}`,
+							`inset 0 0 0 1.5px ${accentColor}`,
+							"inset 0 0 0 1.5px transparent",
+						],
+						backgroundColor: [
+							"transparent",
+							accentTint,
+							accentTint,
+							"transparent",
+						],
+						color: ["#ffffff", accentColor, accentColor, "#ffffff"],
+					}
+				: flow === "block"
+					? {
+							backgroundColor: [
+								"transparent",
+								accentColor,
+								accentColor,
+								"transparent",
+							],
+						}
+					: flow === "fill"
+						? {
+								backgroundPosition: ["100% 0", "0% 0", "0% 0", "100% 0"],
+							}
+						: {
+								color: ["#ffffff", accentColor, accentColor, "#ffffff"],
+								scale: [1, 1.18, 1.04, 1],
+							};
+
 	return (
 		<div className="flex items-center justify-center gap-1 rounded-sm bg-black/80 px-2 py-3 text-sm font-bold text-white">
-			<span>ตัวอย่าง</span>
-			<span
-				style={
-					flow === "color"
-						? { color: accentColor }
-						: flow === "box"
-							? { boxShadow: `inset 0 0 0 1.5px ${accentColor}`, borderRadius: 3, padding: "0 2px" }
-							: flow === "block"
-								? { backgroundColor: accentColor, borderRadius: 3, padding: "0 3px" }
-								: flow === "fill"
-									? {
-											backgroundImage: `linear-gradient(90deg, ${accentColor} 50%, #ffffff 50%)`,
-											WebkitBackgroundClip: "text",
-											backgroundClip: "text",
-											color: "transparent",
-										}
-									: { color: accentColor, transform: "scale(1.15)", display: "inline-block" }
-				}
+			<span>{previewWords[0]}</span>
+			<motion.span
+				style={staticStyle}
+				animate={animation}
+				transition={{
+					duration: animate ? 1.1 : 0.15,
+					times: [0, 0.2, 0.72, 1],
+					ease: [0.16, 1, 0.3, 1],
+					repeat: animate ? Number.POSITIVE_INFINITY : 0,
+					repeatDelay: animate ? 0.35 : 0,
+				}}
 			>
-				ซับ
-			</span>
-			<span>ไตเติล</span>
+				{previewWords[1]}
+			</motion.span>
+			<span>{previewWords[2]}</span>
 		</div>
 	);
 }

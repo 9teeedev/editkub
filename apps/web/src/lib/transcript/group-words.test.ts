@@ -9,6 +9,37 @@ import {
 import type { TranscriptionSegment } from "@/types/transcription";
 import { deriveCaptionElements } from "./derive-captions";
 import type { TranscriptData } from "@/types/transcript";
+import {
+	isCaptionWordVisible,
+	resolveCaptionFlowFrame,
+} from "@/constants/caption-templates";
+
+test("caption flow motion enters, progresses, and settles", () => {
+	const start = resolveCaptionFlowFrame({ elapsed: 0, duration: 0.8 });
+	const moving = resolveCaptionFlowFrame({ elapsed: 0.1, duration: 0.8 });
+	const end = resolveCaptionFlowFrame({ elapsed: 2, duration: 0.8 });
+
+	expect(start).toEqual({ progress: 0, entrance: 0, popScale: 0.65 });
+	expect(moving.progress).toBeCloseTo(0.125);
+	expect(moving.entrance).toBeGreaterThan(0.8);
+	expect(moving.popScale).toBeGreaterThan(1);
+	expect(end).toEqual({ progress: 1, entrance: 1, popScale: 1 });
+});
+
+test("pop flow hides future words and keeps revealed words visible", () => {
+	expect(
+		isCaptionWordVisible({ flow: "pop", localTime: 0.49, start: 0.5 }),
+	).toBe(false);
+	expect(
+		isCaptionWordVisible({ flow: "pop", localTime: 0.5, start: 0.5 }),
+	).toBe(true);
+	expect(
+		isCaptionWordVisible({ flow: "pop", localTime: 1, start: 0.5 }),
+	).toBe(true);
+	expect(
+		isCaptionWordVisible({ flow: "color", localTime: 0, start: 0.5 }),
+	).toBe(true);
+});
 
 describe("extractWordsFromSegments", () => {
 	test("keeps exact timing for word-level segments", () => {
