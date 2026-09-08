@@ -17,6 +17,13 @@ import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { getExportFileExtension, getExportMimeType } from "@/lib/export";
 import { shareOrDownloadFile } from "@/lib/download";
 import {
+	trackEvent,
+	getDurationBucket,
+	getProcessingTimeBucket,
+	normalizeErrorCategory,
+} from "@/lib/analytics";
+import { triggerPostExportNotification } from "@/lib/donation";
+import {
 	isExportFormat,
 	isExportQuality,
 	type ExportFormat,
@@ -54,6 +61,8 @@ export function MobileExportDrawer() {
 			if (!activeProject) return;
 
 			const effectiveFormat = formatOverride ?? format;
+			const startTime = performance.now();
+			const totalDuration = editor.timeline.getTotalDuration();
 
 			cancelRequestedRef.current = false;
 			setIsExporting(true);
@@ -74,6 +83,12 @@ export function MobileExportDrawer() {
 			setIsExporting(false);
 
 			if (result.cancelled) {
+				trackEvent("export_cancelled", {
+					format: effectiveFormat,
+					quality,
+					surface: "mobile",
+					duration_bucket: getDurationBucket(totalDuration),
+				});
 				setExportResult(null);
 				setProgress(0);
 				return;
@@ -81,20 +96,54 @@ export function MobileExportDrawer() {
 
 			setExportResult(result);
 
+			const processingTimeSec = (performance.now() - startTime) / 1000;
+
 			if (result.success && result.buffer) {
 				const mimeType = getExportMimeType({ format: effectiveFormat });
 				const extension = getExportFileExtension({ format: effectiveFormat });
-				await shareOrDownloadFile({
+				const outcome = await shareOrDownloadFile({
 					blob: new Blob([result.buffer], { type: mimeType }),
 					filename: `${activeProject.metadata.name}${extension}`,
+				});
+
+				if (outcome.cancelled) {
+					trackEvent("export_cancelled", {
+						format: effectiveFormat,
+						quality,
+						surface: "mobile",
+						duration_bucket: getDurationBucket(totalDuration),
+					});
+					closeDrawer();
+					setExportResult(null);
+					setProgress(0);
+					return;
+				}
+
+				trackEvent("export_completed", {
+					format: effectiveFormat,
+					quality,
+					surface: "mobile",
+					duration_bucket: getDurationBucket(totalDuration),
+					processing_time_bucket: getProcessingTimeBucket(processingTimeSec),
 				});
 
 				closeDrawer();
 				setExportResult(null);
 				setProgress(0);
+
+				triggerPostExportNotification({ surface: "mobile", t });
+			} else if (!result.success) {
+				trackEvent("export_failed", {
+					format: effectiveFormat,
+					quality,
+					surface: "mobile",
+					duration_bucket: getDurationBucket(totalDuration),
+					processing_time_bucket: getProcessingTimeBucket(processingTimeSec),
+					error_category: normalizeErrorCategory(result.code || result.error),
+				});
 			}
 		},
-		[activeProject, closeDrawer, editor.project, format, includeAudio, quality],
+		[activeProject, closeDrawer, editor.project, editor.timeline, format, includeAudio, quality, t],
 	);
 
 	const handleCancel = () => {

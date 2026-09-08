@@ -76,6 +76,13 @@ import { useTranscriptionSettingsStore } from "@/stores/transcription-settings-s
 import { useAssetsPanelStore } from "@/stores/assets-panel-store";
 import { Cloud, ShieldCheck, AlertTriangle, Download, Upload } from "lucide-react";
 import { cn } from "@/utils/ui";
+import { CaptionFeedbackStrip } from "./caption-feedback-strip";
+import {
+	trackEvent,
+	getDurationBucket,
+	getProcessingTimeBucket,
+	normalizeErrorCategory,
+} from "@/lib/analytics";
 
 /** m:ss.s timestamp for transcript rows. */
 function formatCaptionTime(seconds: number): string {
@@ -89,6 +96,10 @@ export function Captions() {
 	const editor = useEditor();
 	const transcript = useTranscriptStore((s) => s.transcript);
 	const [subTab, setSubTab] = useState(transcript ? "text" : "generate");
+	const [pendingFeedback, setPendingFeedback] = useState<{
+		mode: "local" | "remote";
+		provider: string;
+	} | null>(null);
 
 	const { openFilePicker, fileInputProps } = useFileUpload({
 		accept: ".srt,text/plain",
@@ -223,10 +234,47 @@ export function Captions() {
 				value={subTab}
 				onValueChange={setSubTab}
 				tabs={[
-					{ value: "generate", label: t("Generate"), content: <GenerateCaptionsView onGenerated={() => setSubTab("text")} /> },
-					{ value: "text", label: t("Text"), content: <TranscriptTextView onNeedGenerate={() => setSubTab("generate")} /> },
-					{ value: "templates", label: t("Templates"), content: <CaptionTemplatesView onNeedGenerate={() => setSubTab("generate")} /> },
-					{ value: "style", label: t("Style"), content: <CaptionStyleView onNeedGenerate={() => setSubTab("generate")} /> },
+					{
+						value: "generate",
+						label: t("Generate"),
+						content: (
+							<GenerateCaptionsView
+								onGenerated={(info) => {
+									setPendingFeedback(info);
+									setSubTab("text");
+								}}
+							/>
+						),
+					},
+					{
+						value: "text",
+						label: t("Text"),
+						content: (
+							<TranscriptTextView
+								onNeedGenerate={() => setSubTab("generate")}
+								pendingFeedback={pendingFeedback}
+								onDismissFeedback={() => setPendingFeedback(null)}
+							/>
+						),
+					},
+					{
+						value: "templates",
+						label: t("Templates"),
+						content: (
+							<CaptionTemplatesView
+								onNeedGenerate={() => setSubTab("generate")}
+							/>
+						),
+					},
+					{
+						value: "style",
+						label: t("Style"),
+						content: (
+							<CaptionStyleView
+								onNeedGenerate={() => setSubTab("generate")}
+							/>
+						),
+					},
 				]}
 				className="flex min-h-0 flex-1 flex-col"
 			/>
@@ -238,7 +286,11 @@ export function Captions() {
 // Generate
 // ---------------------------------------------------------------------------
 
-function GenerateCaptionsView({ onGenerated }: { onGenerated: () => void }) {
+function GenerateCaptionsView({
+	onGenerated,
+}: {
+	onGenerated: (info: { mode: "local" | "remote"; provider: string }) => void;
+}) {
 	const { t } = useTranslation();
 	const [selectedLanguage, setSelectedLanguage] =
 		useLocalStorage<TranscriptionLanguage>({
@@ -303,6 +355,9 @@ function GenerateCaptionsView({ onGenerated }: { onGenerated: () => void }) {
 			setActiveTab("settings");
 			return;
 		}
+
+		const startTime = performance.now();
+		const audioDuration = editor.timeline.getTotalDuration();
 
 		try {
 			setIsProcessing(true);
@@ -374,6 +429,14 @@ function GenerateCaptionsView({ onGenerated }: { onGenerated: () => void }) {
 				segments: result.segments,
 			});
 			if (words.length === 0) {
+				const processingTimeSec = (performance.now() - startTime) / 1000;
+				trackEvent("caption_failed", {
+					mode: isRemote ? "remote" : "local",
+					provider: providerId,
+					duration_bucket: getDurationBucket(audioDuration),
+					processing_time_bucket: getProcessingTimeBucket(processingTimeSec),
+					error_category: "unknown",
+				});
 				setError(t("No speech detected in the timeline audio."));
 				return;
 			}
@@ -402,12 +465,45 @@ function GenerateCaptionsView({ onGenerated }: { onGenerated: () => void }) {
 				captionTrackId: trackId,
 			});
 
+			const processingTimeSec = (performance.now() - startTime) / 1000;
+			trackEvent("caption_completed", {
+				mode: isRemote ? "remote" : "local",
+				provider: providerId,
+				duration_bucket: getDurationBucket(audioDuration),
+				processing_time_bucket: getProcessingTimeBucket(processingTimeSec),
+			});
+
 			toast.success(
 				t("Generated {{count}} captions", { count }),
 			);
-			onGenerated();
+			onGenerated({
+				mode: isRemote ? "remote" : "local",
+				provider: providerId,
+			});
 		} catch (error) {
 			console.error("Transcription failed:", error);
+			const processingTimeSec = (performance.now() - startTime) / 1000;
+			const isCancelled =
+				error instanceof Error &&
+				(error.message.toLowerCase().includes("cancelled") ||
+					error.name === "AbortError");
+
+			if (isCancelled) {
+				trackEvent("caption_cancelled", {
+					mode: isRemote ? "remote" : "local",
+					provider: providerId,
+					duration_bucket: getDurationBucket(audioDuration),
+				});
+			} else {
+				trackEvent("caption_failed", {
+					mode: isRemote ? "remote" : "local",
+					provider: providerId,
+					duration_bucket: getDurationBucket(audioDuration),
+					processing_time_bucket: getProcessingTimeBucket(processingTimeSec),
+					error_category: normalizeErrorCategory(error),
+				});
+			}
+
 			setError(
 				error instanceof Error
 					? error.message
@@ -658,7 +754,15 @@ function updateWordsPerGroup({
 // Text (transcript list)
 // ---------------------------------------------------------------------------
 
-function TranscriptTextView({ onNeedGenerate }: { onNeedGenerate: () => void }) {
+function TranscriptTextView({
+	onNeedGenerate,
+	pendingFeedback,
+	onDismissFeedback,
+}: {
+	onNeedGenerate: () => void;
+	pendingFeedback?: { mode: "local" | "remote"; provider: string } | null;
+	onDismissFeedback?: () => void;
+}) {
 	const { t } = useTranslation();
 	const editor = useEditor();
 	const transcript = useTranscriptStore((s) => s.transcript);
@@ -680,6 +784,14 @@ function TranscriptTextView({ onNeedGenerate }: { onNeedGenerate: () => void }) 
 
 	return (
 		<div className="flex flex-col gap-3">
+			{pendingFeedback && onDismissFeedback && (
+				<CaptionFeedbackStrip
+					mode={pendingFeedback.mode}
+					provider={pendingFeedback.provider}
+					onDismiss={onDismissFeedback}
+				/>
+			)}
+
 			<div className="flex items-center justify-between">
 				<span className="text-muted-foreground text-xs">
 					{t("Total words")}: {totalWords}

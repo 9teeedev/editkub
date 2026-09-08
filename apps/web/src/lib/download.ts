@@ -15,6 +15,12 @@ export function downloadBlob({ blob, filename }: { blob: Blob; filename: string 
 	URL.revokeObjectURL(url);
 }
 
+export interface ShareOrDownloadResult {
+	success: boolean;
+	cancelled?: boolean;
+	action: "shared" | "downloaded" | "cancelled";
+}
+
 /**
  * Prefer the Web Share API (mobile share sheet, iOS Files save) and fall
  * back to a plain anchor download where sharing files is unavailable.
@@ -25,19 +31,22 @@ export async function shareOrDownloadFile({
 }: {
 	blob: Blob;
 	filename: string;
-}): Promise<void> {
+}): Promise<ShareOrDownloadResult> {
 	const file = new File([blob], filename, { type: blob.type });
 
 	if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
 		try {
 			await navigator.share({ files: [file] });
-			return;
+			return { success: true, action: "shared" };
 		} catch (error) {
 			// AbortError = user dismissed the sheet; anything else falls through
 			// to the anchor download so the export is never lost.
-			if (error instanceof DOMException && error.name === "AbortError") return;
+			if (error instanceof DOMException && error.name === "AbortError") {
+				return { success: false, cancelled: true, action: "cancelled" };
+			}
 		}
 	}
 
 	downloadBlob({ blob, filename });
+	return { success: true, action: "downloaded" };
 }

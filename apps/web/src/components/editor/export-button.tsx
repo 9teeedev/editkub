@@ -29,6 +29,13 @@ import { PropertyGroup } from "@/components/editor/panels/properties/property-it
 import { useEditor } from "@/hooks/use-editor";
 import { DEFAULT_EXPORT_OPTIONS } from "@/constants/export-constants";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
+import {
+	trackEvent,
+	getDurationBucket,
+	getProcessingTimeBucket,
+	normalizeErrorCategory,
+} from "@/lib/analytics";
+import { triggerPostExportNotification } from "@/lib/donation";
 
 export function ExportButton() {
 	const { t } = useTranslation();
@@ -94,6 +101,8 @@ function ExportPopover({
 		if (!activeProject) return;
 
 		const effectiveFormat = formatOverride ?? format;
+		const startTime = performance.now();
+		const totalDuration = editor.timeline.getTotalDuration();
 
 		cancelRequestedRef.current = false;
 		setIsExporting(true);
@@ -114,6 +123,12 @@ function ExportPopover({
 		setIsExporting(false);
 
 		if (result.cancelled) {
+			trackEvent("export_cancelled", {
+				format: effectiveFormat,
+				quality,
+				surface: "desktop",
+				duration_bucket: getDurationBucket(totalDuration),
+			});
 			setExportResult(null);
 			setProgress(0);
 			return;
@@ -121,7 +136,17 @@ function ExportPopover({
 
 		setExportResult(result);
 
+		const processingTimeSec = (performance.now() - startTime) / 1000;
+
 		if (result.success && result.buffer) {
+			trackEvent("export_completed", {
+				format: effectiveFormat,
+				quality,
+				surface: "desktop",
+				duration_bucket: getDurationBucket(totalDuration),
+				processing_time_bucket: getProcessingTimeBucket(processingTimeSec),
+			});
+
 			const mimeType = getExportMimeType({ format: effectiveFormat });
 			const extension = getExportFileExtension({ format: effectiveFormat });
 			const blob = new Blob([result.buffer], { type: mimeType });
@@ -133,6 +158,17 @@ function ExportPopover({
 			onOpenChange(false);
 			setExportResult(null);
 			setProgress(0);
+
+			triggerPostExportNotification({ surface: "desktop", t });
+		} else if (!result.success) {
+			trackEvent("export_failed", {
+				format: effectiveFormat,
+				quality,
+				surface: "desktop",
+				duration_bucket: getDurationBucket(totalDuration),
+				processing_time_bucket: getProcessingTimeBucket(processingTimeSec),
+				error_category: normalizeErrorCategory(result.code || result.error),
+			});
 		}
 	};
 
