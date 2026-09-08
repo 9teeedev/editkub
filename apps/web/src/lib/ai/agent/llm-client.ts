@@ -4,6 +4,7 @@ import type {
 	OpenAIChatMessage,
 	OpenAIToolSchema,
 } from "./types";
+import { streamAnthropicCompletion } from "./anthropic";
 
 export interface StreamCallbacks {
 	onContent?: (content: string) => void;
@@ -39,6 +40,16 @@ export async function streamChatCompletion({
 	callbacks: StreamCallbacks;
 	signal?: AbortSignal;
 }): Promise<ChatCompletionResult> {
+	if (config.apiFormat === "anthropic") {
+		return streamAnthropicCompletion({
+			config,
+			messages,
+			tools,
+			callbacks,
+			signal,
+		});
+	}
+
 	const baseUrl = (config.baseUrl || "https://api.openai.com/v1").replace(
 		/\/+$/,
 		"",

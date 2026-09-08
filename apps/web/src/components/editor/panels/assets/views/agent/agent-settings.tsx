@@ -7,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { findContextTag, type ModelEntry } from "@/lib/ai/agent/model-list";
 import { useAgentStore } from "@/stores/agent-store";
 import {
@@ -36,9 +43,11 @@ function ModelRow({ entry }: { entry: ModelEntry }) {
 	const [draftContext, setDraftContext] = useState<string>(
 		entry.contextWindow ? String(entry.contextWindow) : "",
 	);
-	const contextWindow = useAgentStore((s) => s.contextWindow);
+	const activeModel = useAgentStore((s) => s.config.model);
+	const setConfig = useAgentStore((s) => s.setConfig);
 	const upsertModel = useAgentStore((s) => s.upsertModel);
 	const removeModel = useAgentStore((s) => s.removeModel);
+	const isActive = activeModel.trim() === entry.id;
 
 	const startEditing = () => {
 		setDraftId(entry.id);
@@ -108,11 +117,29 @@ function ModelRow({ entry }: { entry: ModelEntry }) {
 
 	return (
 		<div className="flex items-center gap-2 p-2">
-			<span className="min-w-0 flex-1 truncate font-mono text-xs">
-				{entry.id}
-			</span>
+			<button
+				type="button"
+				className={cn(
+					"flex min-w-0 flex-1 items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-left font-mono text-xs",
+					isActive
+						? "bg-primary/10 text-primary font-medium"
+						: "hover:bg-accent hover:text-accent-foreground",
+				)}
+				onClick={() => setConfig({ model: entry.id })}
+				title={t("Use this model")}
+				aria-pressed={isActive}
+			>
+				<span
+					className={cn(
+						"size-1.5 shrink-0 rounded-full",
+						isActive ? "bg-primary" : "bg-transparent",
+					)}
+					aria-hidden="true"
+				/>
+				<span className="truncate">{entry.id}</span>
+			</button>
 			<Badge variant="secondary" className="text-[10px] whitespace-nowrap">
-				{findContextTag({ entry, fallback: contextWindow })}
+				{findContextTag({ entry })}
 			</Badge>
 			<Button
 				type="button"
@@ -145,8 +172,6 @@ export function AgentSettings() {
 	const setConfig = useAgentStore((s) => s.setConfig);
 	const forgetApiKey = useAgentStore((s) => s.forgetApiKey);
 	const setAutoMode = useAgentStore((s) => s.setAutoMode);
-	const contextWindow = useAgentStore((s) => s.contextWindow);
-	const setContextWindow = useAgentStore((s) => s.setContextWindow);
 	const modelList = useAgentStore((s) => s.modelList);
 	const modelFetchStatus = useAgentStore((s) => s.modelFetchStatus);
 	const modelFetchError = useAgentStore((s) => s.modelFetchError);
@@ -203,6 +228,8 @@ export function AgentSettings() {
 		upsertModel({ id: `custom-${Date.now().toString(36)}` });
 	};
 
+	const apiFormat = config.apiFormat ?? "openai";
+
 	return (
 		<div className="space-y-6">
 			{/* AI Agent Provider Hierarchy */}
@@ -215,7 +242,11 @@ export function AgentSettings() {
 					<Label htmlFor="agent-base-url">{t("API Base URL")}</Label>
 					<Input
 						id="agent-base-url"
-						placeholder="https://api.openai.com/v1"
+						placeholder={
+							apiFormat === "anthropic"
+								? "https://api.anthropic.com/v1"
+								: "https://api.openai.com/v1"
+						}
 						value={config.baseUrl}
 						onChange={(event) => {
 							setConfig({ baseUrl: event.target.value });
@@ -230,16 +261,28 @@ export function AgentSettings() {
 				</div>
 
 				<div className="space-y-2">
-					<Label htmlFor="agent-model">{t("Model")}</Label>
-					<Input
-						id="agent-model"
-						placeholder="gpt-4.1"
-						value={config.model}
-						onChange={(event) => {
-							setConfig({ model: event.target.value });
+					<Label htmlFor="agent-api-format">{t("API format")}</Label>
+					<Select
+						value={apiFormat}
+						onValueChange={(value) => {
+							setConfig({
+								apiFormat: value === "anthropic" ? "anthropic" : "openai",
+							});
 							setTestStatus(null);
 						}}
-					/>
+					>
+						<SelectTrigger id="agent-api-format" className="h-9 text-sm">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="openai" className="text-xs">
+								{t("OpenAI chat completions (/chat/completions)")}
+							</SelectItem>
+							<SelectItem value="anthropic" className="text-xs">
+								{t("Anthropic messages (/v1/messages)")}
+							</SelectItem>
+						</SelectContent>
+					</Select>
 				</div>
 
 				<div className="space-y-2">
@@ -306,9 +349,7 @@ export function AgentSettings() {
 						className="h-8 text-xs"
 						onClick={handleTestConnection}
 						disabled={
-							isTesting ||
-							!config.apiKey ||
-							!endpointValidation.isValid
+							isTesting || !config.apiKey || !endpointValidation.isValid
 						}
 					>
 						{isTesting ? t("Testing…") : t("Test connection")}
@@ -372,6 +413,9 @@ export function AgentSettings() {
 								: t("Fetch from API")}
 						</Button>
 					</div>
+					<p className="text-muted-foreground text-xs">
+						{t("Click a model to use it with the agent.")}
+					</p>
 					<div className="divide-y rounded-lg border">
 						{modelList.length === 0 ? (
 							<p className="text-muted-foreground p-3 text-xs">
@@ -380,7 +424,9 @@ export function AgentSettings() {
 								)}
 							</p>
 						) : (
-							modelList.map((entry) => <ModelRow key={entry.id} entry={entry} />)
+							modelList.map((entry) => (
+								<ModelRow key={entry.id} entry={entry} />
+							))
 						)}
 					</div>
 					{modelFetchStatus === "error" && modelFetchError && (
@@ -398,26 +444,6 @@ export function AgentSettings() {
 						<HugeiconsIcon icon={Add01Icon} className="mr-1 h-3.5 w-3.5" />
 						{t("Add model")}
 					</Button>
-				</div>
-
-				<div className="space-y-2">
-					<Label htmlFor="agent-context-window">{t("Context window")}</Label>
-					<Input
-						id="agent-context-window"
-						type="number"
-						min={1000}
-						step={1000}
-						placeholder="128000"
-						value={contextWindow}
-						onChange={(event) =>
-							setContextWindow(Number(event.target.value) || 0)
-						}
-					/>
-					<p className="text-muted-foreground text-xs">
-						{t(
-							"Context size used for the indicator when the model is not in the preset list.",
-						)}
-					</p>
 				</div>
 
 				<div className="flex items-center justify-between">

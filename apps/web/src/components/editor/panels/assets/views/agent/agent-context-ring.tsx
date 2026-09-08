@@ -16,15 +16,13 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 export function AgentContextRing() {
 	const { t } = useTranslation();
 	const contextTokens = useAgentStore((s) => s.contextTokens);
-	const contextWindow = useAgentStore((s) => s.contextWindow);
 	const modelList = useAgentStore((s) => s.modelList);
 	const model = useAgentStore((s) => s.config.model);
 
 	const trimmedModel = model.trim();
 	const entry = modelList.find((item) => item.id === trimmedModel);
 	const limit =
-		entry?.contextWindow ??
-		getContextWindow({ model: trimmedModel, fallback: contextWindow });
+		entry?.contextWindow ?? getContextWindow({ model: trimmedModel });
 	const fraction = Math.min(1, Math.max(0, contextTokens / limit));
 	const percent = Math.round(fraction * 100);
 

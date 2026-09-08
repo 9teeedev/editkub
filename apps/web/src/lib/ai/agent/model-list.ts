@@ -1,8 +1,14 @@
 import {
+	ANTHROPIC_BROWSER_ACCESS_HEADER,
+	ANTHROPIC_BROWSER_ACCESS_VALUE,
+	ANTHROPIC_VERSION,
+} from "./anthropic";
+import {
 	DEFAULT_CONTEXT_WINDOW,
 	findModelPreset,
 	formatTokens,
 } from "./model-presets";
+import type { AgentApiFormat } from "./types";
 
 export interface ModelEntry {
 	id: string;
@@ -54,17 +60,24 @@ export function parseModelsResponse(json: unknown): string[] {
 export async function fetchAvailableModels({
 	baseUrl,
 	apiKey,
+	apiFormat = "openai",
 	signal,
 }: {
 	baseUrl: string;
 	apiKey: string;
+	apiFormat?: AgentApiFormat;
 	signal?: AbortSignal;
 }): Promise<string[]> {
 	const base = (baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
-	const response = await fetch(`${base}/models`, {
-		headers: { Authorization: `Bearer ${apiKey}` },
-		signal,
-	});
+	const headers: Record<string, string> =
+		apiFormat === "anthropic"
+			? {
+					"x-api-key": apiKey,
+					"anthropic-version": ANTHROPIC_VERSION,
+					[ANTHROPIC_BROWSER_ACCESS_HEADER]: ANTHROPIC_BROWSER_ACCESS_VALUE,
+				}
+			: { Authorization: `Bearer ${apiKey}` };
+	const response = await fetch(`${base}/models`, { headers, signal });
 	if (!response.ok) {
 		throw new Error(`API error (${response.status})`);
 	}

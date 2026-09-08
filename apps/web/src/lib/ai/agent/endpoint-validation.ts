@@ -179,7 +179,8 @@ export function sanitizeConnectionError(
 	) {
 		return {
 			state: "unreachable",
-			message: "Endpoint unreachable",
+			message:
+				"Endpoint unreachable — this provider may not allow browser requests",
 		};
 	}
 

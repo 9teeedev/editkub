@@ -29,9 +29,7 @@ describe("validateAgentEndpoint", () => {
 		expect(result.hostname).toBe("api.openai.com");
 		expect(result.isCustom).toBe(false);
 
-		const customResult = validateAgentEndpoint(
-			"https://openrouter.ai/api/v1/",
-		);
+		const customResult = validateAgentEndpoint("https://openrouter.ai/api/v1/");
 		expect(customResult.isValid).toBe(true);
 		expect(customResult.hostname).toBe("openrouter.ai");
 		expect(customResult.normalizedUrl).toBe("https://openrouter.ai/api/v1");
@@ -107,7 +105,7 @@ describe("sanitizeConnectionError", () => {
 		const networkErr = new TypeError("Failed to fetch");
 		expect(sanitizeConnectionError(networkErr).state).toBe("unreachable");
 		expect(sanitizeConnectionError(networkErr).message).toBe(
-			"Endpoint unreachable",
+			"Endpoint unreachable — this provider may not allow browser requests",
 		);
 
 		const err502 = new Error("502 Bad Gateway");

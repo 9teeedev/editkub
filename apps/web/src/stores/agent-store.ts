@@ -6,7 +6,6 @@ import {
 	DEFAULT_EXPERT_ROLE,
 } from "@/lib/ai/agent/expert-roles";
 import { runAgentLoop } from "@/lib/ai/agent/service";
-import { DEFAULT_CONTEXT_WINDOW } from "@/lib/ai/agent/model-presets";
 import {
 	type ModelEntry,
 	type ModelFetchStatus,
@@ -14,6 +13,7 @@ import {
 	mergeModelList,
 } from "@/lib/ai/agent/model-list";
 import type {
+	AgentApiFormat,
 	AgentLLMConfig,
 	AgentMessage,
 	AgentStatus,
@@ -33,6 +33,7 @@ migrateLegacySecrets();
 interface AgentPersistedConfig {
 	baseUrl: string;
 	model: string;
+	apiFormat?: AgentApiFormat;
 }
 
 interface AgentPersistedState {
@@ -40,7 +41,6 @@ interface AgentPersistedState {
 	autoMode: boolean;
 	isOpen: boolean;
 	expertRole: ExpertRoleId;
-	contextWindow: number;
 	modelList: ModelEntry[];
 }
 
@@ -49,7 +49,6 @@ interface AgentState {
 	autoMode: boolean;
 	isOpen: boolean;
 	expertRole: ExpertRoleId;
-	contextWindow: number;
 	modelList: ModelEntry[];
 	messages: AgentMessage[];
 	status: AgentStatus;
@@ -72,7 +71,6 @@ interface AgentState {
 	setConfig: (config: Partial<AgentLLMConfig>) => void;
 	forgetApiKey: () => void;
 	setExpertRole: (roleId: ExpertRoleId) => void;
-	setContextWindow: (tokens: number) => void;
 	fetchModels: () => Promise<void>;
 	upsertModel: (entry: ModelEntry) => void;
 	removeModel: (id: string) => void;
@@ -87,11 +85,11 @@ export const partializeAgentSettings = (
 	config: {
 		baseUrl: state.config.baseUrl,
 		model: state.config.model,
+		apiFormat: state.config.apiFormat,
 	},
 	autoMode: state.autoMode,
 	isOpen: state.isOpen,
 	expertRole: state.expertRole,
-	contextWindow: state.contextWindow,
 	modelList: state.modelList,
 });
 
@@ -102,11 +100,11 @@ export const useAgentStore = create<AgentState>()(
 				baseUrl: "",
 				apiKey: getSessionSecret("agent-api-key"),
 				model: "",
+				apiFormat: "openai",
 			},
 			autoMode: false,
 			isOpen: true,
 			expertRole: DEFAULT_EXPERT_ROLE,
-			contextWindow: DEFAULT_CONTEXT_WINDOW,
 			modelList: [],
 			messages: [],
 			status: "idle" as AgentStatus,
@@ -315,10 +313,6 @@ export const useAgentStore = create<AgentState>()(
 				set({ expertRole: roleId });
 			},
 
-			setContextWindow: (tokens) => {
-				set({ contextWindow: tokens > 0 ? tokens : DEFAULT_CONTEXT_WINDOW });
-			},
-
 			fetchModels: async () => {
 				const state = get();
 				if (state.modelFetchStatus === "loading") return;
@@ -328,7 +322,11 @@ export const useAgentStore = create<AgentState>()(
 				if (!apiKey) return;
 				set({ modelFetchStatus: "loading", modelFetchError: null });
 				try {
-					const fetched = await fetchAvailableModels({ baseUrl, apiKey });
+					const fetched = await fetchAvailableModels({
+						baseUrl,
+						apiKey,
+						apiFormat: state.config.apiFormat ?? "openai",
+					});
 					set((prev) => ({
 						modelList: mergeModelList({ current: prev.modelList, fetched }),
 						modelFetchStatus: "idle",
