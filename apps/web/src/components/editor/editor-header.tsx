@@ -33,6 +33,8 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ShortcutsDialog } from "./dialogs/shortcuts-dialog";
 import Image from "next/image";
 import { cn } from "@/utils/ui";
+import { SiBuymeacoffee } from "react-icons/si";
+import { recordSupportClick } from "@/lib/donation";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { useAgentStore } from "@/stores/agent-store";
 import {
@@ -168,6 +170,19 @@ function ProjectDropdown() {
 						<HugeiconsIcon icon={CommandIcon} className="size-4" />
 						{t("Keyboard shortcuts")}
 					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						className="flex items-center gap-1.5"
+						onClick={() => {
+							recordSupportClick({
+								surface: "desktop",
+								placement: "editor_menu",
+							});
+						}}
+					>
+						<SiBuymeacoffee className="size-4" />
+						{t("Support Editkub")}
+					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
 			<RenameProjectDialog
@@ -299,8 +314,7 @@ function LayoutToggle() {
 			editor.project.updateSettings({
 				settings: {
 					canvasSize: VERTICAL_CANVAS_SIZE,
-					originalCanvasSize:
-						current.originalCanvasSize ?? current.canvasSize,
+					originalCanvasSize: current.originalCanvasSize ?? current.canvasSize,
 				},
 			});
 		} else {
@@ -320,9 +334,7 @@ function LayoutToggle() {
 			variant={isVertical ? "secondary" : "ghost"}
 			size="icon"
 			onClick={handleToggle}
-			title={
-				isVertical ? t("Switch to landscape") : t("Switch to vertical")
-			}
+			title={isVertical ? t("Switch to landscape") : t("Switch to vertical")}
 			aria-label={
 				isVertical ? t("Switch to landscape") : t("Switch to vertical")
 			}

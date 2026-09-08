@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import {
 	getDurationBucket,
 	getProcessingTimeBucket,
@@ -31,13 +31,33 @@ describe("Analytics Module", () => {
 	});
 
 	it("normalizes errors to strict allowlist and hides raw messages", () => {
-		expect(normalizeErrorCategory(new Error("Failed to fetch"))).toBe("network");
-		expect(normalizeErrorCategory(new Error("NetworkError when attempting to fetch resource"))).toBe("network");
-		expect(normalizeErrorCategory(new Error("Permission denied to access microphone"))).toBe("permission");
-		expect(normalizeErrorCategory(new Error("unsupported video codec"))).toBe("unsupported");
-		expect(normalizeErrorCategory(new Error("OpenAI rate limit 429 quota exceeded"))).toBe("provider");
-		expect(normalizeErrorCategory(new Error("Out of memory on WebCodecs render canvas"))).toBe("render");
-		expect(normalizeErrorCategory(new Error("something completely unexpected"))).toBe("unknown");
+		expect(normalizeErrorCategory(new Error("Failed to fetch"))).toBe(
+			"network",
+		);
+		expect(
+			normalizeErrorCategory(
+				new Error("NetworkError when attempting to fetch resource"),
+			),
+		).toBe("network");
+		expect(
+			normalizeErrorCategory(
+				new Error("Permission denied to access microphone"),
+			),
+		).toBe("permission");
+		expect(normalizeErrorCategory(new Error("unsupported video codec"))).toBe(
+			"unsupported",
+		);
+		expect(
+			normalizeErrorCategory(new Error("OpenAI rate limit 429 quota exceeded")),
+		).toBe("provider");
+		expect(
+			normalizeErrorCategory(
+				new Error("Out of memory on WebCodecs render canvas"),
+			),
+		).toBe("render");
+		expect(
+			normalizeErrorCategory(new Error("something completely unexpected")),
+		).toBe("unknown");
 		expect(normalizeErrorCategory(null)).toBe("unknown");
 	});
 
@@ -46,6 +66,7 @@ describe("Analytics Module", () => {
 			format: "mp4",
 			quality: "high",
 			surface: "desktop",
+			placement: "editor_menu",
 			// Sensitive / illegal fields that must never pass through:
 			transcript: "sensitive user speech",
 			projectName: "My Secret Video",
@@ -60,6 +81,7 @@ describe("Analytics Module", () => {
 			format: "mp4",
 			quality: "high",
 			surface: "desktop",
+			placement: "editor_menu",
 		});
 		expect((sanitized as Record<string, unknown>).transcript).toBeUndefined();
 		expect((sanitized as Record<string, unknown>).projectName).toBeUndefined();
@@ -108,6 +130,16 @@ describe("Analytics Module", () => {
 			expect(trackMock).toHaveBeenCalledTimes(1);
 			expect(trackMock).toHaveBeenCalledWith("support_prompt_shown", {
 				surface: "mobile",
+			});
+
+			trackEvent("support_clicked", {
+				surface: "desktop",
+				placement: "editor_menu",
+			});
+			expect(trackMock).toHaveBeenCalledTimes(2);
+			expect(trackMock).toHaveBeenCalledWith("support_clicked", {
+				surface: "desktop",
+				placement: "editor_menu",
 			});
 		} finally {
 			globalThis.window = originalWindow;

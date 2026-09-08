@@ -9,8 +9,11 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SiBuymeacoffee } from "react-icons/si";
+import { recordSupportClick } from "@/lib/donation";
 import {
 	ArrowLeft02Icon,
 	ArrowTurnBackwardIcon,
@@ -225,6 +228,25 @@ function OverflowMenu({
 					>
 						<HugeiconsIcon icon={BubbleChatIcon} className="size-4" />
 						{t("Feedback")}
+					</DropdownMenuItem>
+
+					<DropdownMenuSeparator />
+
+					<DropdownMenuItem
+						className="flex items-center gap-2"
+						onClick={() =>
+							handleSelect({
+								action: () => {
+									recordSupportClick({
+										surface: "mobile",
+										placement: "editor_menu",
+									});
+								},
+							})
+						}
+					>
+						<SiBuymeacoffee className="size-4" />
+						{t("Support Editkub")}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

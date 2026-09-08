@@ -7,6 +7,7 @@ import Image from "next/image";
 import { DEFAULT_LOGO_URL, SOCIAL_LINKS } from "@/constants/site-constants";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { FeedbackTrigger } from "@/components/feedback/feedback-trigger";
+import { DONATION_URL, recordSupportClick } from "@/lib/donation";
 
 interface FooterLink {
 	label: string;
@@ -26,8 +27,8 @@ export function Footer() {
 						<Image
 							src={DEFAULT_LOGO_URL}
 							alt="Editkub"
-								width={28}
-								height={28}
+							width={28}
+							height={28}
 							className="dark:invert"
 						/>
 						<span className="text-sm font-semibold">Editkub</span>
@@ -56,22 +57,26 @@ export function Footer() {
 				<div className="flex items-center gap-4">
 					<a
 						href={SOCIAL_LINKS.github}
-							className="text-muted-foreground hover:text-foreground transition-colors"
-							target="_blank"
-							rel="noopener noreferrer"
-							aria-label={t('GitHub')}
-						>
-							<FaGithub className="size-4" />
-						</a>
-						<a
-							href="https://buymeacoffee.com/9teeedev"
-							className="text-muted-foreground hover:text-foreground transition-colors"
-							target="_blank"
-							rel="noopener noreferrer"
-							aria-label={t('Support')}
-						>
-							<SiBuymeacoffee className="size-4" />
-						</a>
+						className="text-muted-foreground hover:text-foreground transition-colors"
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label={t("GitHub")}
+					>
+						<FaGithub className="size-4" />
+					</a>
+					<a
+						href={DONATION_URL}
+						className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors"
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label={t("Support Editkub")}
+						onClick={() => {
+							recordSupportClick({ placement: "footer", openWindow: false });
+						}}
+					>
+						<SiBuymeacoffee className="size-4" />
+						<span>{t("Support Editkub")}</span>
+					</a>
 					<span className="text-muted-foreground ml-2 text-xs">
 						© {new Date().getFullYear()} Editkub
 					</span>

@@ -7,11 +7,21 @@ import { trackEvent } from "./analytics";
 
 export const SUPPORT_PROMPT_STORAGE_KEY = "editkub:support-prompt-last-shown";
 export const SUPPORT_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const SUPPORT_CLICKED_STORAGE_KEY = "editkub:support-clicked-last-shown";
+export const SUPPORT_CLICKED_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 export const DONATION_URL = "https://buymeacoffee.com/9teeedev";
+
+export interface RecordSupportClickOptions {
+	surface?: "desktop" | "mobile";
+	placement: "post_export" | "editor_menu" | "footer";
+	openWindow?: boolean;
+	now?: number;
+}
 
 /**
  * Checks whether the post-export support prompt is allowed to show.
  * - Max once per rolling 7-day window on the same browser.
+ * - Suppressed for 30 days if user previously clicked any support entry point.
  * - Fails closed (returns false) if localStorage throws or is unavailable,
  *   preventing repeated prompts in private browsing or constrained environments.
  */
@@ -19,10 +29,22 @@ export function shouldShowSupportPrompt(now: number = Date.now()): boolean {
 	if (typeof window === "undefined") return false;
 
 	try {
-		const raw = window.localStorage.getItem(SUPPORT_PROMPT_STORAGE_KEY);
-		if (!raw) return true;
+		const rawClicked = window.localStorage.getItem(SUPPORT_CLICKED_STORAGE_KEY);
+		if (rawClicked) {
+			const lastClicked = Number.parseInt(rawClicked, 10);
+			if (
+				Number.isFinite(lastClicked) &&
+				lastClicked > 0 &&
+				now - lastClicked < SUPPORT_CLICKED_COOLDOWN_MS
+			) {
+				return false;
+			}
+		}
 
-		const lastShown = Number.parseInt(raw, 10);
+		const rawShown = window.localStorage.getItem(SUPPORT_PROMPT_STORAGE_KEY);
+		if (!rawShown) return true;
+
+		const lastShown = Number.parseInt(rawShown, 10);
 		if (!Number.isFinite(lastShown) || lastShown <= 0) return true;
 
 		return now - lastShown >= SUPPORT_PROMPT_COOLDOWN_MS;
@@ -33,7 +55,7 @@ export function shouldShowSupportPrompt(now: number = Date.now()): boolean {
 }
 
 /**
- * Persists the current timestamp to local storage.
+ * Persists the prompt shown timestamp to local storage.
  */
 export function recordSupportPromptShown(now: number = Date.now()): void {
 	if (typeof window === "undefined") return;
@@ -42,6 +64,44 @@ export function recordSupportPromptShown(now: number = Date.now()): void {
 		window.localStorage.setItem(SUPPORT_PROMPT_STORAGE_KEY, String(now));
 	} catch {
 		// Fail silently if storage is blocked
+	}
+}
+
+/**
+ * Records user support intent, sets the 30-day cooldown timestamp,
+ * dispatches analytics event, and safely opens the donation link in a new tab.
+ * Fail-safe: storage/telemetry errors never block opening the donation link.
+ */
+export function recordSupportClick({
+	surface,
+	placement,
+	openWindow = true,
+	now = Date.now(),
+}: RecordSupportClickOptions): void {
+	try {
+		if (typeof window !== "undefined") {
+			window.localStorage.setItem(SUPPORT_CLICKED_STORAGE_KEY, String(now));
+		}
+	} catch {
+		// Fail silently if storage is blocked
+	}
+
+	try {
+		trackEvent("support_clicked", { surface, placement });
+	} catch {
+		// Fire-and-forget analytics
+	}
+
+	if (
+		openWindow &&
+		typeof window !== "undefined" &&
+		typeof window.open === "function"
+	) {
+		try {
+			window.open(DONATION_URL, "_blank", "noopener,noreferrer");
+		} catch {
+			// Fail-safe if window.open fails
+		}
 	}
 }
 
@@ -74,10 +134,7 @@ export function triggerPostExportNotification({
 		action: {
 			label: t("Support Editkub"),
 			onClick: () => {
-				trackEvent("support_clicked", { surface });
-				if (typeof window !== "undefined") {
-					window.open(DONATION_URL, "_blank", "noopener,noreferrer");
-				}
+				recordSupportClick({ surface, placement: "post_export" });
 			},
 		},
 		duration: 10000,

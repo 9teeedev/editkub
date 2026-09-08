@@ -80,7 +80,8 @@ export interface AnalyticsEventMap {
 		surface: "desktop" | "mobile";
 	};
 	support_clicked: {
-		surface: "desktop" | "mobile";
+		surface?: "desktop" | "mobile";
+		placement: "post_export" | "editor_menu" | "footer";
 	};
 }
 
@@ -198,6 +199,7 @@ const ALLOWED_PROPERTIES = new Set([
 	"processing_time_bucket",
 	"error_category",
 	"category",
+	"placement",
 ]);
 
 /**
