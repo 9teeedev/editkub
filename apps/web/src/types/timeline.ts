@@ -8,7 +8,7 @@ export interface TScene {
 	updatedAt: Date;
 }
 
-export type TrackType = "video" | "text" | "audio" | "sticker" | "effect";
+export type TrackType = "video" | "text" | "audio" | "sticker" | "effect" | "adjustment";
 
 interface BaseTrack {
 	id: string;
@@ -48,12 +48,19 @@ export interface EffectTrack extends BaseTrack {
 	hidden: boolean;
 }
 
+export interface AdjustmentTrack extends BaseTrack {
+	type: "adjustment";
+	elements: AdjustmentElement[];
+	hidden: boolean;
+}
+
 export type TimelineTrack =
 	| VideoTrack
 	| TextTrack
 	| AudioTrack
 	| StickerTrack
-	| EffectTrack;
+	| EffectTrack
+	| AdjustmentTrack;
 
 export interface Transform {
 	scale: number;
@@ -73,6 +80,22 @@ export type PictureInPicturePreset =
 	| "corner-bottom-right"
 	| "split-left"
 	| "split-right";
+
+/**
+ * Source-space crop rectangle for media elements. All values are
+ * normalized [0,1] against the uncropped source frame and describe the
+ * region of the source that is kept.
+ */
+export interface CropConfig {
+	/** Left edge of the kept region, normalized [0,1]. */
+	x: number;
+	/** Top edge of the kept region, normalized [0,1]. */
+	y: number;
+	/** Width of the kept region, normalized [0,1]. */
+	width: number;
+	/** Height of the kept region, normalized [0,1]. */
+	height: number;
+}
 
 export interface PictureInPictureConfig {
 	preset: PictureInPicturePreset;
@@ -171,6 +194,36 @@ export interface TextAnimations {
 /** The two independent phases a text animation can belong to. */
 export type TextAnimationPhase = "in" | "out";
 
+// ---- Caption word timing (karaoke) ----
+
+/**
+ * A single word with element-local timing (seconds from the element's
+ * `startTime`). When present on a TextElement, the renderer switches to
+ * per-word drawing and highlights the word spoken at the current time.
+ */
+export interface CaptionWordTiming {
+	text: string;
+	start: number;
+	end: number;
+}
+
+/**
+ * How the actively-spoken word is highlighted while caption word timings
+ * drive rendering:
+ * - `color` — active word is filled with the accent color
+ * - `box`   — thin outline around the active word
+ * - `block` — solid accent block behind the active word
+ * - `fill`  — accent color wipes across the active word as it is spoken
+ * - `pop`   — active word scales up with the accent color
+ */
+export type CaptionFlowStyle = "color" | "box" | "block" | "fill" | "pop";
+
+/** Per-element caption karaoke styling. */
+export interface CaptionStyle {
+	flow: CaptionFlowStyle;
+	accentColor: string;
+}
+
 // ---- Transitions ----
 
 export type TransitionType =
@@ -239,6 +292,7 @@ export interface VideoElement extends BaseTimelineElement {
 	filter?: ElementFilter;
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
+	crop?: CropConfig;
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
@@ -258,6 +312,7 @@ export interface ImageElement extends BaseTimelineElement {
 	filter?: ElementFilter;
 	blendMode?: string;
 	adjustments?: AdjustmentControls;
+	crop?: CropConfig;
 	chromaKey?: ChromaKeyConfig;
 	videoEffect?: VideoEffectConfig;
 	shapeMask?: ShapeMaskConfig;
@@ -373,6 +428,16 @@ export interface TextElement extends BaseTimelineElement {
 	backgroundPaddingX?: number;
 	backgroundPaddingY?: number;
 	textAnimations?: TextAnimations;
+	/** Word-level timings for karaoke captions; element-local seconds. */
+	wordTimings?: CaptionWordTiming[];
+	/** Karaoke highlight styling used together with `wordTimings`. */
+	captionStyle?: CaptionStyle;
+	/**
+	 * Transcript group this element was derived from (`${segmentId}:${chunkIndex}`).
+	 * Present only on derived caption elements — content edits for these must
+	 * go through the transcript, never `element.content` directly.
+	 */
+	captionGroupId?: string;
 }
 
 export interface StickerElement extends BaseTimelineElement {
@@ -399,6 +464,18 @@ export interface BlurEffectElement extends BaseTimelineElement {
 	keyframes?: ElementKeyframes;
 }
 
+/**
+ * Adjustment layer — a full-canvas color pass. During the element's time span
+ * its AdjustmentControls apply to every visible clip on tracks BELOW it in the
+ * timeline stack. No on-canvas transform: it is edited only in the properties
+ * panel and via its timeline span (move/trim/split).
+ */
+export interface AdjustmentElement extends BaseTimelineElement {
+	type: "adjustment";
+	adjustments: AdjustmentControls;
+	hidden?: boolean;
+}
+
 
 export type TimelineElement =
 	| AudioElement
@@ -406,7 +483,8 @@ export type TimelineElement =
 	| ImageElement
 	| TextElement
 	| StickerElement
-	| BlurEffectElement;
+	| BlurEffectElement
+	| AdjustmentElement;
 
 export type ElementType = TimelineElement["type"];
 
@@ -420,13 +498,15 @@ export type CreateImageElement = Omit<ImageElement, "id">;
 export type CreateTextElement = Omit<TextElement, "id">;
 export type CreateStickerElement = Omit<StickerElement, "id">;
 export type CreateBlurEffectElement = Omit<BlurEffectElement, "id">;
+export type CreateAdjustmentElement = Omit<AdjustmentElement, "id">;
 export type CreateTimelineElement =
 	| CreateAudioElement
 	| CreateVideoElement
 	| CreateImageElement
 	| CreateTextElement
 	| CreateStickerElement
-	| CreateBlurEffectElement;
+	| CreateBlurEffectElement
+	| CreateAdjustmentElement;
 
 // ---- Drag State ----
 

@@ -30,6 +30,7 @@ class TranscriptionService {
 		language = "auto",
 		subtask = "transcribe",
 		modelId = DEFAULT_TRANSCRIPTION_MODEL,
+		wordTimestamps = false,
 		onProgress,
 		onStreamingUpdate,
 	}: {
@@ -37,6 +38,8 @@ class TranscriptionService {
 		language?: TranscriptionLanguage;
 		subtask?: TranscriptionSubtask;
 		modelId?: TranscriptionModelId;
+		/** Request per-word timestamps (karaoke). Disables live streaming. */
+		wordTimestamps?: boolean;
 		onProgress?: ProgressCallback;
 		onStreamingUpdate?: StreamingCallback;
 	}): Promise<TranscriptionResult> {
@@ -97,6 +100,7 @@ class TranscriptionService {
 				audio: audioData,
 				language,
 				subtask: subtask === "transcribe" ? null : subtask,
+				wordTimestamps,
 			};
 			this.worker.postMessage(message, [audioData.buffer]);
 		});

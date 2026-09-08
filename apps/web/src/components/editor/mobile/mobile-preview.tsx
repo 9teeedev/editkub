@@ -9,6 +9,12 @@ import { CanvasRenderer } from "@/services/renderer/canvas-renderer";
 import type { RootNode } from "@/services/renderer/nodes/root-node";
 import { buildScene } from "@/services/renderer/scene-builder";
 import { getLastFrameTime } from "@/lib/time";
+import { PreviewInteractionOverlay } from "../panels/preview/preview-interaction-overlay";
+import { LayoutGuideOverlay } from "../layout-guide-overlay";
+import { useEditorStore } from "@/stores/editor-store";
+import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
+import { SmartPhone01Icon } from "@hugeicons/core-free-icons";
+import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { invokeAction } from "@/lib/actions";
 import { PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -140,45 +146,105 @@ function MobilePreviewCanvas() {
 			ref={containerRef}
 			className="relative flex h-full w-full items-center justify-center"
 		>
-			<canvas
-				ref={canvasRef}
-				width={nativeWidth}
-				height={nativeHeight}
-				className="block"
-				style={{
-					width: displaySize.width,
-					height: displaySize.height,
-					background:
-						activeProject.settings.background.type === "blur"
-							? "transparent"
-							: activeProject.settings.background.type === "gradient"
-								? activeProject.settings.background.css
-								: activeProject.settings.background.color === "transparent"
-									? TRANSPARENT_BACKGROUND
-									: activeProject.settings.background.color,
-				}}
-			/>
+			{/* Sized wrapper: overlays mount against the exact canvas rect,
+			    same structure as the desktop preview panel. */}
+			<div
+				className="relative"
+				style={{ width: displaySize.width, height: displaySize.height }}
+			>
+				<canvas
+					ref={canvasRef}
+					width={nativeWidth}
+					height={nativeHeight}
+					className="block"
+					style={{
+						width: displaySize.width,
+						height: displaySize.height,
+						background:
+							activeProject.settings.background.type === "blur"
+								? "transparent"
+								: activeProject.settings.background.type === "gradient"
+									? activeProject.settings.background.css
+									: activeProject.settings.background.color === "transparent"
+										? TRANSPARENT_BACKGROUND
+										: activeProject.settings.background.color,
+					}}
+				/>
+				<LayoutGuideOverlay />
+				<PreviewInteractionOverlay
+					canvasRef={canvasRef}
+					displaySize={displaySize}
+				/>
+			</div>
 		</div>
 	);
 }
 
 export function MobilePreview() {
 	const editor = useEditor();
+	const { t } = useTranslation();
 	const isPlaying = editor.playback.getIsPlaying();
+	const { selectedElements } = useElementSelection();
+	const layoutGuidePlatform = useEditorStore((s) => s.layoutGuide.platform);
+	const toggleLayoutGuide = useEditorStore((s) => s.toggleLayoutGuide);
+	const { width: canvasWidth, height: canvasHeight } = usePreviewSize();
 
 	const handleTogglePlay = useCallback(() => {
 		invokeAction("toggle-play");
 	}, []);
 
+	// The full-area play button only exists when it cannot fight the
+	// interaction overlay: paused AND nothing selected. Tap empty canvas to
+	// clear the selection and bring it back.
+	const showPlayButton = !isPlaying && selectedElements.length === 0;
+
+	// The preview region wraps the canvas aspect (CapCut-style) instead of
+	// taking all leftover height: a landscape video on a portrait phone sits
+	// right under the header and the timeline absorbs the freed space. Flex
+	// shrink still lets a portrait canvas consume the full column.
+	const hasCanvas = !!canvasWidth && !!canvasHeight;
+
 	return (
-		<div className="relative flex min-h-[30vh] flex-1 items-center justify-center bg-black">
-			<MobilePreviewCanvas />
+		<div
+			data-preview-container
+			className="bg-background relative flex w-full items-center justify-center"
+			style={
+				hasCanvas
+					? {
+							aspectRatio: `${canvasWidth} / ${canvasHeight}`,
+							minHeight: 120,
+						}
+					: { minHeight: "30vh" }
+			}
+		>
+			<div className="absolute inset-0 flex items-center justify-center bg-black">
+				<MobilePreviewCanvas />
+			</div>
 			<MobileRenderTreeController />
+
+			{/* Floating safe-zone toggle (top-right, above every overlay) */}
+			<button
+				type="button"
+				className={cn(
+					"absolute top-2 right-2 z-[1200] flex size-9 items-center justify-center rounded-full backdrop-blur-sm transition-colors",
+					layoutGuidePlatform === "tiktok"
+						? "bg-primary text-primary-foreground"
+						: "bg-black/50 text-white",
+				)}
+				onClick={() => toggleLayoutGuide("tiktok")}
+				aria-pressed={layoutGuidePlatform === "tiktok"}
+				aria-label={t("TikTok safe zone")}
+			>
+				<HugeiconsIcon icon={SmartPhone01Icon} className="size-4" />
+			</button>
 
 			{/* Tap overlay to toggle play/pause */}
 			<button
 				type="button"
-				className="absolute inset-0 z-10 flex items-center justify-center"
+				className={cn(
+					"absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-150",
+					!showPlayButton && "pointer-events-none opacity-0",
+				)}
 				onClick={handleTogglePlay}
 				onKeyDown={({ key }) => {
 					if (key === "Enter" || key === " ") {
@@ -186,13 +252,10 @@ export function MobilePreview() {
 					}
 				}}
 				aria-label={isPlaying ? "Pause" : "Play"}
+				aria-hidden={!showPlayButton}
+				tabIndex={showPlayButton ? 0 : -1}
 			>
-				<div
-					className={cn(
-						"flex size-14 items-center justify-center rounded-full bg-black/50 text-white transition-opacity duration-200",
-						isPlaying && "pointer-events-none opacity-0",
-					)}
-				>
+				<div className="flex size-14 items-center justify-center rounded-full bg-black/50 text-white">
 					<HugeiconsIcon
 						icon={isPlaying ? PauseIcon : PlayIcon}
 						className="size-7"

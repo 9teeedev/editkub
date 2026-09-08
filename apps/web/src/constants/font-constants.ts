@@ -30,6 +30,13 @@ export const FONT_OPTIONS: FontOption[] = [
 
 	// Google Fonts (loaded in layout.tsx)
 	{
+		value: "Kanit",
+		label: "Kanit (Thai)",
+		category: "google",
+		weights: [400, 500, 700],
+		hasClassName: false,
+	},
+	{
 		value: "Inter",
 		label: "Inter",
 		category: "google",

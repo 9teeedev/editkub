@@ -32,6 +32,7 @@ export const openaiProvider: RemoteTranscriptionProvider = {
 		apiKey,
 		model,
 		language,
+		wordTimestamps,
 	}): Promise<TranscriptionResult> {
 		const useVerbose = model.includes("whisper");
 
@@ -39,6 +40,10 @@ export const openaiProvider: RemoteTranscriptionProvider = {
 		formData.append("file", audioBlob, "audio.wav");
 		formData.append("model", model);
 		formData.append("response_format", useVerbose ? "verbose_json" : "json");
+		// Word granularity makes `segments` come back with one entry per word.
+		if (useVerbose && wordTimestamps) {
+			formData.append("timestamp_granularities[]", "word");
+		}
 
 		if (language && language !== "auto") {
 			formData.append("language", language);

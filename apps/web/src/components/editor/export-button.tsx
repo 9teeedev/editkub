@@ -15,19 +15,27 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/utils/ui";
 import { getExportMimeType, getExportFileExtension } from "@/lib/export";
-import { Check, Copy, Download, RotateCcw } from "lucide-react";
+import { downloadBlob } from "@/lib/download";
+import { Download } from "lucide-react";
 import {
-	EXPORT_FORMAT_VALUES,
-	EXPORT_QUALITY_VALUES,
-	type ExportErrorCode,
+	isExportFormat,
+	isExportQuality,
 	type ExportFormat,
 	type ExportQuality,
 	type ExportResult,
 } from "@/types/export";
+import { ExportError } from "@/components/editor/export-error";
 import { PropertyGroup } from "@/components/editor/panels/properties/property-item";
 import { useEditor } from "@/hooks/use-editor";
 import { DEFAULT_EXPORT_OPTIONS } from "@/constants/export-constants";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
+import {
+	trackEvent,
+	getDurationBucket,
+	getProcessingTimeBucket,
+	normalizeErrorCategory,
+} from "@/lib/analytics";
+import { triggerPostExportNotification } from "@/lib/donation";
 
 export function ExportButton() {
 	const { t } = useTranslation();
@@ -93,6 +101,8 @@ function ExportPopover({
 		if (!activeProject) return;
 
 		const effectiveFormat = formatOverride ?? format;
+		const startTime = performance.now();
+		const totalDuration = editor.timeline.getTotalDuration();
 
 		cancelRequestedRef.current = false;
 		setIsExporting(true);
@@ -113,6 +123,12 @@ function ExportPopover({
 		setIsExporting(false);
 
 		if (result.cancelled) {
+			trackEvent("export_cancelled", {
+				format: effectiveFormat,
+				quality,
+				surface: "desktop",
+				duration_bucket: getDurationBucket(totalDuration),
+			});
 			setExportResult(null);
 			setProgress(0);
 			return;
@@ -120,23 +136,39 @@ function ExportPopover({
 
 		setExportResult(result);
 
+		const processingTimeSec = (performance.now() - startTime) / 1000;
+
 		if (result.success && result.buffer) {
+			trackEvent("export_completed", {
+				format: effectiveFormat,
+				quality,
+				surface: "desktop",
+				duration_bucket: getDurationBucket(totalDuration),
+				processing_time_bucket: getProcessingTimeBucket(processingTimeSec),
+			});
+
 			const mimeType = getExportMimeType({ format: effectiveFormat });
 			const extension = getExportFileExtension({ format: effectiveFormat });
 			const blob = new Blob([result.buffer], { type: mimeType });
-			const url = URL.createObjectURL(blob);
-
-			const a = document.createElement("a");
-			a.href = url;
-			a.download = `${activeProject.metadata.name}${extension}`;
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-			URL.revokeObjectURL(url);
+			downloadBlob({
+				blob,
+				filename: `${activeProject.metadata.name}${extension}`,
+			});
 
 			onOpenChange(false);
 			setExportResult(null);
 			setProgress(0);
+
+			triggerPostExportNotification({ surface: "desktop", t });
+		} else if (!result.success) {
+			trackEvent("export_failed", {
+				format: effectiveFormat,
+				quality,
+				surface: "desktop",
+				duration_bucket: getDurationBucket(totalDuration),
+				processing_time_bucket: getProcessingTimeBucket(processingTimeSec),
+				error_category: normalizeErrorCategory(result.code || result.error),
+			});
 		}
 	};
 
@@ -290,70 +322,3 @@ function ExportPopover({
 	);
 }
 
-function isExportFormat(value: string): value is ExportFormat {
-	return EXPORT_FORMAT_VALUES.some((formatValue) => formatValue === value);
-}
-
-function isExportQuality(value: string): value is ExportQuality {
-	return EXPORT_QUALITY_VALUES.some((qualityValue) => qualityValue === value);
-}
-
-function ExportError({
-	error,
-	code,
-	onRetry,
-	onSwitchToWebM,
-}: {
-	error: string;
-	code?: ExportErrorCode;
-	onRetry: () => void;
-	onSwitchToWebM?: () => void;
-}) {
-	const { t } = useTranslation();
-	const [copied, setCopied] = useState(false);
-
-	const handleCopy = async () => {
-		await navigator.clipboard.writeText(error);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 1000);
-	};
-
-	return (
-		<div className="space-y-4">
-			<div className="flex flex-col gap-1.5">
-				<p className="text-destructive text-sm font-medium">
-					{t("Export failed")}
-				</p>
-				<p className="text-muted-foreground text-xs">{error}</p>
-			</div>
-
-			{onSwitchToWebM && (
-				<Button onClick={onSwitchToWebM} className="w-full gap-2">
-					<Download className="size-4" />
-					{t("Use WebM instead")}
-				</Button>
-			)}
-
-			<div className="flex gap-2">
-				<Button
-					variant="outline"
-					size="sm"
-					className="h-8 flex-1 text-xs"
-					onClick={handleCopy}
-				>
-					{copied ? <Check className="text-constructive" /> : <Copy />}
-					{t("Copy")}
-				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					className="h-8 flex-1 text-xs"
-					onClick={onRetry}
-				>
-					<RotateCcw />
-					{t("Retry")}
-				</Button>
-			</div>
-		</div>
-	);
-}

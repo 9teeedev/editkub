@@ -8,7 +8,12 @@ type MobileDrawerType =
 	| "sticker"
 	| "audio"
 	| "ai"
+	| "captions"
+	| "effects"
+	| "filters"
+	| "transitions"
 	| "properties"
+	| "export"
 	| null;
 
 interface MobileDrawerState {

@@ -82,7 +82,7 @@ export function hitTestElements({
 			});
 
 		for (const element of orderedElements) {
-			if (element.type === "audio") continue;
+			if (element.type === "audio" || element.type === "adjustment") continue;
 			if ("hidden" in element && element.hidden) continue;
 			const isVisible =
 				currentTime >= element.startTime &&

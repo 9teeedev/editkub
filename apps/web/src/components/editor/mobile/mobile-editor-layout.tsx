@@ -11,6 +11,11 @@ import { MobileTextDrawer } from "./mobile-drawer/mobile-text-drawer";
 import { MobileStickerDrawer } from "./mobile-drawer/mobile-sticker-drawer";
 import { MobileAudioDrawer } from "./mobile-drawer/mobile-audio-drawer";
 import { MobileAIDrawer } from "./mobile-drawer/mobile-ai-drawer";
+import { MobileExportDrawer } from "./mobile-drawer/mobile-export-drawer";
+import { MobileCaptionsDrawer } from "./mobile-drawer/mobile-captions-drawer";
+import { MobileEffectsDrawer } from "./mobile-drawer/mobile-effects-drawer";
+import { MobileFiltersDrawer } from "./mobile-drawer/mobile-filters-drawer";
+import { MobileTransitionsDrawer } from "./mobile-drawer/mobile-transitions-drawer";
 import { useCloseDrawerOnInsert } from "./hooks/use-close-drawer-on-insert";
 
 export function MobileEditorLayout() {
@@ -39,6 +44,11 @@ export function MobileEditorLayout() {
 			<MobileStickerDrawer />
 			<MobileAudioDrawer />
 			<MobileAIDrawer />
+			<MobileExportDrawer />
+			<MobileCaptionsDrawer />
+			<MobileEffectsDrawer />
+			<MobileFiltersDrawer />
+			<MobileTransitionsDrawer />
 		</div>
 	);
 }

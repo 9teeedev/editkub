@@ -6,6 +6,7 @@ import type {
 	CreateImageElement,
 	CreateStickerElement,
 	CreateBlurEffectElement,
+	CreateAdjustmentElement,
 	CreateUploadAudioElement,
 	CreateLibraryAudioElement,
 	TextElement,
@@ -15,8 +16,13 @@ import type {
 	VideoElement,
 	ImageElement,
 	StickerElement,
+	BlurEffectElement,
+	AdjustmentElement,
 	UploadAudioElement,
 } from "@/types/timeline";
+import { ADJUSTMENT_DEFAULTS } from "@/constants/adjustment-constants";
+
+export const ADJUSTMENT_NEUTRAL = ADJUSTMENT_DEFAULTS;
 
 export function canElementHaveAudio(
 	element: TimelineElement,
@@ -26,7 +32,13 @@ export function canElementHaveAudio(
 
 export function canElementBeHidden(
 	element: TimelineElement,
-): element is VideoElement | ImageElement | TextElement | StickerElement {
+): element is
+		| VideoElement
+		| ImageElement
+		| TextElement
+		| StickerElement
+		| BlurEffectElement
+		| AdjustmentElement {
 	return element.type !== "audio";
 }
 
@@ -187,6 +199,26 @@ export function buildBlurEffectElement({
 		trimEnd: 0,
 		transform: { scale: 1, position: { x: 0, y: 0 }, rotate: 0 },
 		opacity: 1,
+	};
+}
+
+export function buildAdjustmentElement({
+	startTime,
+	duration = TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION,
+	adjustments = { ...ADJUSTMENT_DEFAULTS },
+}: {
+	startTime: number;
+	duration?: number;
+	adjustments?: typeof ADJUSTMENT_DEFAULTS;
+}): CreateAdjustmentElement {
+	return {
+		type: "adjustment",
+		name: "Adjustment layer",
+		adjustments,
+		duration,
+		startTime,
+		trimStart: 0,
+		trimEnd: 0,
 	};
 }
 

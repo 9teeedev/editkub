@@ -1,0 +1,93 @@
+{
+  "description": "Tiny synthetic test fixture for verifying Thai caption benchmark calculations. No real user recordings or private transcripts are committed.",
+  "samples": [
+    {
+      "sampleId": "synth-01-clean",
+      "category": "clear_single_speaker",
+      "audioDuration": 5.0,
+      "referenceTranscript": "สวัสดีครับ วันนี้เราจะมาตัดต่อวิดีโอด้วยโปรแกรมฟรี",
+      "results": [
+        {
+          "mode": "local",
+          "provider": "whisper-tiny-local",
+          "hypothesisTranscript": "สวัสดี ครับ วันนี้ เรา จะ มา ตัด ต่อ วิดีโอ ด้วย โปรแกรม ฟรี",
+          "processingLatency": 2.1,
+          "cost": 0.0
+        },
+        {
+          "mode": "remote",
+          "provider": "cloud-provider-a",
+          "hypothesisTranscript": "สวัสดีครับ วันนี้เราจะมาตัดต่อวิดีโอด้วยโปรแกรมฟรี",
+          "processingLatency": 0.6,
+          "cost": 0.0001
+        }
+      ]
+    },
+    {
+      "sampleId": "synth-02-noise",
+      "category": "background_noise",
+      "audioDuration": 6.2,
+      "referenceTranscript": "เสียงรบกวนในคาเฟ่แต่ยังฟังออกชัดเจน",
+      "results": [
+        {
+          "mode": "local",
+          "provider": "whisper-tiny-local",
+          "hypothesisTranscript": "เสียง รบ กวน ใน คา เฟ แต่ ยัง ฟัง ออก",
+          "processingLatency": 2.8,
+          "cost": 0.0
+        },
+        {
+          "mode": "remote",
+          "provider": "cloud-provider-a",
+          "hypothesisTranscript": "เสียงรบกวนในคาเฟ่แต่ยังฟังออกชัดเจน",
+          "processingLatency": 0.7,
+          "cost": 0.00012
+        }
+      ]
+    },
+    {
+      "sampleId": "synth-03-code-switch",
+      "category": "thai_english_codeswitching",
+      "audioDuration": 8.0,
+      "referenceTranscript": "ส่งอีเมล update ให้ team ก่อน deadline พรุ่งนี้",
+      "results": [
+        {
+          "mode": "local",
+          "provider": "whisper-tiny-local",
+          "hypothesisTranscript": "ส่ง อีเมล อัปเดต ให้ ทีม ก่อน เดดไลน์ พรุ่งนี้",
+          "processingLatency": 3.2,
+          "cost": 0.0
+        },
+        {
+          "mode": "remote",
+          "provider": "cloud-provider-a",
+          "hypothesisTranscript": "ส่งอีเมล update ให้ team ก่อน deadline พรุ่งนี้",
+          "processingLatency": 0.9,
+          "cost": 0.00016
+        }
+      ]
+    },
+    {
+      "sampleId": "synth-04-proper-nouns",
+      "category": "numbers_names_proper_nouns",
+      "audioDuration": 4.5,
+      "referenceTranscript": "โทร 0812345678 ติดต่อคุณสมชาย",
+      "results": [
+        {
+          "mode": "local",
+          "provider": "whisper-tiny-local",
+          "hypothesisTranscript": "โทร 081-234-5678 ติดต่อคุณสมชาย",
+          "processingLatency": 1.9,
+          "cost": 0.0
+        },
+        {
+          "mode": "remote",
+          "provider": "cloud-provider-a",
+          "hypothesisTranscript": "โทร 0812345678 ติดต่อคุณสมชาย",
+          "processingLatency": 0.5,
+          "cost": 0.00009
+        }
+      ]
+    }
+  ]
+}

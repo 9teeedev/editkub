@@ -7,6 +7,7 @@ import { VideoProperties } from "./video-properties";
 import { TextProperties } from "./text-properties";
 import { StickerProperties } from "./sticker-properties";
 import { BlurEffectProperties } from "./blur-effect-properties";
+import { AdjustmentProperties } from "./adjustment-properties";
 import { EmptyView } from "./empty-view";
 import { useEditor } from "@/hooks/use-editor";
 import { useElementSelection } from "@/hooks/timeline/element/use-element-selection";
@@ -95,6 +96,15 @@ export function PropertiesPanel() {
 								.element as import("@/types/timeline").BlurEffectElement
 						}
 						trackId={grouped["blur-effect"][0].track.id}
+					/>
+				)}
+				{grouped.adjustment && grouped.adjustment.length > 0 && (
+					<AdjustmentProperties
+						_element={
+							grouped.adjustment[0]
+								.element as import("@/types/timeline").AdjustmentElement
+						}
+						trackId={grouped.adjustment[0].track.id}
 					/>
 				)}
 				</ScrollArea>

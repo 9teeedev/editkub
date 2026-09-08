@@ -7,6 +7,7 @@ import type {
 	StickerTrack,
 	TextTrack,
 	EffectTrack,
+	AdjustmentTrack,
 	TimelineElement,
 } from "@/types/timeline";
 import {
@@ -24,7 +25,12 @@ export function canTracktHaveAudio(
 
 export function canTrackBeHidden(
 	track: TimelineTrack,
-): track is VideoTrack | TextTrack | StickerTrack | EffectTrack {
+): track is
+		| VideoTrack
+		| TextTrack
+		| StickerTrack
+		| EffectTrack
+		| AdjustmentTrack {
 	return track.type !== "audio";
 }
 
@@ -86,10 +92,12 @@ export function buildEmptyTrack({
 				? "Text track"
 				: type === "audio"
 					? "Audio track"
-						: type === "sticker"
-							? "Sticker track"
-							: type === "effect"
-								? "Effect track"
+					: type === "sticker"
+						? "Sticker track"
+						: type === "effect"
+							? "Effect track"
+							: type === "adjustment"
+								? "Adjustment track"
 								: "Track");
 
 	switch (type) {
@@ -127,6 +135,14 @@ export function buildEmptyTrack({
 				elements: [],
 				hidden: false,
 			};
+		case "adjustment":
+			return {
+				id,
+				name: trackName,
+				type: "adjustment",
+				elements: [],
+				hidden: false,
+			};
 		case "audio":
 			return {
 				id,
@@ -149,6 +165,11 @@ export function getDefaultInsertIndexForTrack({
 }): number {
 	if (trackType === "audio") {
 		return tracks.length;
+	}
+
+	// Adjustment layers grade everything below them — default to the top.
+	if (trackType === "adjustment") {
+		return 0;
 	}
 
 	const mainTrackIndex = tracks.findIndex((track) => isMainTrack(track));
@@ -228,6 +249,7 @@ export function canElementGoOnTrack({
 	if (elementType === "audio") return trackType === "audio";
 	if (elementType === "sticker") return trackType === "sticker";
 	if (elementType === "blur-effect") return trackType === "effect";
+	if (elementType === "adjustment") return trackType === "adjustment";
 	if (elementType === "video" || elementType === "image") {
 		return trackType === "video";
 	}
@@ -274,7 +296,7 @@ export function hasContentBelowElement({
 		for (const e of t.elements) {
 			if (e.id === elementId) continue;
 			if ("hidden" in e && e.hidden) continue;
-			if (e.type === "audio") continue; // audio doesn't render pixels
+			if (e.type === "audio" || e.type === "adjustment") continue;
 			const eEnd = e.startTime + e.duration;
 			// Overlap test (half-open like the renderer's range check).
 			if (e.startTime < targetEnd && eEnd > targetStart) {

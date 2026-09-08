@@ -14,6 +14,11 @@ import type { MediaAsset } from "@/types/assets";
 import { getTextScaleFactor } from "@/constants/text-constants";
 import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
+import { canvasFontFamily } from "@/lib/canvas-fonts";
+import {
+	wrapCaptionWords,
+	scaleBoxWidth,
+} from "@/services/renderer/nodes/text-node";
 
 type ScaleHandle = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 type ResizeHandle = "left" | "right" | "top" | "bottom";
@@ -21,6 +26,8 @@ type ResizeHandle = "left" | "right" | "top" | "bottom";
 const HANDLE_SIZE = 10;
 const RESIZE_HANDLE_WIDTH = 6;
 const RESIZE_HANDLE_HEIGHT = 24;
+/** Invisible hit zone around every handle — fingers need ≥28px. */
+const HANDLE_HIT_SIZE = 30;
 
 const SCALE_HANDLES: ScaleHandle[] = [
 	"top-left",
@@ -29,7 +36,7 @@ const SCALE_HANDLES: ScaleHandle[] = [
 	"bottom-right",
 ];
 
-interface ElementBounds {
+export interface ElementBounds {
 	left: number;
 	top: number;
 	width: number;
@@ -37,16 +44,28 @@ interface ElementBounds {
 	rotate: number;
 }
 
-function getHandlePosition({ handle }: { handle: ScaleHandle }) {
+function getHandleHitPosition({ handle }: { handle: ScaleHandle }) {
 	switch (handle) {
 		case "top-left":
-			return { left: -HANDLE_SIZE / 2, top: -HANDLE_SIZE / 2 };
+			return {
+				left: -HANDLE_HIT_SIZE / 2,
+				top: -HANDLE_HIT_SIZE / 2,
+			};
 		case "top-right":
-			return { right: -HANDLE_SIZE / 2, top: -HANDLE_SIZE / 2 };
+			return {
+				right: -HANDLE_HIT_SIZE / 2,
+				top: -HANDLE_HIT_SIZE / 2,
+			};
 		case "bottom-left":
-			return { left: -HANDLE_SIZE / 2, bottom: -HANDLE_SIZE / 2 };
+			return {
+				left: -HANDLE_HIT_SIZE / 2,
+				bottom: -HANDLE_HIT_SIZE / 2,
+			};
 		case "bottom-right":
-			return { right: -HANDLE_SIZE / 2, bottom: -HANDLE_SIZE / 2 };
+			return {
+				right: -HANDLE_HIT_SIZE / 2,
+				bottom: -HANDLE_HIT_SIZE / 2,
+			};
 	}
 }
 
@@ -61,39 +80,115 @@ function getHandleCursor({ handle }: { handle: ScaleHandle }) {
 	}
 }
 
-function computeMediaBounds({
+/**
+ * Bounds of the element's *rendered* (post-crop) frame on screen, mirroring
+ * the renderer's contain-fit math. Exported for the crop overlay.
+ */
+export function computeMediaBounds({
 	element,
 	media,
 	canvasWidth,
 	canvasHeight,
 	displayScale,
+	uncropped = false,
 }: {
 	element: VideoElement | ImageElement;
 	media: MediaAsset | undefined;
 	canvasWidth: number;
 	canvasHeight: number;
 	displayScale: number;
+	/** Skip the crop so the overlay can show the full source frame. */
+	uncropped?: boolean;
 }): ElementBounds | null {
 	if (!media) return null;
 
 	const mediaW = media.width || canvasWidth;
 	const mediaH = media.height || canvasHeight;
 	const containScale = Math.min(canvasWidth / mediaW, canvasHeight / mediaH);
-	const scaledW = mediaW * containScale * element.transform.scale;
-	const scaledH = mediaH * containScale * element.transform.scale;
+	const fullW = mediaW * containScale * element.transform.scale;
+	const fullH = mediaH * containScale * element.transform.scale;
+	const baseX = canvasWidth / 2 + element.transform.position.x - fullW / 2;
+	const baseY = canvasHeight / 2 + element.transform.position.y - fullH / 2;
 
-	const canvasX =
-		canvasWidth / 2 + element.transform.position.x - scaledW / 2;
-	const canvasY =
-		canvasHeight / 2 + element.transform.position.y - scaledH / 2;
+	// Crop keeps the uncropped layout; the visible box is the kept sub-rect
+	// at its original position (mirrors the renderer's drawImage source rect).
+	const crop = element.crop;
+	if (!uncropped && crop) {
+		return {
+			left: (baseX + crop.x * fullW) * displayScale,
+			top: (baseY + crop.y * fullH) * displayScale,
+			width: crop.width * fullW * displayScale,
+			height: crop.height * fullH * displayScale,
+			rotate: element.transform.rotate,
+		};
+	}
 
 	return {
-		left: canvasX * displayScale,
-		top: canvasY * displayScale,
-		width: scaledW * displayScale,
-		height: scaledH * displayScale,
+		left: baseX * displayScale,
+		top: baseY * displayScale,
+		width: fullW * displayScale,
+		height: fullH * displayScale,
 		rotate: element.transform.rotate,
 	};
+}
+
+// Offscreen context reused for measuring caption text — same font metrics
+// as the renderer, so bounds hug the drawn words.
+let measureContext: CanvasRenderingContext2D | null = null;
+function getMeasureContext(): CanvasRenderingContext2D | null {
+	if (measureContext) return measureContext;
+	if (typeof document === "undefined") return null;
+	const canvas = document.createElement("canvas");
+	canvas.width = 8;
+	canvas.height = 8;
+	measureContext = canvas.getContext("2d");
+	return measureContext;
+}
+
+/**
+ * Measure a karaoke caption element with real font metrics using the
+ * renderer's own word-wrap layout — character-count estimates drift badly
+ * for Thai (combining marks) and loaded web fonts.
+ */
+function measureCaptionTextBounds({
+	element,
+	canvasWidth,
+	canvasHeight,
+}: {
+	element: TextElement;
+	canvasWidth: number;
+	canvasHeight: number;
+}): { width: number; height: number } | null {
+	const context = getMeasureContext();
+	if (!context || !element.wordTimings || element.wordTimings.length === 0) {
+		return null;
+	}
+
+	const scaleFactor = getTextScaleFactor({ canvasWidth, canvasHeight });
+	const scaledFontSize = element.fontSize * scaleFactor;
+	const fontStyle = element.fontStyle === "italic" ? "italic" : "normal";
+	const fontWeight = element.fontWeight === "bold" ? "bold" : "normal";
+	context.font = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${canvasFontFamily(element.fontFamily)}`;
+
+	const spaceWidth = context.measureText(" ").width;
+	const hasBoxWidth = element.boxWidth !== undefined && element.boxWidth > 0;
+	const maxWidth = hasBoxWidth
+		? scaleBoxWidth({
+				boxWidth: element.boxWidth as number,
+				canvasWidth,
+				canvasHeight,
+			})
+		: canvasWidth * 0.8;
+
+	const lines = wrapCaptionWords({
+		context,
+		words: element.wordTimings,
+		spaceWidth,
+		maxWidth,
+	});
+	const lineHeight = scaledFontSize * 1.3;
+	const width = Math.max(...lines.map((line) => line.width));
+	return { width, height: lines.length * lineHeight };
 }
 
 function computeTextBounds({
@@ -119,7 +214,17 @@ function computeTextBounds({
 	let estimatedHeight: number;
 	const elementScale = element.transform.scale;
 
-	if (hasBoxWidth) {
+	// Karaoke captions: measure the real wrapped layout instead of
+	// estimating from character counts.
+	const measured = measureCaptionTextBounds({
+		element,
+		canvasWidth,
+		canvasHeight,
+	});
+	if (measured) {
+		estimatedWidth = measured.width;
+		estimatedHeight = measured.height;
+	} else if (hasBoxWidth) {
 		estimatedWidth = scaledBoxWidth;
 		const lineHeight = scaledFontSize * 1.3;
 		const charsPerLine = Math.max(
@@ -348,22 +453,29 @@ function ElementOverlay({
 				)}
 			/>
 
-			{/* Corner handles (proportional scale) */}
+			{/* Corner handles (proportional scale) — fat invisible hit zones so
+			    fingers can grab them; the visible dot stays HANDLE_SIZE. */}
 			{SCALE_HANDLES.map((handle) => (
 				<div
 					key={handle}
-					className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+					className="pointer-events-auto absolute flex items-center justify-center"
 					style={{
-						width: HANDLE_SIZE,
-						height: HANDLE_SIZE,
+						width: HANDLE_HIT_SIZE,
+						height: HANDLE_HIT_SIZE,
 						cursor: getHandleCursor({ handle }),
-						...getHandlePosition({ handle }),
+						touchAction: "none",
+						...getHandleHitPosition({ handle }),
 					}}
 					onPointerDown={(event) => {
 						event.stopPropagation();
 						onScaleStart({ event, handle });
 					}}
-				/>
+				>
+					<div
+						className="bg-primary border-background rounded-sm border"
+						style={{ width: HANDLE_SIZE, height: HANDLE_SIZE }}
+					/>
+				</div>
 			))}
 
 			{/* Side handles for text width resize */}
@@ -371,12 +483,13 @@ function ElementOverlay({
 				<>
 					{/* Left handle */}
 					<div
-						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						className="pointer-events-auto absolute flex items-center justify-center"
 						style={{
-							width: RESIZE_HANDLE_WIDTH,
-							height: RESIZE_HANDLE_HEIGHT,
+							width: HANDLE_HIT_SIZE,
+							height: HANDLE_HIT_SIZE + RESIZE_HANDLE_HEIGHT - HANDLE_SIZE,
 							cursor: "ew-resize",
-							left: -RESIZE_HANDLE_WIDTH / 2,
+							touchAction: "none",
+							left: -HANDLE_HIT_SIZE / 2,
 							top: "50%",
 							transform: "translateY(-50%)",
 						}}
@@ -384,15 +497,24 @@ function ElementOverlay({
 							event.stopPropagation();
 							onResizeStart({ event, handle: "left" });
 						}}
-					/>
+					>
+						<div
+							className="bg-primary border-background rounded-sm border"
+							style={{
+								width: RESIZE_HANDLE_WIDTH,
+								height: RESIZE_HANDLE_HEIGHT,
+							}}
+						/>
+					</div>
 					{/* Right handle */}
 					<div
-						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						className="pointer-events-auto absolute flex items-center justify-center"
 						style={{
-							width: RESIZE_HANDLE_WIDTH,
-							height: RESIZE_HANDLE_HEIGHT,
+							width: HANDLE_HIT_SIZE,
+							height: HANDLE_HIT_SIZE + RESIZE_HANDLE_HEIGHT - HANDLE_SIZE,
 							cursor: "ew-resize",
-							right: -RESIZE_HANDLE_WIDTH / 2,
+							touchAction: "none",
+							right: -HANDLE_HIT_SIZE / 2,
 							top: "50%",
 							transform: "translateY(-50%)",
 						}}
@@ -400,7 +522,15 @@ function ElementOverlay({
 							event.stopPropagation();
 							onResizeStart({ event, handle: "right" });
 						}}
-					/>
+					>
+						<div
+							className="bg-primary border-background rounded-sm border"
+							style={{
+								width: RESIZE_HANDLE_WIDTH,
+								height: RESIZE_HANDLE_HEIGHT,
+							}}
+						/>
+					</div>
 				</>
 			)}
 
@@ -409,12 +539,13 @@ function ElementOverlay({
 				<>
 					{/* Top handle */}
 					<div
-						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						className="pointer-events-auto absolute flex items-center justify-center"
 						style={{
-							width: RESIZE_HANDLE_HEIGHT,
-							height: RESIZE_HANDLE_WIDTH,
+							width: HANDLE_HIT_SIZE + RESIZE_HANDLE_HEIGHT - HANDLE_SIZE,
+							height: HANDLE_HIT_SIZE,
 							cursor: "ns-resize",
-							top: -RESIZE_HANDLE_WIDTH / 2,
+							touchAction: "none",
+							top: -HANDLE_HIT_SIZE / 2,
 							left: "50%",
 							transform: "translateX(-50%)",
 						}}
@@ -422,15 +553,24 @@ function ElementOverlay({
 							event.stopPropagation();
 							onResizeStart({ event, handle: "top" });
 						}}
-					/>
+					>
+						<div
+							className="bg-primary border-background rounded-sm border"
+							style={{
+								width: RESIZE_HANDLE_HEIGHT,
+								height: RESIZE_HANDLE_WIDTH,
+							}}
+						/>
+					</div>
 					{/* Bottom handle */}
 					<div
-						className="bg-primary border-background pointer-events-auto absolute rounded-sm border"
+						className="pointer-events-auto absolute flex items-center justify-center"
 						style={{
-							width: RESIZE_HANDLE_HEIGHT,
-							height: RESIZE_HANDLE_WIDTH,
+							width: HANDLE_HIT_SIZE + RESIZE_HANDLE_HEIGHT - HANDLE_SIZE,
+							height: HANDLE_HIT_SIZE,
 							cursor: "ns-resize",
-							bottom: -RESIZE_HANDLE_WIDTH / 2,
+							touchAction: "none",
+							bottom: -HANDLE_HIT_SIZE / 2,
 							left: "50%",
 							transform: "translateX(-50%)",
 						}}
@@ -438,7 +578,15 @@ function ElementOverlay({
 							event.stopPropagation();
 							onResizeStart({ event, handle: "bottom" });
 						}}
-					/>
+					>
+						<div
+							className="bg-primary border-background rounded-sm border"
+							style={{
+								width: RESIZE_HANDLE_HEIGHT,
+								height: RESIZE_HANDLE_WIDTH,
+							}}
+						/>
+					</div>
 				</>
 			)}
 		</div>
@@ -500,7 +648,7 @@ export function SelectionOverlay({
 	});
 
 	const visibleElements = elementsWithTracks.filter(({ element }) => {
-		if (element.type === "audio") return false;
+		if (element.type === "audio" || element.type === "adjustment") return false;
 		return (
 			currentTime >= element.startTime &&
 			currentTime < element.startTime + element.duration

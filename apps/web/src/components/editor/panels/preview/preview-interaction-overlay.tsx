@@ -2,8 +2,10 @@ import { useRef } from "react";
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
 import { usePreviewInteraction } from "@/hooks/use-preview-interaction";
 import { useChromaPickerStore } from "@/stores/chroma-picker-store";
+import { useCropStore } from "@/stores/crop-store";
 import { cn } from "@/utils/ui";
 import { SelectionOverlay } from "./selection-overlay";
+import { CropOverlay } from "./crop-overlay";
 import { GuideLines } from "./guide-lines";
 
 export function PreviewInteractionOverlay({
@@ -16,6 +18,7 @@ export function PreviewInteractionOverlay({
 	const overlayRef = useRef<HTMLDivElement>(null);
 	const { t } = useTranslation();
 	const isPickingChroma = useChromaPickerStore((state) => state.isPicking);
+	const cropElementId = useCropStore((state) => state.elementId);
 	const {
 		onPointerDown,
 		onPointerMove,
@@ -35,12 +38,13 @@ export function PreviewInteractionOverlay({
 		<div
 			ref={overlayRef}
 			className={cn(
-				"pointer-events-auto absolute inset-0",
+				"pointer-events-auto absolute inset-0 touch-none",
 				isPickingChroma && "cursor-crosshair",
 			)}
 			onPointerDown={onPointerDown}
 			onPointerMove={onPointerMove}
 			onPointerUp={onPointerUp}
+			onPointerCancel={onPointerUp}
 			onPointerLeave={clearChromaPreview}
 		>
 			{isPickingChroma && chromaPreview && (
@@ -66,13 +70,16 @@ export function PreviewInteractionOverlay({
 				canvasWidth={canvasWidth}
 				canvasHeight={canvasHeight}
 			/>
-			{!isPickingChroma && (
+			{!isPickingChroma && !cropElementId && (
 				<SelectionOverlay
 					displaySize={displaySize}
 					onScaleStart={onScaleStart}
 					onResizeStart={onResizeStart}
 					isTransforming={isTransforming}
 				/>
+			)}
+			{!isPickingChroma && cropElementId && (
+				<CropOverlay displaySize={displaySize} />
 			)}
 		</div>
 	);

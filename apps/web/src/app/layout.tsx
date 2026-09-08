@@ -1,9 +1,10 @@
 import Script from "next/script";
 import type { Viewport } from "next";
+import { ThemeProvider } from "next-themes";
 
 import "./globals.css";
 import { baseMetaData } from "./metadata";
-import { Inter, Figtree, Geist_Mono } from "next/font/google";
+import { Inter, Figtree, Geist_Mono, Kanit } from "next/font/google";
 import {
 	initServerI18n,
 	getLocale,
@@ -13,6 +14,14 @@ import { i18nConfig } from "../i18n.config";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
+// Thai caption font — self-hosted by next/font; canvas text resolves the
+// generated family via --font-kanit (see lib/canvas-fonts).
+const kanit = Kanit({
+	subsets: ["latin", "thai"],
+	weight: ["400", "500", "700"],
+	variable: "--font-kanit",
+	display: "swap",
+});
 
 export const metadata = baseMetaData;
 
@@ -33,7 +42,7 @@ export default async function RootLayout({
 		<html
 			lang={locale}
 			suppressHydrationWarning
-			className={`${inter.variable} ${figtree.variable} ${geistMono.variable}`}
+			className={`${inter.variable} ${figtree.variable} ${geistMono.variable} ${kanit.variable}`}
 		>
 			<head>
 				<Script
@@ -42,7 +51,13 @@ export default async function RootLayout({
 				/>
 			</head>
 			<body className="font-sans antialiased">
-				{children}
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="dark"
+					disableTransitionOnChange={true}
+				>
+					{children}
+				</ThemeProvider>
 			</body>
 		</html>
 	);

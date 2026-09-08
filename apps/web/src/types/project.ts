@@ -1,5 +1,6 @@
 import type { TScene } from "./timeline";
 import type { AgentMessage } from "@/lib/ai/agent/types";
+import type { TranscriptData } from "./transcript";
 
 export type TBackground =
 	| {
@@ -58,6 +59,8 @@ export interface TProject {
 	timelineViewState?: TTimelineViewState;
 	layoutMode?: TEditorLayoutMode;
 	agentMessages?: AgentMessage[];
+	/** Word-level transcript the caption elements are derived from. */
+	transcript?: TranscriptData;
 }
 
 export type TProjectSortKey = "createdAt" | "updatedAt" | "name" | "duration";

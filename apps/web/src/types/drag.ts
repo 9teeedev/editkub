@@ -25,8 +25,13 @@ export interface BlurEffectDragData extends BaseDragData {
 	blurIntensity: number;
 }
 
+export interface AdjustmentDragData extends BaseDragData {
+	type: "adjustment";
+}
+
 export type TimelineDragData =
 	| MediaDragData
 	| TextDragData
 	| StickerDragData
-	| BlurEffectDragData;
+	| BlurEffectDragData
+	| AdjustmentDragData;

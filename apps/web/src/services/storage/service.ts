@@ -116,6 +116,7 @@ class StorageService {
 			layoutMode: project.layoutMode,
 			timelineViewState: project.timelineViewState,
 			agentMessages: project.agentMessages,
+			transcript: project.transcript,
 		};
 
 		await this.projectsAdapter.set(project.metadata.id, serializedProject);
@@ -164,6 +165,7 @@ class StorageService {
 			layoutMode: serializedProject.layoutMode,
 			timelineViewState: serializedProject.timelineViewState,
 			agentMessages: serializedProject.agentMessages ?? [],
+			transcript: serializedProject.transcript,
 		};
 
 		return { project };
