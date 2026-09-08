@@ -30,6 +30,14 @@ export interface Announcement {
  */
 export const ANNOUNCEMENTS: Announcement[] = [
 	{
+		id: "2026-09-08-agent-providers",
+		tag: "new",
+		date: "2026-09-08",
+		title: "More AI providers for the agent",
+		description:
+			"Choose OpenAI or Anthropic API format, pick a model from your provider's list, and use providers that block browser requests (z.ai, TokenRouter) via the server relay.",
+	},
+	{
 		id: "2026-08-31-adjustment-layers",
 		tag: "new",
 		date: "2026-08-31",
