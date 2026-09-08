@@ -49,6 +49,18 @@ export default function PrivacyPage() {
 								models without sending audio over the network.
 							</li>
 							<li>
+								AI Agent requests run directly from your browser to your configured
+								LLM endpoint, transmitting prompts and timeline metadata. AI image
+								and video generation may route through Editkub server endpoints
+								depending on the provider, and reference images are uploaded only
+								when explicitly selected.
+							</li>
+							<li>
+								AI provider API keys are retained only in temporary browser session
+								storage for the active tab — they are never saved permanently to
+								local storage or stored on Editkub servers.
+							</li>
+							<li>
 								Remote captions are strictly opt-in: audio is sent directly to
 								the third-party provider you select (Groq, OpenAI, or
 								OpenRouter) using your own API key.
@@ -99,6 +111,17 @@ export default function PrivacyPage() {
 					data or transcripts are uploaded to any server.
 				</p>
 				<p>
+					<strong>AI Agent & media generation:</strong> When you interact with
+					the AI Agent, prompts and timeline metadata are transmitted directly
+					from your browser to your configured OpenAI-compatible LLM endpoint
+					using your provided API key. Editkub does not intercept, log, or
+					store your Agent prompts or conversations. For AI image and video
+					generation, requests may pass through Editkub server routes depending
+					on the provider, and reference images are uploaded only when you
+					explicitly choose them for generation. Third-party processing is
+					governed by each provider's privacy policy.
+				</p>
+				<p>
 					<strong>Optional remote caption providers:</strong> If you explicitly
 					choose a remote cloud provider (such as Groq, OpenAI, or OpenRouter)
 					in settings, your browser transmits the audio clip directly to that
@@ -127,7 +150,7 @@ export default function PrivacyPage() {
 				<ul className="list-disc space-y-2 pl-6">
 					<li>Audio, video, image, or subtitle files</li>
 					<li>Project names, file names, or generated media identifiers</li>
-					<li>Caption text, transcripts, or user input text</li>
+					<li>Caption text, transcripts, prompts, or user input text</li>
 					<li>Media URLs, API keys, tokens, or authorization headers</li>
 					<li>
 						Personal identifying information or contact details without consent
@@ -136,9 +159,11 @@ export default function PrivacyPage() {
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-2xl font-semibold">Local Storage & IndexedDB</h2>
+				<h2 className="text-2xl font-semibold">
+					Local Storage, Session Storage & IndexedDB
+				</h2>
 				<p>
-					Editkub relies on browser-local storage to function without accounts:
+					Editkub relies on browser storage to function without accounts:
 				</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>
@@ -146,8 +171,15 @@ export default function PrivacyPage() {
 						assets, and timeline edits locally on your machine.
 					</li>
 					<li>
-						<strong>Local Storage:</strong> Remembers your editor preferences,
-						layout settings, and non-intrusive notification cooldowns.
+						<strong>Local Storage:</strong> Remembers your non-secret editor
+						preferences, layout settings, and notification cooldowns. Local
+						Storage never retains AI provider API keys.
+					</li>
+					<li>
+						<strong>Session Storage:</strong> Holds user-supplied AI provider
+						API keys strictly for the active browser session so you do not
+						need to re-enter them across page reloads in the same tab. Keys are
+						discarded when the session ends or when you clear them.
 					</li>
 				</ul>
 				<p>

@@ -19,9 +19,24 @@ import type {
 	AgentStatus,
 	PendingToolConfirmation,
 } from "@/lib/ai/agent/types";
+import {
+	clearSessionSecret,
+	getSessionSecret,
+	setSessionSecret,
+} from "@/lib/storage/session-secrets";
+import { migrateLegacySecrets } from "@/lib/storage/legacy-secrets-migration";
+import { validateAgentEndpoint } from "@/lib/ai/agent/endpoint-validation";
+
+// Run legacy localStorage secret migration safely on startup
+migrateLegacySecrets();
+
+interface AgentPersistedConfig {
+	baseUrl: string;
+	model: string;
+}
 
 interface AgentPersistedState {
-	config: AgentLLMConfig;
+	config: AgentPersistedConfig;
 	autoMode: boolean;
 	isOpen: boolean;
 	expertRole: ExpertRoleId;
@@ -29,8 +44,13 @@ interface AgentPersistedState {
 	modelList: ModelEntry[];
 }
 
-interface AgentState extends AgentPersistedState {
+interface AgentState {
+	config: AgentLLMConfig;
+	autoMode: boolean;
 	isOpen: boolean;
+	expertRole: ExpertRoleId;
+	contextWindow: number;
+	modelList: ModelEntry[];
 	messages: AgentMessage[];
 	status: AgentStatus;
 	currentToolCall: string | null;
@@ -50,6 +70,7 @@ interface AgentState extends AgentPersistedState {
 	clearMessages: () => void;
 	setAutoMode: (enabled: boolean) => void;
 	setConfig: (config: Partial<AgentLLMConfig>) => void;
+	forgetApiKey: () => void;
 	setExpertRole: (roleId: ExpertRoleId) => void;
 	setContextWindow: (tokens: number) => void;
 	fetchModels: () => Promise<void>;
@@ -60,12 +81,26 @@ interface AgentState extends AgentPersistedState {
 let abortController: AbortController | null = null;
 let confirmationResolver: ((confirmed: boolean) => void) | null = null;
 
+export const partializeAgentSettings = (
+	state: AgentState,
+): AgentPersistedState => ({
+	config: {
+		baseUrl: state.config.baseUrl,
+		model: state.config.model,
+	},
+	autoMode: state.autoMode,
+	isOpen: state.isOpen,
+	expertRole: state.expertRole,
+	contextWindow: state.contextWindow,
+	modelList: state.modelList,
+});
+
 export const useAgentStore = create<AgentState>()(
 	persist(
 		(set, get) => ({
 			config: {
 				baseUrl: "",
-				apiKey: "",
+				apiKey: getSessionSecret("agent-api-key"),
 				model: "",
 			},
 			autoMode: false,
@@ -101,6 +136,8 @@ export const useAgentStore = create<AgentState>()(
 			sendMessage: async (content: string) => {
 				const state = get();
 				if (state.status !== "idle") return;
+				const validation = validateAgentEndpoint(state.config.baseUrl);
+				if (!validation.isValid) return;
 				if (!state.config.apiKey) return;
 
 				const userMessage: AgentMessage = {
@@ -251,8 +288,26 @@ export const useAgentStore = create<AgentState>()(
 			},
 
 			setConfig: (config) => {
+				set((prev) => {
+					const nextConfig = { ...prev.config, ...config };
+					if ("apiKey" in config) {
+						const key = config.apiKey ?? "";
+						if (key.trim()) {
+							setSessionSecret("agent-api-key", key.trim());
+						} else {
+							clearSessionSecret("agent-api-key");
+						}
+					}
+					return {
+						config: nextConfig,
+					};
+				});
+			},
+
+			forgetApiKey: () => {
+				clearSessionSecret("agent-api-key");
 				set((prev) => ({
-					config: { ...prev.config, ...config },
+					config: { ...prev.config, apiKey: "" },
 				}));
 			},
 
@@ -267,6 +322,8 @@ export const useAgentStore = create<AgentState>()(
 			fetchModels: async () => {
 				const state = get();
 				if (state.modelFetchStatus === "loading") return;
+				const validation = validateAgentEndpoint(state.config.baseUrl);
+				if (!validation.isValid) return;
 				const { baseUrl, apiKey } = state.config;
 				if (!apiKey) return;
 				set({ modelFetchStatus: "loading", modelFetchError: null });
@@ -310,18 +367,21 @@ export const useAgentStore = create<AgentState>()(
 		}),
 		{
 			name: "agent-settings",
-			partialize: (state): AgentPersistedState => ({
-				config: state.config,
-				autoMode: state.autoMode,
-				isOpen: state.isOpen,
-				expertRole: state.expertRole,
-				contextWindow: state.contextWindow,
-				modelList: state.modelList,
-			}),
-			merge: (persisted, current) => ({
-				...(current as AgentState),
-				...(persisted as Partial<AgentPersistedState>),
-			}),
+			partialize: partializeAgentSettings,
+			merge: (persisted, current) => {
+				const p = persisted as Partial<AgentPersistedState> | undefined;
+				return {
+					...(current as AgentState),
+					...p,
+					config: {
+						...current.config,
+						...(p?.config
+							? { baseUrl: p.config.baseUrl, model: p.config.model }
+							: {}),
+						apiKey: current.config.apiKey,
+					},
+				};
+			},
 		},
 	),
 );

@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { MANAGE_MODELS_VALUE, findContextTag } from "@/lib/ai/agent/model-list";
 import type { AgentStatus } from "@/lib/ai/agent/types";
+import { validateAgentEndpoint } from "@/lib/ai/agent/endpoint-validation";
 import { useAgentStore } from "@/stores/agent-store";
 import { ArrowUp02Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -45,6 +46,9 @@ export function AgentInput({
 	const modelInList = modelList.some((entry) => entry.id === model);
 	const hasList = modelList.length > 0;
 
+	const endpointValidation = validateAgentEndpoint(config.baseUrl);
+	const isConfigValid = endpointValidation.isValid && Boolean(config.apiKey);
+
 	const handleModelChange = useCallback(
 		(value: string) => {
 			if (value === MANAGE_MODELS_VALUE) {
@@ -60,19 +64,19 @@ export function AgentInput({
 		(open: boolean) => {
 			// First open with an empty list: pull the model list from the
 			// configured endpoint so the dropdown reflects the user's API.
-			if (open && !hasList && config.apiKey) {
+			if (open && !hasList && config.apiKey && endpointValidation.isValid) {
 				void fetchModels();
 			}
 		},
-		[config.apiKey, fetchModels, hasList],
+		[config.apiKey, endpointValidation.isValid, fetchModels, hasList],
 	);
 
 	const handleSend = useCallback(() => {
 		const trimmed = input.trim();
-		if (!trimmed || isBusy) return;
+		if (!trimmed || isBusy || !isConfigValid) return;
 		onSend(trimmed);
 		setInput("");
-	}, [input, isBusy, onSend]);
+	}, [input, isBusy, isConfigValid, onSend]);
 
 	const handleKeyDown = useCallback(
 		(event: React.KeyboardEvent) => {
@@ -110,7 +114,7 @@ export function AgentInput({
 							type="button"
 							size="icon"
 							onClick={handleSend}
-							disabled={!input.trim()}
+							disabled={!input.trim() || !isConfigValid}
 							title={t("Send")}
 						>
 							<HugeiconsIcon icon={ArrowUp02Icon} className="h-4 w-4" />

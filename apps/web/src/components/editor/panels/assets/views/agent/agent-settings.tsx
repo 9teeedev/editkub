@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslation } from "@i18next-toolkit/nextjs-approuter";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,14 +10,24 @@ import { Switch } from "@/components/ui/switch";
 import { findContextTag, type ModelEntry } from "@/lib/ai/agent/model-list";
 import { useAgentStore } from "@/stores/agent-store";
 import {
+	type ConnectionTestState,
+	sanitizeConnectionError,
+	validateAgentEndpoint,
+} from "@/lib/ai/agent/endpoint-validation";
+import { testAgentConnection } from "@/lib/ai/agent/test-connection";
+import {
 	Add01Icon,
+	Alert02Icon,
 	CheckmarkCircle02Icon,
 	Cancel01Icon,
 	Delete02Icon,
 	PencilEdit01Icon,
 	RefreshIcon,
+	ViewIcon,
+	ViewOffSlashIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { cn } from "@/utils/ui";
 
 function ModelRow({ entry }: { entry: ModelEntry }) {
 	const { t } = useTranslation();
@@ -133,6 +143,7 @@ export function AgentSettings() {
 	const config = useAgentStore((s) => s.config);
 	const autoMode = useAgentStore((s) => s.autoMode);
 	const setConfig = useAgentStore((s) => s.setConfig);
+	const forgetApiKey = useAgentStore((s) => s.forgetApiKey);
 	const setAutoMode = useAgentStore((s) => s.setAutoMode);
 	const contextWindow = useAgentStore((s) => s.contextWindow);
 	const setContextWindow = useAgentStore((s) => s.setContextWindow);
@@ -142,110 +153,286 @@ export function AgentSettings() {
 	const fetchModels = useAgentStore((s) => s.fetchModels);
 	const upsertModel = useAgentStore((s) => s.upsertModel);
 
+	const [showApiKey, setShowApiKey] = useState(false);
+	const [isTesting, setIsTesting] = useState(false);
+	const [testStatus, setTestStatus] = useState<{
+		state: ConnectionTestState;
+		message: string;
+	} | null>(null);
+
+	const abortRef = useRef<AbortController | null>(null);
+
+	useEffect(() => {
+		return () => {
+			abortRef.current?.abort();
+		};
+	}, []);
+
+	const endpointValidation = validateAgentEndpoint(config.baseUrl);
+
+	const handleTestConnection = async () => {
+		if (isTesting) return;
+		abortRef.current?.abort();
+		const controller = new AbortController();
+		abortRef.current = controller;
+		setIsTesting(true);
+		setTestStatus(null);
+
+		try {
+			const result = await testAgentConnection({
+				config,
+				signal: controller.signal,
+			});
+			setTestStatus(result);
+		} catch (error) {
+			if (controller.signal.aborted) return;
+			setTestStatus(sanitizeConnectionError(error, config.apiKey));
+		} finally {
+			if (!controller.signal.aborted) {
+				setIsTesting(false);
+			}
+		}
+	};
+
+	const handleForgetKey = () => {
+		forgetApiKey();
+		setTestStatus(null);
+	};
+
 	const addModel = () => {
 		upsertModel({ id: `custom-${Date.now().toString(36)}` });
 	};
 
 	return (
-		<div className="space-y-4">
-			<div className="space-y-2">
-				<Label htmlFor="agent-base-url">{t("API Base URL")}</Label>
-				<Input
-					id="agent-base-url"
-					placeholder="https://api.openai.com/v1"
-					value={config.baseUrl}
-					onChange={(event) => setConfig({ baseUrl: event.target.value })}
-				/>
+		<div className="space-y-6">
+			{/* AI Agent Provider Hierarchy */}
+			<div className="space-y-4">
+				<h3 className="text-foreground text-xs font-semibold uppercase tracking-wider">
+					{t("AI Agent Provider")}
+				</h3>
+
+				<div className="space-y-2">
+					<Label htmlFor="agent-base-url">{t("API Base URL")}</Label>
+					<Input
+						id="agent-base-url"
+						placeholder="https://api.openai.com/v1"
+						value={config.baseUrl}
+						onChange={(event) => {
+							setConfig({ baseUrl: event.target.value });
+							setTestStatus(null);
+						}}
+					/>
+					{!endpointValidation.isValid && endpointValidation.error && (
+						<p className="text-destructive text-xs">
+							{t(endpointValidation.error)}
+						</p>
+					)}
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="agent-model">{t("Model")}</Label>
+					<Input
+						id="agent-model"
+						placeholder="gpt-4.1"
+						value={config.model}
+						onChange={(event) => {
+							setConfig({ model: event.target.value });
+							setTestStatus(null);
+						}}
+					/>
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="agent-api-key">{t("API Key")}</Label>
+					<div className="relative flex items-center">
+						<Input
+							id="agent-api-key"
+							type={showApiKey ? "text" : "password"}
+							placeholder="sk-..."
+							value={config.apiKey}
+							onChange={(event) => {
+								setConfig({ apiKey: event.target.value });
+								setTestStatus(null);
+							}}
+							autoComplete="off"
+							autoCorrect="off"
+							autoCapitalize="off"
+							spellCheck={false}
+							className="pr-10"
+						/>
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							className="text-muted-foreground hover:text-foreground absolute right-1 h-7 w-7"
+							onClick={() => setShowApiKey((prev) => !prev)}
+							title={showApiKey ? t("Hide API key") : t("Show API key")}
+							aria-label={showApiKey ? t("Hide API key") : t("Show API key")}
+						>
+							<HugeiconsIcon
+								icon={showApiKey ? ViewOffSlashIcon : ViewIcon}
+								className="h-4 w-4"
+							/>
+						</Button>
+					</div>
+					<p className="text-muted-foreground text-xs leading-relaxed">
+						{t("Kept for this browser session only.")}{" "}
+						{t("It will not be saved permanently by Editkub.")}
+					</p>
+				</div>
+
+				<div className="space-y-1">
+					<span className="text-muted-foreground text-xs">
+						{t("Requests will be sent to:")}
+					</span>
+					<p className="text-foreground font-mono text-xs font-medium break-all">
+						{endpointValidation.hostname || "api.openai.com"}
+					</p>
+				</div>
+
+				{endpointValidation.isCustom && endpointValidation.isValid && (
+					<div className="rounded-md border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-600 dark:text-amber-400">
+						{t(
+							"Your API key will be sent to this custom endpoint. Only continue if you trust it.",
+						)}
+					</div>
+				)}
+
+				<div className="flex flex-wrap items-center gap-2 pt-1">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="h-8 text-xs"
+						onClick={handleTestConnection}
+						disabled={
+							isTesting ||
+							!config.apiKey ||
+							!endpointValidation.isValid
+						}
+					>
+						{isTesting ? t("Testing…") : t("Test connection")}
+					</Button>
+					{Boolean(config.apiKey) && (
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							className="text-muted-foreground hover:text-destructive h-8 text-xs"
+							onClick={handleForgetKey}
+						>
+							{t("Forget key")}
+						</Button>
+					)}
+				</div>
+
+				{testStatus && (
+					<div
+						className={cn(
+							"flex items-center gap-1.5 text-xs",
+							testStatus.state === "connected"
+								? "text-green-600 dark:text-green-400"
+								: "text-destructive",
+						)}
+						role="status"
+						aria-live="polite"
+					>
+						<HugeiconsIcon
+							icon={
+								testStatus.state === "connected"
+									? CheckmarkCircle02Icon
+									: Alert02Icon
+							}
+							className="h-4 w-4 shrink-0"
+						/>
+						<span>{t(testStatus.message)}</span>
+					</div>
+				)}
 			</div>
 
-			<div className="space-y-2">
-				<Label htmlFor="agent-api-key">{t("API Key")}</Label>
-				<Input
-					id="agent-api-key"
-					type="password"
-					placeholder="sk-..."
-					value={config.apiKey}
-					onChange={(event) => setConfig({ apiKey: event.target.value })}
-				/>
-			</div>
-
-			<div className="space-y-2">
-				<div className="flex items-center justify-between">
-					<Label>{t("Model list")}</Label>
+			<div className="border-foreground/10 space-y-4 border-t pt-4">
+				<div className="space-y-2">
+					<div className="flex items-center justify-between">
+						<Label>{t("Model list")}</Label>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="h-7 text-xs"
+							onClick={() => void fetchModels()}
+							disabled={
+								!config.apiKey ||
+								!endpointValidation.isValid ||
+								modelFetchStatus === "loading"
+							}
+						>
+							<HugeiconsIcon icon={RefreshIcon} className="mr-1 h-3.5 w-3.5" />
+							{modelFetchStatus === "loading"
+								? t("Loading...")
+								: t("Fetch from API")}
+						</Button>
+					</div>
+					<div className="divide-y rounded-lg border">
+						{modelList.length === 0 ? (
+							<p className="text-muted-foreground p-3 text-xs">
+								{t(
+									"No models yet. Fetch them from your API or add one manually.",
+								)}
+							</p>
+						) : (
+							modelList.map((entry) => <ModelRow key={entry.id} entry={entry} />)
+						)}
+					</div>
+					{modelFetchStatus === "error" && modelFetchError && (
+						<p className="text-destructive text-xs">
+							{t("Failed to fetch models")}: {modelFetchError}
+						</p>
+					)}
 					<Button
 						type="button"
 						variant="outline"
 						size="sm"
 						className="h-7 text-xs"
-						onClick={() => void fetchModels()}
-						disabled={!config.apiKey || modelFetchStatus === "loading"}
+						onClick={addModel}
 					>
-						<HugeiconsIcon icon={RefreshIcon} className="mr-1 h-3.5 w-3.5" />
-						{modelFetchStatus === "loading"
-							? t("Loading...")
-							: t("Fetch from API")}
+						<HugeiconsIcon icon={Add01Icon} className="mr-1 h-3.5 w-3.5" />
+						{t("Add model")}
 					</Button>
 				</div>
-				<div className="divide-y rounded-lg border">
-					{modelList.length === 0 ? (
-						<p className="text-muted-foreground p-3 text-xs">
-							{t(
-								"No models yet. Fetch them from your API or add one manually.",
-							)}
-						</p>
-					) : (
-						modelList.map((entry) => <ModelRow key={entry.id} entry={entry} />)
-					)}
-				</div>
-				{modelFetchStatus === "error" && modelFetchError && (
-					<p className="text-destructive text-xs">
-						{t("Failed to fetch models")}: {modelFetchError}
-					</p>
-				)}
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					className="h-7 text-xs"
-					onClick={addModel}
-				>
-					<HugeiconsIcon icon={Add01Icon} className="mr-1 h-3.5 w-3.5" />
-					{t("Add model")}
-				</Button>
-			</div>
 
-			<div className="space-y-2">
-				<Label htmlFor="agent-context-window">{t("Context window")}</Label>
-				<Input
-					id="agent-context-window"
-					type="number"
-					min={1000}
-					step={1000}
-					placeholder="128000"
-					value={contextWindow}
-					onChange={(event) =>
-						setContextWindow(Number(event.target.value) || 0)
-					}
-				/>
-				<p className="text-muted-foreground text-xs">
-					{t(
-						"Context size used for the indicator when the model is not in the preset list.",
-					)}
-				</p>
-			</div>
-
-			<div className="flex items-center justify-between">
-				<div className="space-y-0.5">
-					<Label htmlFor="agent-auto-mode">{t("Auto Mode")}</Label>
+				<div className="space-y-2">
+					<Label htmlFor="agent-context-window">{t("Context window")}</Label>
+					<Input
+						id="agent-context-window"
+						type="number"
+						min={1000}
+						step={1000}
+						placeholder="128000"
+						value={contextWindow}
+						onChange={(event) =>
+							setContextWindow(Number(event.target.value) || 0)
+						}
+					/>
 					<p className="text-muted-foreground text-xs">
-						{t("Skip confirmation for AI generation operations")}
+						{t(
+							"Context size used for the indicator when the model is not in the preset list.",
+						)}
 					</p>
 				</div>
-				<Switch
-					id="agent-auto-mode"
-					checked={autoMode}
-					onCheckedChange={setAutoMode}
-				/>
+
+				<div className="flex items-center justify-between">
+					<div className="space-y-0.5">
+						<Label htmlFor="agent-auto-mode">{t("Auto Mode")}</Label>
+						<p className="text-muted-foreground text-xs">
+							{t("Skip confirmation for AI generation operations")}
+						</p>
+					</div>
+					<Switch
+						id="agent-auto-mode"
+						checked={autoMode}
+						onCheckedChange={setAutoMode}
+					/>
+				</div>
 			</div>
 		</div>
 	);
