@@ -1296,7 +1296,7 @@ function TemplatePreview({
 	const previewWords = [t("Sample"), t("Captions"), t("Text")];
 	if (flow === "pop") {
 		return (
-			<div className="flex items-center justify-center gap-1 rounded-sm bg-black/80 px-2 py-3 text-sm font-bold text-white">
+			<div className="flex flex-wrap items-center justify-center gap-1 rounded-sm bg-black/80 px-2 py-3 text-sm font-bold text-white">
 				{previewWords.map((word, index) => {
 					const start = 0.04 + index * 0.22;
 					return (
@@ -1426,7 +1426,7 @@ function TemplatePreview({
 							};
 
 	return (
-		<div className="flex items-center justify-center gap-1 rounded-sm bg-black/80 px-2 py-3 text-sm font-bold text-white">
+		<div className="flex flex-wrap items-center justify-center gap-1 rounded-sm bg-black/80 px-2 py-3 text-sm font-bold text-white">
 			<span>{previewWords[0]}</span>
 			<motion.span
 				style={staticStyle}
