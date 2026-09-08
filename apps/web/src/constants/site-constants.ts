@@ -3,7 +3,7 @@ export const SITE_URL = "https://editkub.vercel.app";
 export const SITE_INFO = {
 	title: "Editkub",
 	description:
-		"Editkub is an AI-native, open-source video editor in your browser — a free, privacy-first alternative to CapCut. AI-powered editing, multi-track timeline, MP4/WebM export with no uploads.",
+		"Editkub is an AI-native, open-source video editor in your browser — a free, privacy-first alternative to CapCut. Core editing stays on your device, with multi-track timeline, optional AI, and watermark-free export.",
 	url: SITE_URL,
 	openGraphImage: "/icon.svg",
 	twitterImage: "/icon.svg",

@@ -39,6 +39,10 @@ import { useTranscriptionSettingsStore } from "@/stores/transcription-settings-s
 import { REMOTE_PROVIDERS } from "@/lib/transcription/providers";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { TBackground } from "@/types/project";
 
 const TRANSPARENT_BACKGROUND =
@@ -517,10 +521,15 @@ function AISettingsView() {
 		devPlaceholderEnabled,
 		setImageProvider,
 		setImageApiKey,
+		clearImageApiKey,
 		setVideoProvider,
 		setVideoApiKey,
+		clearVideoApiKey,
 		setDevPlaceholderEnabled,
 	} = useAISettingsStore();
+
+	const [showImageKey, setShowImageKey] = useState(false);
+	const [showVideoKey, setShowVideoKey] = useState(false);
 
 	const handleImageProviderChange = (value: string) => {
 		setImageProvider(value === NO_PROVIDER ? null : value);
@@ -530,12 +539,25 @@ function AISettingsView() {
 		setVideoProvider(value === NO_PROVIDER ? null : value);
 	};
 
+	const isImageConfigured = Boolean(imageProviderId && imageApiKey.trim());
+	const isVideoConfigured = Boolean(videoProviderId && videoApiKey.trim());
+
 	return (
 		<div className="flex flex-col gap-6">
 			<div className="flex flex-col gap-3">
-				<span className="text-foreground text-xs font-medium">
-					{t("Image Provider")}
-				</span>
+				<div className="flex items-center justify-between">
+					<span className="text-foreground text-xs font-medium">
+						{t("Image Provider")}
+					</span>
+					<Badge
+						variant={isImageConfigured ? "default" : "secondary"}
+						className="text-[10px]"
+					>
+						{isImageConfigured
+							? t("Configured for this session")
+							: t("Not configured")}
+					</Badge>
+				</div>
 				<PropertyItem direction="column">
 					<PropertyItemLabel>{t("Provider")}</PropertyItemLabel>
 					<PropertyItemValue>
@@ -560,20 +582,75 @@ function AISettingsView() {
 				<PropertyItem direction="column">
 					<PropertyItemLabel>{t("API Key")}</PropertyItemLabel>
 					<PropertyItemValue>
-						<Input
-							type="password"
-							placeholder={t("Enter API key")}
-							value={imageApiKey}
-							onChange={(event) => setImageApiKey(event.target.value)}
-						/>
+						<div className="relative flex w-full items-center">
+							<Input
+								type={showImageKey ? "text" : "password"}
+								placeholder={t("Enter API key")}
+								value={imageApiKey}
+								onChange={(event) => setImageApiKey(event.target.value)}
+								autoComplete="off"
+								autoCorrect="off"
+								autoCapitalize="off"
+								spellCheck={false}
+								className="pr-10"
+							/>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								className="text-muted-foreground hover:text-foreground absolute right-1 h-7 w-7"
+								onClick={() => setShowImageKey((prev) => !prev)}
+								title={showImageKey ? t("Hide API key") : t("Show API key")}
+								aria-label={showImageKey ? t("Hide API key") : t("Show API key")}
+							>
+								<HugeiconsIcon
+									icon={showImageKey ? ViewOffSlashIcon : ViewIcon}
+									className="h-4 w-4"
+								/>
+							</Button>
+						</div>
 					</PropertyItemValue>
 				</PropertyItem>
+				<div className="flex flex-col gap-1.5 pt-0.5">
+					<p className="text-muted-foreground text-[11px] leading-relaxed">
+						{t("Kept for this browser session only.")}{" "}
+						{t("It will not be saved permanently by Editkub.")}
+					</p>
+					<p className="text-muted-foreground/80 text-[11px]">
+						{t(
+							"API keys are verified upon generation to avoid unnecessary provider charges.",
+						)}
+					</p>
+					{Boolean(imageApiKey) && (
+						<div className="pt-1">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className="h-7 text-xs"
+								onClick={clearImageApiKey}
+							>
+								{t("Clear key")}
+							</Button>
+						</div>
+					)}
+				</div>
 			</div>
 
 			<div className="flex flex-col gap-3">
-				<span className="text-foreground text-xs font-medium">
-					{t("Video Provider")}
-				</span>
+				<div className="flex items-center justify-between">
+					<span className="text-foreground text-xs font-medium">
+						{t("Video Provider")}
+					</span>
+					<Badge
+						variant={isVideoConfigured ? "default" : "secondary"}
+						className="text-[10px]"
+					>
+						{isVideoConfigured
+							? t("Configured for this session")
+							: t("Not configured")}
+					</Badge>
+				</div>
 				<PropertyItem direction="column">
 					<PropertyItemLabel>{t("Provider")}</PropertyItemLabel>
 					<PropertyItemValue>
@@ -598,14 +675,59 @@ function AISettingsView() {
 				<PropertyItem direction="column">
 					<PropertyItemLabel>{t("API Key")}</PropertyItemLabel>
 					<PropertyItemValue>
-						<Input
-							type="password"
-							placeholder={t("Enter API key")}
-							value={videoApiKey}
-							onChange={(event) => setVideoApiKey(event.target.value)}
-						/>
+						<div className="relative flex w-full items-center">
+							<Input
+								type={showVideoKey ? "text" : "password"}
+								placeholder={t("Enter API key")}
+								value={videoApiKey}
+								onChange={(event) => setVideoApiKey(event.target.value)}
+								autoComplete="off"
+								autoCorrect="off"
+								autoCapitalize="off"
+								spellCheck={false}
+								className="pr-10"
+							/>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								className="text-muted-foreground hover:text-foreground absolute right-1 h-7 w-7"
+								onClick={() => setShowVideoKey((prev) => !prev)}
+								title={showVideoKey ? t("Hide API key") : t("Show API key")}
+								aria-label={showVideoKey ? t("Hide API key") : t("Show API key")}
+							>
+								<HugeiconsIcon
+									icon={showVideoKey ? ViewOffSlashIcon : ViewIcon}
+									className="h-4 w-4"
+								/>
+							</Button>
+						</div>
 					</PropertyItemValue>
 				</PropertyItem>
+				<div className="flex flex-col gap-1.5 pt-0.5">
+					<p className="text-muted-foreground text-[11px] leading-relaxed">
+						{t("Kept for this browser session only.")}{" "}
+						{t("It will not be saved permanently by Editkub.")}
+					</p>
+					<p className="text-muted-foreground/80 text-[11px]">
+						{t(
+							"API keys are verified upon generation to avoid unnecessary provider charges.",
+						)}
+					</p>
+					{Boolean(videoApiKey) && (
+						<div className="pt-1">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className="h-7 text-xs"
+								onClick={clearVideoApiKey}
+							>
+								{t("Clear key")}
+							</Button>
+						</div>
+					)}
+				</div>
 			</div>
 
 			<div className="border-foreground/10 flex flex-col gap-3 border-t pt-4">

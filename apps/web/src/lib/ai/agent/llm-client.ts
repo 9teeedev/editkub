@@ -4,6 +4,8 @@ import type {
 	OpenAIChatMessage,
 	OpenAIToolSchema,
 } from "./types";
+import { streamAnthropicCompletion } from "./anthropic";
+import { resolveAgentRequest } from "./relay";
 
 export interface StreamCallbacks {
 	onContent?: (content: string) => void;
@@ -39,6 +41,16 @@ export async function streamChatCompletion({
 	callbacks: StreamCallbacks;
 	signal?: AbortSignal;
 }): Promise<ChatCompletionResult> {
+	if (config.apiFormat === "anthropic") {
+		return streamAnthropicCompletion({
+			config,
+			messages,
+			tools,
+			callbacks,
+			signal,
+		});
+	}
+
 	const baseUrl = (config.baseUrl || "https://api.openai.com/v1").replace(
 		/\/+$/,
 		"",
@@ -55,9 +67,15 @@ export async function streamChatCompletion({
 		body.tools = tools;
 	}
 
-	const response = await fetch(url, {
+	const { url: requestUrl, headers: relayHeaders } = resolveAgentRequest(
+		config.relay,
+		url,
+	);
+
+	const response = await fetch(requestUrl, {
 		method: "POST",
 		headers: {
+			...relayHeaders,
 			"Content-Type": "application/json",
 			Authorization: `Bearer ${config.apiKey}`,
 		},

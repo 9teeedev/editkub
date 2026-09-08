@@ -31,7 +31,7 @@ export function Hero() {
 						</span>
 					</h1>
 					<p className="text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
-						{t('An AI-native, open-source video editor and free alternative to CapCut. No uploads, no tracking — your media stays on your device.')}
+						{t('An AI-native, open-source video editor and free alternative to CapCut. Core editing stays on your device; remote AI is used only when you choose it.')}
 					</p>
 				</div>
 

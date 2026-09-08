@@ -6,27 +6,59 @@ import {
 	DEFAULT_EXPERT_ROLE,
 } from "@/lib/ai/agent/expert-roles";
 import { runAgentLoop } from "@/lib/ai/agent/service";
+import {
+	type ModelEntry,
+	type ModelFetchStatus,
+	fetchAvailableModels,
+	mergeModelList,
+} from "@/lib/ai/agent/model-list";
 import type {
+	AgentApiFormat,
 	AgentLLMConfig,
 	AgentMessage,
 	AgentStatus,
 	PendingToolConfirmation,
 } from "@/lib/ai/agent/types";
+import {
+	clearSessionSecret,
+	getSessionSecret,
+	setSessionSecret,
+} from "@/lib/storage/session-secrets";
+import { migrateLegacySecrets } from "@/lib/storage/legacy-secrets-migration";
+import { validateAgentEndpoint } from "@/lib/ai/agent/endpoint-validation";
+
+// Run legacy localStorage secret migration safely on startup
+migrateLegacySecrets();
+
+interface AgentPersistedConfig {
+	baseUrl: string;
+	model: string;
+	apiFormat?: AgentApiFormat;
+	relay?: boolean;
+}
 
 interface AgentPersistedState {
+	config: AgentPersistedConfig;
+	autoMode: boolean;
+	isOpen: boolean;
+	expertRole: ExpertRoleId;
+	modelList: ModelEntry[];
+}
+
+interface AgentState {
 	config: AgentLLMConfig;
 	autoMode: boolean;
 	isOpen: boolean;
 	expertRole: ExpertRoleId;
-}
-
-interface AgentState extends AgentPersistedState {
-	isOpen: boolean;
+	modelList: ModelEntry[];
 	messages: AgentMessage[];
 	status: AgentStatus;
 	currentToolCall: string | null;
 	pendingConfirmation: PendingToolConfirmation | null;
 	streamingContent: string;
+	contextTokens: number;
+	modelFetchStatus: ModelFetchStatus;
+	modelFetchError: string | null;
 
 	initMessages: (messages: AgentMessage[]) => void;
 	getMessages: () => AgentMessage[];
@@ -38,28 +70,53 @@ interface AgentState extends AgentPersistedState {
 	clearMessages: () => void;
 	setAutoMode: (enabled: boolean) => void;
 	setConfig: (config: Partial<AgentLLMConfig>) => void;
+	forgetApiKey: () => void;
 	setExpertRole: (roleId: ExpertRoleId) => void;
+	fetchModels: () => Promise<void>;
+	upsertModel: (entry: ModelEntry) => void;
+	removeModel: (id: string) => void;
 }
 
 let abortController: AbortController | null = null;
 let confirmationResolver: ((confirmed: boolean) => void) | null = null;
+
+export const partializeAgentSettings = (
+	state: AgentState,
+): AgentPersistedState => ({
+	config: {
+		baseUrl: state.config.baseUrl,
+		model: state.config.model,
+		apiFormat: state.config.apiFormat,
+		relay: state.config.relay,
+	},
+	autoMode: state.autoMode,
+	isOpen: state.isOpen,
+	expertRole: state.expertRole,
+	modelList: state.modelList,
+});
 
 export const useAgentStore = create<AgentState>()(
 	persist(
 		(set, get) => ({
 			config: {
 				baseUrl: "",
-				apiKey: "",
+				apiKey: getSessionSecret("agent-api-key"),
 				model: "",
+				apiFormat: "openai",
+				relay: false,
 			},
 			autoMode: false,
 			isOpen: true,
 			expertRole: DEFAULT_EXPERT_ROLE,
+			modelList: [],
 			messages: [],
 			status: "idle" as AgentStatus,
 			currentToolCall: null,
 			pendingConfirmation: null,
 			streamingContent: "",
+			contextTokens: 0,
+			modelFetchStatus: "idle" as ModelFetchStatus,
+			modelFetchError: null,
 
 			initMessages: (messages: AgentMessage[]) => {
 				set({
@@ -80,6 +137,8 @@ export const useAgentStore = create<AgentState>()(
 			sendMessage: async (content: string) => {
 				const state = get();
 				if (state.status !== "idle") return;
+				const validation = validateAgentEndpoint(state.config.baseUrl);
+				if (!validation.isValid) return;
 				if (!state.config.apiKey) return;
 
 				const userMessage: AgentMessage = {
@@ -119,6 +178,9 @@ export const useAgentStore = create<AgentState>()(
 							},
 							onMessagesUpdated: (messages) => {
 								set({ messages: [...messages] });
+							},
+							onContextUsage: ({ estimatedTokens }) => {
+								set({ contextTokens: estimatedTokens });
 							},
 							onToolCallStart: (toolCall) => {
 								set({
@@ -227,27 +289,122 @@ export const useAgentStore = create<AgentState>()(
 			},
 
 			setConfig: (config) => {
+				set((prev) => {
+					const nextConfig = { ...prev.config, ...config };
+					if ("apiKey" in config) {
+						const key = config.apiKey ?? "";
+						if (key.trim()) {
+							setSessionSecret("agent-api-key", key.trim());
+						} else {
+							clearSessionSecret("agent-api-key");
+						}
+					}
+					return {
+						config: nextConfig,
+					};
+				});
+			},
+
+			forgetApiKey: () => {
+				clearSessionSecret("agent-api-key");
 				set((prev) => ({
-					config: { ...prev.config, ...config },
+					config: { ...prev.config, apiKey: "" },
 				}));
 			},
 
 			setExpertRole: (roleId) => {
 				set({ expertRole: roleId });
 			},
+
+			fetchModels: async () => {
+				const state = get();
+				if (state.modelFetchStatus === "loading") return;
+				const validation = validateAgentEndpoint(state.config.baseUrl);
+				if (!validation.isValid) return;
+				const { baseUrl, apiKey } = state.config;
+				if (!apiKey) return;
+				set({ modelFetchStatus: "loading", modelFetchError: null });
+
+				const fetchWith = (relay: boolean) =>
+					fetchAvailableModels({
+						baseUrl,
+						apiKey,
+						apiFormat: state.config.apiFormat ?? "openai",
+						relay,
+					});
+
+				try {
+					let fetched: string[];
+					if (state.config.relay) {
+						fetched = await fetchWith(true);
+					} else {
+						try {
+							fetched = await fetchWith(false);
+						} catch {
+							// The provider may block browser requests — retry
+							// through the relay and keep it enabled if that works.
+							fetched = await fetchWith(true);
+							set((prev) => ({ config: { ...prev.config, relay: true } }));
+						}
+					}
+					set((prev) => ({
+						modelList: mergeModelList({ current: prev.modelList, fetched }),
+						modelFetchStatus: "idle",
+					}));
+				} catch (error) {
+					set({
+						modelFetchStatus: "error",
+						modelFetchError:
+							error instanceof Error ? error.message : "Failed to fetch models",
+					});
+				}
+			},
+
+			upsertModel: (entry) => {
+				set((prev) => {
+					const id = entry.id.trim();
+					if (!id) return prev;
+					const exists = prev.modelList.some((model) => model.id === id);
+					return {
+						modelList: exists
+							? prev.modelList.map((model) =>
+									model.id === id ? { ...model, ...entry, id } : model,
+								)
+							: [...prev.modelList, { ...entry, id }].sort((a, b) =>
+									a.id.localeCompare(b.id),
+								),
+					};
+				});
+			},
+
+			removeModel: (id) => {
+				set((prev) => ({
+					modelList: prev.modelList.filter((model) => model.id !== id),
+				}));
+			},
 		}),
 		{
 			name: "agent-settings",
-			partialize: (state): AgentPersistedState => ({
-				config: state.config,
-				autoMode: state.autoMode,
-				isOpen: state.isOpen,
-				expertRole: state.expertRole,
-			}),
-			merge: (persisted, current) => ({
-				...(current as AgentState),
-				...(persisted as Partial<AgentPersistedState>),
-			}),
+			partialize: partializeAgentSettings,
+			merge: (persisted, current) => {
+				const p = persisted as Partial<AgentPersistedState> | undefined;
+				return {
+					...(current as AgentState),
+					...p,
+					config: {
+						...current.config,
+						...(p?.config
+							? {
+									baseUrl: p.config.baseUrl,
+									model: p.config.model,
+									apiFormat: p.config.apiFormat,
+									relay: p.config.relay,
+								}
+							: {}),
+						apiKey: current.config.apiKey,
+					},
+				};
+			},
 		},
 	),
 );

@@ -55,7 +55,7 @@ export async function HomepageJsonLd({ locale }: { locale: string }) {
 		name: "Editkub",
 		url: SITE_URL,
 		description: t(
-			"Editkub is an AI-native, open-source video editor that runs entirely in your browser. A free, privacy-first alternative to CapCut with AI-powered editing, multi-track timeline, and MP4/WebM export — no uploads, no tracking.",
+			"Editkub is an AI-native, open-source video editor in your browser. A free, privacy-first alternative to CapCut with multi-track timeline and MP4/WebM export. Core editing stays on your device; remote AI is opt-in.",
 		),
 		applicationCategory: "MultimediaApplication",
 		operatingSystem: "Any (Browser-based)",

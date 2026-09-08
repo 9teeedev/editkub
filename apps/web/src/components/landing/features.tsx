@@ -25,7 +25,7 @@ export function Features() {
 	const { t } = useTranslation();
 	const features = [
 		{ icon: Sparkles, title: t("AI-Native"), description: t("AI is built into every step of your workflow. Generate images, transcribe audio, create captions, and let the AI agent edit videos for you.") },
-		{ icon: Shield, title: t("Privacy First"), description: t("Your files never leave your device. All processing happens locally in your browser — no uploads, no servers.") },
+		{ icon: Shield, title: t("Privacy First"), description: t("Core editing and local captions run in your browser. Remote AI features are opt-in, and product events never include your media or transcripts.") },
 		{ icon: Globe, title: t("Works Everywhere"), description: t("No installation needed. Open your browser on any platform and start editing right away.") },
 		{ icon: Code2, title: t("Open Source"), description: t("Fully open source and community-driven. Inspect the code, contribute, or fork it for your needs.") },
 		{ icon: Layers, title: t("Multi-track Timeline"), description: t("Professional timeline with support for video, audio, text, and sticker tracks. Drag, trim, and split with ease.") },

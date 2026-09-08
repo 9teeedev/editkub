@@ -127,7 +127,12 @@ export function AgentView() {
 
 			<AgentChat />
 
-			<AgentInput status={status} onSend={sendMessage} onCancel={cancel} />
+			<AgentInput
+				status={status}
+				onSend={sendMessage}
+				onCancel={cancel}
+				onOpenSettings={() => setShowSettings(true)}
+			/>
 		</div>
 	);
 }

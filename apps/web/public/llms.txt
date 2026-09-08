@@ -2,13 +2,13 @@
 
 > An AI-native, open-source video editor in your browser — a free, privacy-first alternative to CapCut.
 
-Editkub lets you edit videos directly in a web browser with AI built into every step of the workflow. No installation, no sign-up, no file uploads. All media processing happens locally on the user's device, ensuring complete privacy. Editkub is designed as an open-source, privacy-respecting alternative to CapCut and other cloud-based video editors.
+Editkub lets you edit videos directly in a web browser with AI built into every step of the workflow. No installation or sign-up required. Core media processing happens locally on the user's device, with optional remote AI available when chosen. Editkub is designed as an open-source, privacy-respecting alternative to CapCut and other cloud-based video editors.
 
 ## Key Features
 
 - **AI-Native Editing**: AI is built into every step — generate images, transcribe audio, create captions, and let the AI agent edit videos for you.
 - **AI Agent**: Describe what you want, and the AI agent builds your video step by step.
-- **Privacy First**: Your media files stay on your device. AI features may communicate with third-party AI services or Editkub's temporary relay server, but your raw media is never uploaded.
+- **Privacy First**: Core editing and local captions run in your browser. Remote AI features are optional, and product events never include your media or transcripts.
 - **Browser-Based**: Works on any platform with a modern browser. No downloads or plugins required.
 - **Open Source**: Fully open source and community-driven, available on GitHub.
 - **Multi-Track Timeline**: Professional timeline supporting video, audio, text, and sticker tracks with drag, trim, and split.
@@ -16,7 +16,7 @@ Editkub lets you edit videos directly in a web browser with AI built into every 
 
 ## Why Editkub over CapCut?
 
-- **Privacy**: CapCut uploads files to servers; Editkub keeps your media files local. Only AI features may use external services.
+- **Privacy**: CapCut uploads files to servers; Editkub keeps your media files local during local workflows. Only optional AI features use external services.
 - **Open Source**: CapCut is proprietary; Editkub is fully open source.
 - **No Account Required**: CapCut requires sign-up; Editkub works instantly.
 - **AI-Native**: Editkub has built-in AI agent, image generation, and audio transcription.
