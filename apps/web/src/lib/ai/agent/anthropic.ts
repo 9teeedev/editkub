@@ -4,6 +4,7 @@ import type {
 	OpenAIToolSchema,
 } from "./types";
 import type { StreamCallbacks, ChatCompletionResult } from "./llm-client";
+import { resolveAgentRequest } from "./relay";
 
 /**
  * Anthropic Messages API support (`POST {base}/messages`).
@@ -193,9 +194,15 @@ export async function streamAnthropicCompletion({
 		model: config.model,
 	});
 
-	const response = await fetch(`${baseUrl}/messages`, {
+	const { url: requestUrl, headers: relayHeaders } = resolveAgentRequest(
+		config.relay,
+		`${baseUrl}/messages`,
+	);
+
+	const response = await fetch(requestUrl, {
 		method: "POST",
 		headers: {
+			...relayHeaders,
 			"Content-Type": "application/json",
 			"x-api-key": config.apiKey,
 			"anthropic-version": ANTHROPIC_VERSION,

@@ -157,6 +157,8 @@ export function sanitizeConnectionError(
 	if (
 		lower.includes("404") ||
 		lower.includes("model not found") ||
+		lower.includes("model_not_found") ||
+		lower.includes("no available channel") ||
 		lower.includes("does not exist") ||
 		lower.includes("unsupported model")
 	) {

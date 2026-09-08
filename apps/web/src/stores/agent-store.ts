@@ -34,6 +34,7 @@ interface AgentPersistedConfig {
 	baseUrl: string;
 	model: string;
 	apiFormat?: AgentApiFormat;
+	relay?: boolean;
 }
 
 interface AgentPersistedState {
@@ -86,6 +87,7 @@ export const partializeAgentSettings = (
 		baseUrl: state.config.baseUrl,
 		model: state.config.model,
 		apiFormat: state.config.apiFormat,
+		relay: state.config.relay,
 	},
 	autoMode: state.autoMode,
 	isOpen: state.isOpen,
@@ -101,6 +103,7 @@ export const useAgentStore = create<AgentState>()(
 				apiKey: getSessionSecret("agent-api-key"),
 				model: "",
 				apiFormat: "openai",
+				relay: false,
 			},
 			autoMode: false,
 			isOpen: true,
@@ -321,12 +324,29 @@ export const useAgentStore = create<AgentState>()(
 				const { baseUrl, apiKey } = state.config;
 				if (!apiKey) return;
 				set({ modelFetchStatus: "loading", modelFetchError: null });
-				try {
-					const fetched = await fetchAvailableModels({
+
+				const fetchWith = (relay: boolean) =>
+					fetchAvailableModels({
 						baseUrl,
 						apiKey,
 						apiFormat: state.config.apiFormat ?? "openai",
+						relay,
 					});
+
+				try {
+					let fetched: string[];
+					if (state.config.relay) {
+						fetched = await fetchWith(true);
+					} else {
+						try {
+							fetched = await fetchWith(false);
+						} catch {
+							// The provider may block browser requests — retry
+							// through the relay and keep it enabled if that works.
+							fetched = await fetchWith(true);
+							set((prev) => ({ config: { ...prev.config, relay: true } }));
+						}
+					}
 					set((prev) => ({
 						modelList: mergeModelList({ current: prev.modelList, fetched }),
 						modelFetchStatus: "idle",
@@ -374,7 +394,12 @@ export const useAgentStore = create<AgentState>()(
 					config: {
 						...current.config,
 						...(p?.config
-							? { baseUrl: p.config.baseUrl, model: p.config.model }
+							? {
+									baseUrl: p.config.baseUrl,
+									model: p.config.model,
+									apiFormat: p.config.apiFormat,
+									relay: p.config.relay,
+								}
 							: {}),
 						apiKey: current.config.apiKey,
 					},

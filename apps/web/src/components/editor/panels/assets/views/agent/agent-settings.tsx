@@ -204,10 +204,30 @@ export function AgentSettings() {
 		setTestStatus(null);
 
 		try {
-			const result = await testAgentConnection({
+			let result = await testAgentConnection({
 				config,
 				signal: controller.signal,
 			});
+			// Providers that block browser requests (z.ai, TokenRouter) fail the
+			// direct test with "unreachable" — retry once through the server
+			// relay and keep it enabled only if that actually works.
+			if (result.state === "unreachable" && !config.relay) {
+				const viaRelay = await testAgentConnection({
+					config: { ...config, relay: true },
+					signal: controller.signal,
+				});
+				if (viaRelay.state === "connected") {
+					setConfig({ relay: true });
+					result = {
+						state: "connected",
+						message: "Connected — server relay enabled",
+					};
+				} else {
+					// The relay reached the provider, so its failure reason
+					// (bad key, unknown model, ...) is the real story.
+					result = viaRelay;
+				}
+			}
 			setTestStatus(result);
 		} catch (error) {
 			if (controller.signal.aborted) return;
@@ -322,6 +342,25 @@ export function AgentSettings() {
 						{t("Kept for this browser session only.")}{" "}
 						{t("It will not be saved permanently by Editkub.")}
 					</p>
+				</div>
+
+				<div className="flex items-center justify-between gap-3">
+					<div className="space-y-0.5">
+						<Label htmlFor="agent-relay">{t("Server relay")}</Label>
+						<p className="text-muted-foreground text-xs">
+							{t(
+								"Needed for providers that block browser requests (z.ai, TokenRouter). Your key is forwarded via this app's server, never stored.",
+							)}
+						</p>
+					</div>
+					<Switch
+						id="agent-relay"
+						checked={Boolean(config.relay)}
+						onCheckedChange={(value) => {
+							setConfig({ relay: value });
+							setTestStatus(null);
+						}}
+					/>
 				</div>
 
 				<div className="space-y-1">

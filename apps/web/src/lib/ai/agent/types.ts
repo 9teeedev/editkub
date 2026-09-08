@@ -7,6 +7,8 @@ export interface AgentLLMConfig {
 	model: string;
 	/** Omitted values are treated as "openai" (legacy persisted configs). */
 	apiFormat?: AgentApiFormat;
+	/** Omitted values are treated as false (direct browser requests). */
+	relay?: boolean;
 }
 
 export interface AgentToolDefinition {

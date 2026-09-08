@@ -3,6 +3,7 @@ import {
 	ANTHROPIC_BROWSER_ACCESS_VALUE,
 	ANTHROPIC_VERSION,
 } from "./anthropic";
+import { resolveAgentRequest } from "./relay";
 import {
 	DEFAULT_CONTEXT_WINDOW,
 	findModelPreset,
@@ -61,11 +62,13 @@ export async function fetchAvailableModels({
 	baseUrl,
 	apiKey,
 	apiFormat = "openai",
+	relay,
 	signal,
 }: {
 	baseUrl: string;
 	apiKey: string;
 	apiFormat?: AgentApiFormat;
+	relay?: boolean;
 	signal?: AbortSignal;
 }): Promise<string[]> {
 	const base = (baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
@@ -77,7 +80,14 @@ export async function fetchAvailableModels({
 					[ANTHROPIC_BROWSER_ACCESS_HEADER]: ANTHROPIC_BROWSER_ACCESS_VALUE,
 				}
 			: { Authorization: `Bearer ${apiKey}` };
-	const response = await fetch(`${base}/models`, { headers, signal });
+	const { url: requestUrl, headers: relayHeaders } = resolveAgentRequest(
+		relay,
+		`${base}/models`,
+	);
+	const response = await fetch(requestUrl, {
+		headers: { ...relayHeaders, ...headers },
+		signal,
+	});
 	if (!response.ok) {
 		throw new Error(`API error (${response.status})`);
 	}

@@ -101,6 +101,16 @@ describe("sanitizeConnectionError", () => {
 		);
 	});
 
+	test("maps provider 503 model_not_found bodies to Model not found, not unreachable", () => {
+		// TokenRouter answers unknown models with 503 + model_not_found.
+		const err503 = new Error(
+			'LLM API error (503): {"error":{"code":"model_not_found","message":"No available channel for model glm-5.3 under group default"}}',
+		);
+		const result = sanitizeConnectionError(err503);
+		expect(result.state).toBe("model_not_found");
+		expect(result.message).toBe("Model not found or unsupported");
+	});
+
 	test("maps network failures to Endpoint unreachable", () => {
 		const networkErr = new TypeError("Failed to fetch");
 		expect(sanitizeConnectionError(networkErr).state).toBe("unreachable");
