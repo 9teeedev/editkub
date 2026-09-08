@@ -14,6 +14,7 @@ import type {
 	AgentMessage,
 	AgentToolResult,
 	OpenAIChatMessage,
+	OpenAIToolSchema,
 	PendingToolConfirmation,
 } from "./types";
 
@@ -34,6 +35,7 @@ export interface AgentServiceCallbacks {
 		result: AgentToolResult;
 	}) => void;
 	onMessagesUpdated: (messages: AgentMessage[]) => void;
+	onContextUsage?: (usage: { estimatedTokens: number }) => void;
 	onConfirmationRequired: (
 		confirmation: PendingToolConfirmation,
 	) => Promise<boolean>;
@@ -85,6 +87,32 @@ interface ToolCallEntry {
 	tool: AgentTool | undefined;
 }
 
+/**
+ * Rough token estimate (~4 chars/token) of what will be sent to the LLM —
+ * only used for the context indicator, not for billing or truncation.
+ */
+function estimateContextTokens({
+	messages,
+	tools,
+}: {
+	messages: OpenAIChatMessage[];
+	tools: OpenAIToolSchema[];
+}): number {
+	let chars = 0;
+	for (const message of messages) {
+		chars += message.content?.length ?? 0;
+		for (const toolCall of message.tool_calls ?? []) {
+			chars +=
+				toolCall.function.name.length + toolCall.function.arguments.length;
+		}
+	}
+	for (const tool of tools) {
+		chars += tool.function.name.length + tool.function.description.length;
+		chars += JSON.stringify(tool.function.parameters).length;
+	}
+	return Math.ceil(chars / 4);
+}
+
 function pushToolResult({
 	conversationMessages,
 	callbacks,
@@ -129,10 +157,7 @@ async function executeAndPushResult({
 	} catch (error) {
 		result = {
 			success: false,
-			message:
-				error instanceof Error
-					? error.message
-					: "Tool execution failed",
+			message: error instanceof Error ? error.message : "Tool execution failed",
 		};
 	}
 	pushToolResult({
@@ -172,9 +197,7 @@ async function executeToolCallBatch({
 					result = {
 						success: false,
 						message:
-							error instanceof Error
-								? error.message
-								: "Tool execution failed",
+							error instanceof Error ? error.message : "Tool execution failed",
 					};
 				}
 				return { rawToolCall, result };
@@ -276,6 +299,13 @@ export async function runAgentLoop({
 			...agentMessagesToOpenAI({ messages: conversationMessages }),
 		];
 
+		callbacks.onContextUsage?.({
+			estimatedTokens: estimateContextTokens({
+				messages: openaiMessages,
+				tools: toolSchemas,
+			}),
+		});
+
 		const result = await streamChatCompletion({
 			config,
 			messages: openaiMessages,
@@ -333,9 +363,7 @@ export async function runAgentLoop({
 		}));
 
 		const confirmableEntries = toolCallEntries.filter(
-			(
-				entry,
-			): entry is ToolCallEntry & { tool: AgentTool } =>
+			(entry): entry is ToolCallEntry & { tool: AgentTool } =>
 				entry.tool?.requiresConfirmation === true && !autoMode,
 		);
 
@@ -378,8 +406,7 @@ export async function runAgentLoop({
 				continue;
 			}
 
-			const needsConfirmation =
-				tool.requiresConfirmation && !autoMode;
+			const needsConfirmation = tool.requiresConfirmation && !autoMode;
 
 			if (needsConfirmation && !confirmedIds.has(rawToolCall.id)) {
 				pushToolResult({
@@ -402,12 +429,8 @@ export async function runAgentLoop({
 				let nextIndex = entryIndex + 1;
 				while (nextIndex < toolCallEntries.length) {
 					const next = toolCallEntries[nextIndex];
-					const nextNeedsConfirm =
-						next.tool?.requiresConfirmation && !autoMode;
-					if (
-						!nextNeedsConfirm ||
-						!confirmedIds.has(next.rawToolCall.id)
-					)
+					const nextNeedsConfirm = next.tool?.requiresConfirmation && !autoMode;
+					if (!nextNeedsConfirm || !confirmedIds.has(next.rawToolCall.id))
 						break;
 					batch.push(next);
 					nextIndex++;

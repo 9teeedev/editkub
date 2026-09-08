@@ -6,6 +6,13 @@ import {
 	DEFAULT_EXPERT_ROLE,
 } from "@/lib/ai/agent/expert-roles";
 import { runAgentLoop } from "@/lib/ai/agent/service";
+import { DEFAULT_CONTEXT_WINDOW } from "@/lib/ai/agent/model-presets";
+import {
+	type ModelEntry,
+	type ModelFetchStatus,
+	fetchAvailableModels,
+	mergeModelList,
+} from "@/lib/ai/agent/model-list";
 import type {
 	AgentLLMConfig,
 	AgentMessage,
@@ -18,6 +25,8 @@ interface AgentPersistedState {
 	autoMode: boolean;
 	isOpen: boolean;
 	expertRole: ExpertRoleId;
+	contextWindow: number;
+	modelList: ModelEntry[];
 }
 
 interface AgentState extends AgentPersistedState {
@@ -27,6 +36,9 @@ interface AgentState extends AgentPersistedState {
 	currentToolCall: string | null;
 	pendingConfirmation: PendingToolConfirmation | null;
 	streamingContent: string;
+	contextTokens: number;
+	modelFetchStatus: ModelFetchStatus;
+	modelFetchError: string | null;
 
 	initMessages: (messages: AgentMessage[]) => void;
 	getMessages: () => AgentMessage[];
@@ -39,6 +51,10 @@ interface AgentState extends AgentPersistedState {
 	setAutoMode: (enabled: boolean) => void;
 	setConfig: (config: Partial<AgentLLMConfig>) => void;
 	setExpertRole: (roleId: ExpertRoleId) => void;
+	setContextWindow: (tokens: number) => void;
+	fetchModels: () => Promise<void>;
+	upsertModel: (entry: ModelEntry) => void;
+	removeModel: (id: string) => void;
 }
 
 let abortController: AbortController | null = null;
@@ -55,11 +71,16 @@ export const useAgentStore = create<AgentState>()(
 			autoMode: false,
 			isOpen: true,
 			expertRole: DEFAULT_EXPERT_ROLE,
+			contextWindow: DEFAULT_CONTEXT_WINDOW,
+			modelList: [],
 			messages: [],
 			status: "idle" as AgentStatus,
 			currentToolCall: null,
 			pendingConfirmation: null,
 			streamingContent: "",
+			contextTokens: 0,
+			modelFetchStatus: "idle" as ModelFetchStatus,
+			modelFetchError: null,
 
 			initMessages: (messages: AgentMessage[]) => {
 				set({
@@ -119,6 +140,9 @@ export const useAgentStore = create<AgentState>()(
 							},
 							onMessagesUpdated: (messages) => {
 								set({ messages: [...messages] });
+							},
+							onContextUsage: ({ estimatedTokens }) => {
+								set({ contextTokens: estimatedTokens });
 							},
 							onToolCallStart: (toolCall) => {
 								set({
@@ -235,6 +259,54 @@ export const useAgentStore = create<AgentState>()(
 			setExpertRole: (roleId) => {
 				set({ expertRole: roleId });
 			},
+
+			setContextWindow: (tokens) => {
+				set({ contextWindow: tokens > 0 ? tokens : DEFAULT_CONTEXT_WINDOW });
+			},
+
+			fetchModels: async () => {
+				const state = get();
+				if (state.modelFetchStatus === "loading") return;
+				const { baseUrl, apiKey } = state.config;
+				if (!apiKey) return;
+				set({ modelFetchStatus: "loading", modelFetchError: null });
+				try {
+					const fetched = await fetchAvailableModels({ baseUrl, apiKey });
+					set((prev) => ({
+						modelList: mergeModelList({ current: prev.modelList, fetched }),
+						modelFetchStatus: "idle",
+					}));
+				} catch (error) {
+					set({
+						modelFetchStatus: "error",
+						modelFetchError:
+							error instanceof Error ? error.message : "Failed to fetch models",
+					});
+				}
+			},
+
+			upsertModel: (entry) => {
+				set((prev) => {
+					const id = entry.id.trim();
+					if (!id) return prev;
+					const exists = prev.modelList.some((model) => model.id === id);
+					return {
+						modelList: exists
+							? prev.modelList.map((model) =>
+									model.id === id ? { ...model, ...entry, id } : model,
+								)
+							: [...prev.modelList, { ...entry, id }].sort((a, b) =>
+									a.id.localeCompare(b.id),
+								),
+					};
+				});
+			},
+
+			removeModel: (id) => {
+				set((prev) => ({
+					modelList: prev.modelList.filter((model) => model.id !== id),
+				}));
+			},
 		}),
 		{
 			name: "agent-settings",
@@ -243,6 +315,8 @@ export const useAgentStore = create<AgentState>()(
 				autoMode: state.autoMode,
 				isOpen: state.isOpen,
 				expertRole: state.expertRole,
+				contextWindow: state.contextWindow,
+				modelList: state.modelList,
 			}),
 			merge: (persisted, current) => ({
 				...(current as AgentState),
