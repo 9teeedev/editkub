@@ -163,7 +163,7 @@ export function ComparisonTable() {
 									<StatusIcon status={row.capcut} />
 									<div className="flex flex-col gap-0.5">
 										<span className="text-muted-foreground text-sm">
-											{row.editkubNote}
+											{row.capcutNote}
 										</span>
 										{row.capcutSourceUrl && (
 											<a

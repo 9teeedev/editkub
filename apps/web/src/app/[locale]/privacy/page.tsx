@@ -62,7 +62,7 @@ export default function PrivacyPage() {
 								IndexedDB and browser local storage.
 							</li>
 							<li>
-								Product analytics are anonymous and coarse — we never collect
+								Product analytics are coarse and privacy-focused — we never collect
 								media files, transcripts, project titles, prompts, or API keys.
 							</li>
 							<li>We do not sell your data or share it with advertisers.</li>
@@ -120,8 +120,8 @@ export default function PrivacyPage() {
 					or failed, and coarse duration categories).
 				</p>
 				<p>
-					To guarantee privacy, analytics events are strictly restricted to
-					anonymous, coarse metadata. We <strong>never</strong> collect or
+					To protect your privacy, analytics events are strictly restricted to
+					coarse product metadata. We <strong>never</strong> collect or
 					transmit:
 				</p>
 				<ul className="list-disc space-y-2 pl-6">

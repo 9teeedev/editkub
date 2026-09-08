@@ -9,7 +9,7 @@ import { GitHubContributeSection } from "@/components/gitHub-contribute-section"
 export const metadata: Metadata = {
 	title: "Why Not CapCut? Editkub vs CapCut Comparison — Editkub",
 	description:
-		"Compare Editkub and CapCut side by side. Editkub is a free, open-source, privacy-first browser video editor — no uploads, no account, no watermarks. See how it stacks up against CapCut.",
+		"Compare Editkub and CapCut side by side. Editkub is a free, open-source, privacy-first browser video editor with local-first editing, no account required, and watermark-free export. See how it stacks up against CapCut.",
 	alternates: {
 		canonical: `${SITE_URL}/why-not-capcut`,
 	},
@@ -70,11 +70,12 @@ export default async function WhyNotCapcutPage({
 				<p className="text-muted-foreground leading-relaxed">
 					CapCut is a popular video editor, but it uploads your media to remote
 					servers, requires an account, and is closed-source proprietary
-					software. Editkub takes a different approach: it runs entirely in your
-					browser, your files never leave your device, and the source code is
-					open for anyone to inspect. If you care about privacy, freedom, or
-					simply want a video editor that works without sign-ups and
-					watermarks, Editkub is designed for you.
+					software. Editkub takes a different approach: core editing runs
+					entirely in your browser so your media stays on your device during
+					local workflows, and the source code is open for anyone to inspect.
+					Remote AI features are optional and opt-in. If you care about privacy,
+					freedom, or simply want a video editor that works without sign-ups
+					and watermarks, Editkub is designed for you.
 				</p>
 			</section>
 

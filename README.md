@@ -25,7 +25,7 @@
 
 ## At a Glance
 
-Editkub is designed for creators who want a clean editing workflow without subscriptions, tracking, or watermark traps.
+Editkub is designed for creators who want a clean, privacy-first workflow without watermark traps. Core editing runs locally; remote AI features are optional.
 
 - Local-first editing mindset
 - Timeline-based multi-track workflow

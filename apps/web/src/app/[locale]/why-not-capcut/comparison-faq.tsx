@@ -23,7 +23,7 @@ export function useComparisonFaqItems(): ComparisonFaqItem[] {
 		{
 			question: t("Is Editkub a good alternative to CapCut?"),
 			answer: t(
-				"Yes. Editkub is designed as a free, open-source, privacy-first alternative to CapCut. It offers AI-native editing, multi-track timeline, MP4/WebM export, and runs entirely in your browser — no account, no uploads, no watermarks.",
+				"Yes. Editkub is designed as a free, open-source, privacy-first alternative to CapCut. It offers a multi-track timeline, MP4/WebM export, and in-browser local editing — no account required and no watermark traps. Remote AI features are opt-in.",
 			),
 		},
 		{
@@ -41,7 +41,7 @@ export function useComparisonFaqItems(): ComparisonFaqItem[] {
 		{
 			question: t("Does CapCut upload my videos to servers?"),
 			answer: t(
-				"Yes. CapCut requires uploading your media files to remote servers for processing and storage. Editkub takes the opposite approach — all media processing happens locally in your browser and your files never leave your device.",
+				"Yes. CapCut requires uploading your media files to remote servers for processing and storage. Editkub takes the opposite approach — core editing and local captions run entirely in your browser, so your media files stay on your device during local workflows. Remote AI features are strictly optional.",
 			),
 			sourceQuote: t(
 				'"We may collect User Content through pre-uploading at the time of creation, import, or upload, regardless of whether you choose to save or publish that User Content."',

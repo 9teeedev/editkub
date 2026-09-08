@@ -41,8 +41,8 @@ export default function TermsPage() {
 						</h3>
 						<ol className="list-decimal space-y-2 pl-6">
 							<li>
-								Your content stays private - basic editing is local, AI features
-								use encrypted uploads
+								Your content stays private — core editing is local; remote AI
+								features are optional and opt-in
 							</li>
 							<li>
 								We never claim ownership of your content, even when processing
@@ -81,11 +81,11 @@ export default function TermsPage() {
 			<section className="flex flex-col gap-3">
 				<h2 className="text-2xl font-semibold">Your Content, Your Rights</h2>
 				<p>
-					<strong>You own everything you create.</strong> Editkub processes basic
-					editing locally on your device. For AI features, content is encrypted
-					before upload and we cannot access your original files. We make no
-					claims to ownership, licensing, or rights over your videos, projects,
-					or any content you create using Editkub.
+					<strong>You own everything you create.</strong> Editkub processes core
+					editing locally on your device. When using optional AI features, data
+					is transmitted securely over HTTPS directly to the selected AI
+					provider. We make no claims to ownership, licensing, or rights over
+					your videos, projects, or any content you create using Editkub.
 				</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>
@@ -93,8 +93,7 @@ export default function TermsPage() {
 					</li>
 					<li>You retain all intellectual property rights to your content</li>
 					<li>
-						Even when using AI features, we cannot access your unencrypted
-						content
+						Media stays on your device during local workflows
 					</li>
 					<li>You can export and use your content however you choose</li>
 					<li>No watermarks, no licensing restrictions from Editkub</li>
@@ -124,27 +123,29 @@ export default function TermsPage() {
 					AI Features and Data Processing
 				</h2>
 				<p>
-					Editkub offers optional AI-powered features that require server
-					processing:
+					Editkub offers optional AI-powered features that require external or
+					server processing:
 				</p>
 				<ul className="list-disc space-y-2 pl-6">
 					<li>
-						AI features (auto captions, content analysis, etc.) are completely
+						AI features (auto captions, AI image generation, etc.) are completely
 						optional
 					</li>
-					<li>Your content is encrypted on your device before any upload</li>
 					<li>
-						We use zero-knowledge encryption - we cannot decrypt your content
+						Data transmitted to remote AI providers is sent securely over HTTPS
 					</li>
-					<li>Encrypted content is deleted immediately after processing</li>
+					<li>
+						Local captions and core editing never send your media to external servers
+					</li>
 					<li>
 						You maintain full ownership and control of your content throughout
 					</li>
 				</ul>
 				<p>
-					By using AI features, you consent to the temporary, encrypted
-					processing of your content as described in our Privacy Policy. You can
-					always choose to use only local editing features.
+					By using remote AI features, you consent to the transmission of required
+					input (such as audio for transcription or text prompts) to the selected
+					provider as described in our Privacy Policy. You can always choose to
+					use only local editing features.
 				</p>
 			</section>
 

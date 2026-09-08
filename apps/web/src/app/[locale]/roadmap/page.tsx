@@ -74,31 +74,32 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Local Export Pipeline",
 				description:
-					"FFmpeg.wasm + canvas renderer for MP4/WebM export with adjustable quality. Everything runs in-browser — no server uploads.",
+					"WebCodecs + canvas renderer with FFmpeg.wasm audio fallback for MP4/WebM export with adjustable quality. Everything runs in-browser — no server uploads.",
 				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "AI Agent",
 				description:
-					"LLM-powered assistant that can edit timelines via tool calls. System prompt + project tools + AI generation tools. Chat-based interface.",
-				status: { text: "Completed", type: "complete" },
+					"LLM-powered assistant that can edit timelines via tool calls. System prompt + project tools + AI generation tools. Chat-based interface (requires an external OpenAI-compatible API key).",
+				status: { text: "Requires setup", type: "info" },
 			},
 			{
 				title: "AI Image Generation",
 				description:
-					"Generate images from text prompts directly in the editor via API route.",
-				status: { text: "Completed", type: "complete" },
+					"Generate images from text prompts directly in the editor via external provider API or backend proxy.",
+				status: { text: "Requires setup", type: "info" },
 			},
 			{
 				title: "AI Video Generation",
-				description: "Text-to-video generation with async task polling.",
-				status: { text: "Completed", type: "complete" },
+				description:
+					"Text-to-video generation with async task polling via external provider API or backend proxy.",
+				status: { text: "Requires setup", type: "info" },
 			},
 			{
 				title: "Text-to-Speech (TTS)",
 				description:
-					"Generate voiceover audio from text, insert directly to timeline.",
-				status: { text: "Completed", type: "complete" },
+					"Generate voiceover audio from text and insert directly to timeline (requires server proxy configuration and upstream TTS service).",
+				status: { text: "Requires setup", type: "info" },
 			},
 			{
 				title: "Audio Transcription",
@@ -128,19 +129,19 @@ const roadmapPhases: RoadmapPhase[] = [
 				title: "Text Template Library",
 				description:
 					"Pre-designed text templates: Title cards (Bold, Elegant, Neon), Lower Thirds (News, Accent Bar), End Screens (Subscribe, Thanks), Callouts (Arrow, Badge), Social Handles. Category-filtered gallery with CSS-styled previews. Drag to timeline or click to add. Full style props carried through drag-and-drop.",
-				status: { text: "Completed", type: "complete" }
+				status: { text: "Completed", type: "complete" },
 			},
 			{
 				title: "Sound Effects Library",
 				description:
-					"Searchable SFX library with pagination, a commercial-use filter, and a saved/favourites list. Add sounds straight to the timeline; volume, pan, fade and auto-duck per clip.",
-				status: { text: "Completed", type: "complete" },
+					"Searchable SFX library with pagination, commercial-use filter, and saved list (requires Freesound API key for online search). Add sounds straight to timeline with per-clip volume, pan, fade, and auto-duck.",
+				status: { text: "Requires setup", type: "info" },
 			},
 			{
 				title: "Music & Song Library",
 				description:
 					"Curated royalty-free music library organized by genre/mood (Lo-fi, Upbeat, Cinematic, Ambient, Electronic, Acoustic). BPM-tagged, loop-ready. Auto-duck under voiceover. Timeline beat-sync markers for rhythmic editing.",
-				status: { text: "Not started", type: "default" }
+				status: { text: "Not started", type: "default" },
 			},
 		],
 	},
@@ -151,8 +152,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Filters & Color Grading",
 				description:
-					"Preset filter library (Vintage, Cinematic, Warm, Cool, B&W, Film grain, etc.). One-click apply, intensity slider. Filter categories with live preview thumbnails. Import custom LUT files (.cube).",
-					status: { text: "Completed", type: "complete" },
+					"Preset filter library (Vintage, Cinematic, Warm, Cool, B&W, Film grain, etc.) with categories, one-click apply, live previews, and intensity slider. Custom LUT file (.cube) import is in development.",
+				status: { text: "In progress", type: "pending" },
 			},
 			{
 				title: "Adjustment Controls",
@@ -175,8 +176,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Speed Control",
 				description:
-					"Variable speed (0.25x–4x), speed curves/ramping, freeze frame, reverse playback. Speed graph editor.",
-				status: { text: "Completed", type: "complete" },
+					"Variable playback speed (0.25x–4x) for video clips with timeline duration scaling. Speed curves/ramping, freeze frame, reverse playback, and graph editor are in development.",
+				status: { text: "In progress", type: "pending" },
 			},
 			{
 				title: "Stickers & Emojis",
@@ -211,7 +212,7 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Background Removal",
 				description:
-					"AI-powered background removal via on-device portrait segmentation (MODNet, WebGPU/WASM fallback). Per-clip toggle removes the background so lower tracks show through in preview and export. Runs locally — privacy-first.",
+					"AI-powered background removal via on-device portrait segmentation (MODNet via in-browser WASM). Per-clip toggle removes the background so lower tracks show through in preview and export. Runs locally — privacy-first.",
 				status: { text: "Completed", type: "complete" },
 			},
 			{
@@ -319,8 +320,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Advanced Text Animations",
 				description:
-					"Typewriter, glitch, bounce, slide-in, karaoke-style highlight. Animated text presets library. Per-word timing.",
-				status: { text: "Completed", type: "complete" },
+					"In/Out text animation presets (typewriter, slide-in, scale-in, fade). Loop presets (glitch, bounce) and standalone per-word timing are in active development.",
+				status: { text: "In progress", type: "pending" },
 			},
 			{
 				title: "Voiceover Recording",
@@ -331,8 +332,8 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Project Sharing",
 				description:
-					"Export/import project bundles (.cutia) — self-contained JSON with embedded media. Share a file, open it anywhere, fully local.",
-				status: { text: "Completed", type: "complete" },
+					"Planned export/import of self-contained project bundles (.cutia) with embedded media assets for offline sharing across devices.",
+				status: { text: "Not started", type: "default" },
 			},
 		],
 	},
@@ -361,7 +362,7 @@ const roadmapPhases: RoadmapPhase[] = [
 			{
 				title: "Mobile Responsive Editor",
 				description:
-					"Touch-optimized timeline, gesture controls (pinch-zoom, swipe-trim). Responsive panel layout for tablets and phones.",
+					"Mobile-adapted timeline with touch trim handles, pinch-to-zoom navigation, action bar drawers, and responsive layout for phones and tablets.",
 				status: { text: "Completed", type: "complete" },
 			},
 			{
@@ -421,7 +422,7 @@ export default function RoadmapPage() {
 	return (
 		<BasePage
 			title="Roadmap"
-			description="The path to becoming the best free CapCut alternative (last updated: August 2026)"
+			description="The path to becoming the best free CapCut alternative (last updated: September 2026)"
 		>
 			<div className="mx-auto flex max-w-4xl flex-col gap-16">
 				{roadmapPhases.map((phase) => (
@@ -457,10 +458,10 @@ export default function RoadmapPage() {
 	);
 }
 
-function RoadmapItem({ item, index }: { item: RoadmapItem; index: number }) {
+function RoadmapItem({ item, index: _index }: { item: RoadmapItem; index: number }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<div className="flex items-center gap-2 text-lg font-medium">
+			<div className="flex flex-wrap items-center gap-2 text-lg font-medium">
 				<h3>{item.title}</h3>
 				<StatusBadge status={item.status} className="ml-1" />
 			</div>
@@ -481,10 +482,11 @@ function StatusBadge({
 	return (
 		<Badge
 			className={cn("shadow-none", className, {
-				"bg-green-500! text-white": status.type === "complete",
-				"bg-yellow-500! text-white": status.type === "pending",
-				"bg-blue-500! text-white": status.type === "info",
-				"bg-foreground/10! text-accent-foreground": status.type === "default",
+				"bg-green-600! text-white": status.type === "complete",
+				"bg-amber-400! text-neutral-950 font-semibold dark:bg-amber-500! dark:text-neutral-950":
+					status.type === "pending",
+				"bg-sky-600! text-white": status.type === "info",
+				"bg-muted! text-muted-foreground": status.type === "default",
 			})}
 		>
 			{status.text}
