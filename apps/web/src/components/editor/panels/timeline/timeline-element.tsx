@@ -166,7 +166,11 @@ export function TimelineElement({
 			<ContextMenuTrigger asChild>
 				<div
 					className={`absolute top-0 h-full select-none ${
-						isBeingDragged ? "z-30" : "z-10"
+						isBeingDragged
+							? "z-60"
+							: isSelected
+								? "z-55"
+								: "z-10"
 					}`}
 					style={{
 						left: `${elementLeft}px`,
