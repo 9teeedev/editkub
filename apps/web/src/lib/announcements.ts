@@ -30,6 +30,14 @@ export interface Announcement {
  */
 export const ANNOUNCEMENTS: Announcement[] = [
 	{
+		id: "2026-09-09-ripple-editing",
+		tag: "improved",
+		date: "2026-09-09",
+		title: "Ripple editing now works",
+		description:
+			"Turn on ripple editing with the link icon in the timeline toolbar: deleting or trimming a clip slides the clips after it to close the gap.",
+	},
+	{
 		id: "2026-09-08-agent-providers",
 		tag: "new",
 		date: "2026-09-08",
@@ -60,7 +68,8 @@ export const ANNOUNCEMENTS: Announcement[] = [
 		tag: "new",
 		date: "2026-08-30",
 		title: "SRT import & export",
-		description: "Import SRT files as captions or export your transcript as SRT.",
+		description:
+			"Import SRT files as captions or export your transcript as SRT.",
 	},
 	{
 		id: "2026-08-26-mobile-timeline-editing",

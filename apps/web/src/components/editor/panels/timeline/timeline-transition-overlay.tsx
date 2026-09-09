@@ -199,14 +199,14 @@ function TransitionJunctionOverlay({
 
 		return (
 			<div
-				className="absolute top-0 z-50 flex h-full items-center"
+				className="pointer-events-none absolute top-0 z-50 flex h-full items-center"
 				style={{ left: `${leftPx}px`, width: `${buttonSize}px` }}
 			>
 				<Popover open={isOpen} onOpenChange={setIsOpen}>
 					<PopoverTrigger asChild>
 						<button
 							type="button"
-							className="bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex size-6 items-center justify-center rounded-sm transition-colors"
+							className="bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground pointer-events-auto flex size-6 items-center justify-center rounded-sm transition-colors"
 							title="Add transition"
 						>
 							<PlusIcon />
