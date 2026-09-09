@@ -2,6 +2,8 @@ import { Command } from "@/lib/commands/base-command";
 import type { TimelineTrack } from "@/types/timeline";
 import { EditorCore } from "@/core";
 import { isMainTrack, hasMediaId } from "@/lib/timeline";
+import { getRippleShift, applyRippleShift } from "@/lib/timeline/ripple-utils";
+import { useTimelineStore } from "@/stores/timeline-store";
 import { storageService } from "@/services/storage/service";
 import type { MediaAsset } from "@/types/assets";
 
@@ -16,6 +18,8 @@ export class DeleteElementsCommand extends Command {
 	execute(): void {
 		const editor = EditorCore.getInstance();
 		this.savedState = editor.timeline.getTracks();
+
+		const rippleEnabled = useTimelineStore.getState().rippleEditingEnabled;
 
 		const deletedMediaIds = new Set<string>();
 		for (const track of this.savedState) {
@@ -39,14 +43,41 @@ export class DeleteElementsCommand extends Command {
 					return track;
 				}
 
-				return {
-					...track,
-					elements: track.elements.filter(
-						(element) =>
-							!this.elements.some(
+				const remainingElements = track.elements.filter(
+					(element) =>
+						!this.elements.some(
+							(el) => el.trackId === track.id && el.elementId === element.id,
+						),
+				);
+
+				let nextElements = remainingElements;
+				if (rippleEnabled && remainingElements.length > 0) {
+					const deletedStartTimes = track.elements
+						.filter((element) =>
+							this.elements.some(
 								(el) => el.trackId === track.id && el.elementId === element.id,
 							),
-					),
+						)
+						.map((element) => element.startTime);
+					if (deletedStartTimes.length > 0) {
+						const spanStart = Math.min(...deletedStartTimes);
+						const shift = getRippleShift({
+							elements: remainingElements,
+							anchorStartTime: spanStart,
+							targetTime: spanStart,
+						});
+						if (shift) {
+							nextElements = applyRippleShift({
+								elements: remainingElements,
+								shift,
+							});
+						}
+					}
+				}
+
+				return {
+					...track,
+					elements: nextElements,
 				} as typeof track;
 			})
 			.filter((track) => track.elements.length > 0 || isMainTrack(track));
@@ -108,7 +139,10 @@ export class DeleteElementsCommand extends Command {
 						storageService
 							.saveMediaAsset({ projectId, mediaAsset: asset })
 							.catch((error) => {
-								console.error("Failed to restore ephemeral media on undo:", error);
+								console.error(
+									"Failed to restore ephemeral media on undo:",
+									error,
+								);
 							});
 					}
 				}
