@@ -30,6 +30,14 @@ export interface Announcement {
  */
 export const ANNOUNCEMENTS: Announcement[] = [
 	{
+		id: "2026-09-15-timeline-text-fixes",
+		tag: "fixed",
+		date: "2026-09-15",
+		title: "Smoother clip adding, dropping, and multi-line text",
+		description:
+			"The + button now moves the playhead to the end of the added clip so the next clip appends after it. Clips dragged into the timeline snap flush against their neighbours — with a placement preview before you drop — and text elements keep the line breaks you type.",
+	},
+	{
 		id: "2026-09-09-ripple-editing",
 		tag: "improved",
 		date: "2026-09-09",
