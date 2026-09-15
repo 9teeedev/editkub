@@ -331,18 +331,25 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			this.renderMultiline({
 				context: renderer.context,
 				scaledFontSize,
-			scaledBoxWidth,
-			textBaseline,
-			contentOverride: effectiveContent,
-		});
-	} else {
+				scaledBoxWidth,
+				textBaseline,
+				contentOverride: effectiveContent,
+			});
+		} else if (effectiveContent.includes("\n")) {
+			this.renderExplicitLines({
+				context: renderer.context,
+				scaledFontSize,
+				textBaseline,
+				contentOverride: effectiveContent,
+			});
+		} else {
 			this.renderSingleLine({
 				context: renderer.context,
-			scaledFontSize,
-			textBaseline,
-			contentOverride: effectiveContent,
-		});
-	}
+				scaledFontSize,
+				textBaseline,
+				contentOverride: effectiveContent,
+			});
+		}
 
 		renderer.context.globalAlpha = prevAlpha;
 		renderer.context.restore();
@@ -389,8 +396,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 
 		const lineHeight = scaledFontSize * 1.3;
 		const totalHeight = lines.length * lineHeight;
-		const startY =
-			textBaseline === "bottom" ? -totalHeight : -totalHeight / 2;
+		const startY = textBaseline === "bottom" ? -totalHeight : -totalHeight / 2;
 
 		context.textBaseline = "middle";
 
@@ -399,13 +405,21 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		lines.forEach((line, lineIndex) => {
 			const lineY = startY + lineIndex * lineHeight + lineHeight / 2;
 
-		// drawCaptionLineWords draws left-aligned from lineX, so center the
-		// line on the origin; left/right align against the wrap box instead.
-		let lineX = -line.width / 2;
-		if (this.params.textAlign === "left") lineX = -maxWidth / 2;
-		else if (this.params.textAlign === "right") lineX = maxWidth / 2 - line.width;
+			// drawCaptionLineWords draws left-aligned from lineX, so center the
+			// line on the origin; left/right align against the wrap box instead.
+			let lineX = -line.width / 2;
+			if (this.params.textAlign === "left") lineX = -maxWidth / 2;
+			else if (this.params.textAlign === "right")
+				lineX = maxWidth / 2 - line.width;
 
-			this.drawCaptionLineBackground({ context, line, lineX, lineY, lineHeight, scaledFontSize });
+			this.drawCaptionLineBackground({
+				context,
+				line,
+				lineX,
+				lineY,
+				lineHeight,
+				scaledFontSize,
+			});
 			this.drawCaptionLineWords({
 				context,
 				line,
@@ -633,11 +647,13 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		contentOverride?: string;
 	}) {
 		const content = contentOverride ?? this.params.content;
-		if (this.params.backgroundColor && this.params.backgroundColor !== "transparent") {
+		if (
+			this.params.backgroundColor &&
+			this.params.backgroundColor !== "transparent"
+		) {
 			const metrics = context.measureText(content);
 			const ascent = metrics.actualBoundingBoxAscent ?? scaledFontSize * 0.8;
-			const descent =
-				metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2;
+			const descent = metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2;
 			const textW = metrics.width;
 			const textH = ascent + descent;
 			const padX = this.params.backgroundPaddingX ?? 8;
@@ -695,6 +711,109 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		context.fillText(content, 0, 0);
 	}
 
+	/**
+	 * Text without a wrap box whose content carries explicit newlines:
+	 * each source line is drawn verbatim on its own canvas line (no
+	 * re-wrapping), stacked with the same line height as wrapped text.
+	 */
+	private renderExplicitLines({
+		context,
+		scaledFontSize,
+		textBaseline,
+		contentOverride,
+	}: {
+		context: RenderContext;
+		scaledFontSize: number;
+		textBaseline: CanvasTextBaseline;
+		contentOverride?: string;
+	}) {
+		const content = contentOverride ?? this.params.content;
+		const lines = content.split("\n");
+		const lineWidths = lines.map((line) => context.measureText(line).width);
+		const maxLineWidth = Math.max(...lineWidths, 1);
+
+		const lineHeight = scaledFontSize * 1.3;
+		const totalHeight = lines.length * lineHeight;
+
+		let startY: number;
+		if (textBaseline === "bottom") {
+			startY = -totalHeight + lineHeight / 2;
+		} else {
+			startY = -totalHeight / 2 + lineHeight / 2;
+		}
+
+		context.textBaseline = "middle";
+
+		let textX = 0;
+		if (context.textAlign === "left") {
+			textX = -maxLineWidth / 2;
+		} else if (context.textAlign === "right") {
+			textX = maxLineWidth / 2;
+		}
+
+		if (
+			this.params.backgroundColor &&
+			this.params.backgroundColor !== "transparent"
+		) {
+			const padX = this.params.backgroundPaddingX ?? 8;
+			const padY = this.params.backgroundPaddingY ?? 4;
+			const borderRadius = this.params.backgroundBorderRadius ?? 0;
+
+			const prevAlpha = context.globalAlpha;
+			const bgOpacity = this.params.backgroundOpacity ?? 1;
+			context.globalAlpha = prevAlpha * bgOpacity;
+
+			context.fillStyle = this.params.backgroundColor;
+			let bgLeft = -maxLineWidth / 2;
+			if (context.textAlign === "left") bgLeft = 0;
+			if (context.textAlign === "right") bgLeft = -maxLineWidth;
+
+			const bgTop = startY - lineHeight / 2 - padY;
+			const bgX = bgLeft - padX;
+			const bgW = maxLineWidth + padX * 2;
+			const bgH = totalHeight + padY * 2;
+
+			if (borderRadius > 0 && context.roundRect) {
+				context.beginPath();
+				context.roundRect(bgX, bgTop, bgW, bgH, borderRadius);
+				context.fill();
+			} else {
+				context.fillRect(bgX, bgTop, bgW, bgH);
+			}
+
+			context.globalAlpha = prevAlpha;
+			context.fillStyle = this.params.color;
+		}
+
+		for (let i = 0; i < lines.length; i++) {
+			const lineY = startY + i * lineHeight;
+			if (lines[i] === "") continue;
+
+			if (this.params.shadow) {
+				context.shadowColor = this.params.shadow.color;
+				context.shadowOffsetX = this.params.shadow.offsetX;
+				context.shadowOffsetY = this.params.shadow.offsetY;
+				context.shadowBlur = this.params.shadow.blur;
+			}
+
+			if (this.params.stroke && this.params.stroke.width > 0) {
+				context.strokeStyle = this.params.stroke.color;
+				context.lineWidth = this.params.stroke.width * 2;
+				context.lineJoin = "round";
+				context.strokeText(lines[i], textX, lineY);
+			}
+
+			if (this.params.shadow) {
+				context.shadowColor = "transparent";
+				context.shadowBlur = 0;
+				context.shadowOffsetX = 0;
+				context.shadowOffsetY = 0;
+			}
+
+			context.fillText(lines[i], textX, lineY);
+		}
+	}
+
 	private renderMultiline({
 		context,
 		scaledFontSize,
@@ -734,7 +853,10 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			textX = scaledBoxWidth / 2;
 		}
 
-		if (this.params.backgroundColor && this.params.backgroundColor !== "transparent") {
+		if (
+			this.params.backgroundColor &&
+			this.params.backgroundColor !== "transparent"
+		) {
 			const padX = this.params.backgroundPaddingX ?? 8;
 			const padY = this.params.backgroundPaddingY ?? 4;
 			const borderRadius = this.params.backgroundBorderRadius ?? 0;

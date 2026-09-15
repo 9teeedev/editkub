@@ -111,7 +111,13 @@ export function TextAnimationPreview({
 			ctx.fillStyle = "#ffffff";
 			ctx.globalAlpha = opacity;
 
-			ctx.fillText(content, 0, 0);
+			// Explicit newlines draw one canvas line per source line.
+			const lines = content.split("\n");
+			const lineHeight = fontSize * 1.3;
+			const startY = -((lines.length - 1) * lineHeight) / 2;
+			for (let i = 0; i < lines.length; i++) {
+				ctx.fillText(lines[i], 0, startY + i * lineHeight);
+			}
 			ctx.restore();
 		};
 
