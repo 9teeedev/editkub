@@ -14,6 +14,7 @@ import {
 	buildAdjustmentElement,
 } from "@/lib/timeline/element-utils";
 import { computeDropTarget } from "@/lib/timeline/drop-utils";
+import { isMainTrack } from "@/lib/timeline/track-utils";
 import { useTimelineSnapping } from "@/hooks/timeline/use-timeline-snapping";
 import { getDragData, hasDragData } from "@/lib/drag-data";
 import { useTimelineStore } from "@/stores/timeline-store";
@@ -103,6 +104,54 @@ export function useTimelineDragDrop({
 			return { time: Math.max(0, best.snappedTime), snapped: true };
 		},
 		[snapElementEdge, currentTime, zoomLevel],
+	);
+
+	/**
+	 * Ripple editing ON: a video/image dropped on the main track beyond the
+	 * end of its clip sequence (or into a gap too small for it) lands flush
+	 * at the sequence end instead of staying put and leaving a gap. A drop
+	 * that fits an interior gap keeps its position — the drop target only
+	 * resolves to the main track when the clip fits there anyway, and edge
+	 * snapping butts it against the gap edge. Overlay tracks (text/sticker/
+	 * PiP) keep the dropped position — gaps there are intentional.
+	 */
+	const applyRippleAppend = useCallback(
+		({
+			target,
+			elementType,
+			elementDuration,
+			tracks: currentTracks,
+		}: {
+			target: DropTarget;
+			elementType: ElementType;
+			elementDuration: number;
+			tracks: ReturnType<typeof editor.timeline.getTracks>;
+		}): { target: DropTarget; rippled: boolean } => {
+			if (!useTimelineStore.getState().rippleEditingEnabled) {
+				return { target, rippled: false };
+			}
+			if (elementType !== "video" && elementType !== "image") {
+				return { target, rippled: false };
+			}
+			if (target.isNewTrack) return { target, rippled: false };
+
+			const track = currentTracks[target.trackIndex];
+			if (!track || !isMainTrack(track)) {
+				return { target, rippled: false };
+			}
+
+			const lastEnd = track.elements.reduce(
+				(end, element) => Math.max(end, element.startTime + element.duration),
+				0,
+			);
+			if (target.xPosition + elementDuration <= lastEnd) {
+				// Fits inside the existing span (an interior gap) — keep it.
+				return { target, rippled: false };
+			}
+
+			return { target: { ...target, xPosition: lastEnd }, rippled: true };
+		},
+		[],
 	);
 
 	const getElementType = useCallback(
@@ -202,14 +251,30 @@ export function useTimelineDragDrop({
 				snappingEnabled: useTimelineStore.getState().snappingEnabled,
 			});
 
-			const snapResult = snapDropPosition({
-				time: target.xPosition,
-				duration,
+			const rippleResult = applyRippleAppend({
+				target,
+				elementType,
+				elementDuration: duration,
 				tracks,
 			});
-			target.xPosition = getSnappedTime({ time: snapResult.time });
+			let snapped = false;
+			let dropTime = rippleResult.target.xPosition;
+			if (rippleResult.rippled) {
+				// Ripple already resolved the position flush to the sequence
+				// end; edge snapping would only fight it.
+				snapped = true;
+			} else {
+				const snapResult = snapDropPosition({
+					time: dropTime,
+					duration,
+					tracks,
+				});
+				dropTime = snapResult.time;
+				snapped = snapResult.snapped;
+			}
+			target.xPosition = getSnappedTime({ time: dropTime });
 			setDropDuration(duration);
-			setIsDropSnapped(snapResult.snapped);
+			setIsDropSnapped(snapped);
 
 			setDropTarget(target);
 			e.dataTransfer.dropEffect = "copy";
@@ -224,6 +289,7 @@ export function useTimelineDragDrop({
 			getElementDuration,
 			getSnappedTime,
 			snapDropPosition,
+			applyRippleAppend,
 		],
 	);
 
@@ -485,12 +551,20 @@ export function useTimelineDragDrop({
 						zoomLevel,
 						snappingEnabled: useTimelineStore.getState().snappingEnabled,
 					});
+					const rippleResult = applyRippleAppend({
+						target: dropTarget,
+						elementType: added.type,
+						elementDuration: duration,
+						tracks: currentTracks,
+					});
 					dropTarget.xPosition = getSnappedTime({
-						time: snapDropPosition({
-							time: dropTarget.xPosition,
-							duration,
-							tracks: currentTracks,
-						}).time,
+						time: rippleResult.rippled
+							? rippleResult.target.xPosition
+							: snapDropPosition({
+									time: dropTarget.xPosition,
+									duration,
+									tracks: currentTracks,
+								}).time,
 					});
 
 					const trackType: TrackType =
@@ -547,6 +621,7 @@ export function useTimelineDragDrop({
 			zoomLevel,
 			getSnappedTime,
 			snapDropPosition,
+			applyRippleAppend,
 		],
 	);
 
