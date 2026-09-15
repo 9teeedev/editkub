@@ -1,5 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import { getRippleShift, applyRippleShift } from "./ripple-utils";
+import {
+	getRippleShift,
+	applyRippleShift,
+	resolveRippleMove,
+} from "./ripple-utils";
 import type { TimelineElement } from "@/types/timeline";
 
 function element({
@@ -120,5 +124,62 @@ describe("applyRippleShift", () => {
 			shift: { shift: 10, elementIds: ["b"] },
 		});
 		expect(shifted[0].startTime).toBe(0);
+	});
+});
+
+describe("resolveRippleMove", () => {
+	it("clamps a far move to the sequence end and closes the origin hole", () => {
+		const result = resolveRippleMove({
+			elements: [
+				element({ id: "a", startTime: 0, duration: 7 }),
+				element({ id: "m", startTime: 7, duration: 4 }),
+			],
+			movedElementId: "m",
+			duration: 4,
+			requestedStartTime: 11,
+		});
+		expect(result.startTime).toBe(7);
+		expect(result.shift).toBeNull();
+	});
+
+	it("closes the hole behind the moved clip", () => {
+		const result = resolveRippleMove({
+			elements: [
+				element({ id: "a", startTime: 0, duration: 3 }),
+				element({ id: "m", startTime: 3, duration: 2 }),
+				element({ id: "b", startTime: 5, duration: 3 }),
+			],
+			movedElementId: "m",
+			duration: 2,
+			requestedStartTime: 20,
+		});
+		expect(result.startTime).toBe(8);
+		expect(result.shift).toEqual({ shift: 2, elementIds: ["b"] });
+	});
+
+	it("keeps an interior destination untouched with no shift", () => {
+		const result = resolveRippleMove({
+			elements: [
+				element({ id: "a", startTime: 0, duration: 3 }),
+				element({ id: "m", startTime: 6, duration: 2 }),
+				element({ id: "b", startTime: 12, duration: 2 }),
+			],
+			movedElementId: "m",
+			duration: 2,
+			requestedStartTime: 8,
+		});
+		expect(result.startTime).toBe(8);
+		expect(result.shift).toBeNull();
+	});
+
+	it("moving the first clip when alone stays at the sequence end", () => {
+		const result = resolveRippleMove({
+			elements: [element({ id: "m", startTime: 0, duration: 5 })],
+			movedElementId: "m",
+			duration: 5,
+			requestedStartTime: 30,
+		});
+		expect(result.startTime).toBe(0);
+		expect(result.shift).toBeNull();
 	});
 });
