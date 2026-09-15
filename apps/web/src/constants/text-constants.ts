@@ -4,6 +4,11 @@ import { TIMELINE_CONSTANTS } from "./timeline-constants";
 export const MIN_FONT_SIZE = 1;
 export const MAX_FONT_SIZE = 38;
 
+/** Line spacing multiplier bounds (1 = single spacing, default 1.3). */
+export const MIN_LINE_HEIGHT = 0.8;
+export const MAX_LINE_HEIGHT = 3;
+export const DEFAULT_LINE_HEIGHT = 1.3;
+
 /**
  * higher value: smaller font size
  * lower value: larger font size

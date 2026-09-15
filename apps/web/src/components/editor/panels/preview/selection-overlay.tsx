@@ -12,7 +12,10 @@ import type {
 } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
 import { getTextScaleFactor } from "@/constants/text-constants";
-import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
+import {
+	isBottomAlignedSubtitleText,
+	resolveLineHeight,
+} from "@/lib/timeline/text-utils";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 import { canvasFontFamily } from "@/lib/canvas-fonts";
 import {
@@ -186,7 +189,7 @@ function measureCaptionTextBounds({
 		spaceWidth,
 		maxWidth,
 	});
-	const lineHeight = scaledFontSize * 1.3;
+	const lineHeight = scaledFontSize * resolveLineHeight({ element });
 	const width = Math.max(...lines.map((line) => line.width));
 	return { width, height: lines.length * lineHeight };
 }
@@ -225,7 +228,7 @@ function computeTextBounds({
 		estimatedHeight = measured.height;
 	} else if (hasBoxWidth) {
 		estimatedWidth = scaledBoxWidth;
-		const lineHeight = scaledFontSize * 1.3;
+		const lineHeight = scaledFontSize * resolveLineHeight({ element });
 		const charsPerLine = Math.max(
 			1,
 			Math.floor(scaledBoxWidth / (scaledFontSize * 0.6)),
@@ -268,7 +271,10 @@ function computeTextBounds({
 			);
 			estimatedWidth = widestLength * scaledFontSize * 0.6;
 		}
-		estimatedHeight = element.content.split("\n").length * scaledFontSize * 1.3;
+		estimatedHeight =
+			element.content.split("\n").length *
+			scaledFontSize *
+			resolveLineHeight({ element });
 	} else {
 		estimatedWidth = element.content.length * scaledFontSize * 0.6;
 		estimatedHeight = scaledFontSize * 1.4;

@@ -1,7 +1,10 @@
 import type { TimelineElement, Transform } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
 import { getTextScaleFactor } from "@/constants/text-constants";
-import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
+import {
+	isBottomAlignedSubtitleText,
+	resolveLineHeight,
+} from "@/lib/timeline/text-utils";
 
 export interface ElementHalfSize {
 	halfWidth: number;
@@ -53,7 +56,7 @@ export function getElementHalfSize({
 
 		if (hasBoxWidth) {
 			const scaledBoxWidth = elementBoxWidth * scaleFactor;
-			const lineHeight = scaledFontSize * 1.3;
+			const lineHeight = scaledFontSize * resolveLineHeight({ element });
 			const charsPerLine = Math.max(
 				1,
 				Math.floor(scaledBoxWidth / (scaledFontSize * 0.6)),
@@ -76,7 +79,7 @@ export function getElementHalfSize({
 		if (sourceLines.length > 1) {
 			// Explicit newlines without a wrap box: no re-wrapping, so the
 			// box is the widest source line times the line count.
-			const lineHeight = scaledFontSize * 1.3;
+			const lineHeight = scaledFontSize * resolveLineHeight({ element });
 			const widestLength = Math.max(
 				1,
 				...sourceLines.map((line) => stripCombiningMarks(line).length),

@@ -7,6 +7,7 @@ import {
 	resolveCaptionFlowFrame,
 } from "@/constants/caption-templates";
 import { canvasFontFamily } from "@/lib/canvas-fonts";
+import { resolveLineHeight } from "@/lib/timeline/text-utils";
 import { resolveAnimatedProperties } from "@/lib/timeline/keyframe-utils";
 import { resolveTextAnimations } from "@/lib/timeline/text-animation-utils";
 
@@ -394,7 +395,8 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			maxWidth,
 		});
 
-		const lineHeight = scaledFontSize * 1.3;
+		const lineHeight =
+			scaledFontSize * resolveLineHeight({ element: this.params });
 		const totalHeight = lines.length * lineHeight;
 		const startY = textBaseline === "bottom" ? -totalHeight : -totalHeight / 2;
 
@@ -732,7 +734,8 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		const lineWidths = lines.map((line) => context.measureText(line).width);
 		const maxLineWidth = Math.max(...lineWidths, 1);
 
-		const lineHeight = scaledFontSize * 1.3;
+		const lineHeight =
+			scaledFontSize * resolveLineHeight({ element: this.params });
 		const totalHeight = lines.length * lineHeight;
 
 		let startY: number;
@@ -834,7 +837,8 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			maxWidth: scaledBoxWidth,
 		});
 
-		const lineHeight = scaledFontSize * 1.3;
+		const lineHeight =
+			scaledFontSize * resolveLineHeight({ element: this.params });
 		const totalHeight = lines.length * lineHeight;
 
 		let startY: number;
