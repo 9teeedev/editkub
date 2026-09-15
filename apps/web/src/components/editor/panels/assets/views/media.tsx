@@ -42,6 +42,7 @@ import { useFileUpload } from "@/hooks/use-file-upload";
 import { useRevealItem } from "@/hooks/use-reveal-item";
 import { processMediaAssets } from "@/lib/media/processing";
 import { fetchRemoteMediaAsFile } from "@/lib/media/url-import";
+import { snapTimeToFrame } from "@/lib/time";
 import {
 	buildImageElement,
 	buildUploadAudioElement,
@@ -205,6 +206,16 @@ export function MediaView() {
 			element,
 			placement: { mode: "auto" },
 		});
+
+		// Move the playhead to the end of the added clip so the next add
+		// appends after it instead of stacking on the same start time.
+		const duration =
+			asset.duration ?? TIMELINE_CONSTANTS.DEFAULT_ELEMENT_DURATION;
+		const endTime = snapTimeToFrame({
+			time: startTime + duration,
+			fps: activeProject?.settings.fps ?? 30,
+		});
+		editor.playback.seek({ time: endTime });
 		return true;
 	};
 
@@ -405,52 +416,49 @@ export function MediaView() {
 								</Tooltip>
 							</Tooltip>
 						</TooltipProvider>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								variant="outline"
-								disabled={isProcessing}
-								size="sm"
-								className="items-center justify-center gap-1.5 ml-1.5 hover:bg-accent px-3"
-							>
-								<HugeiconsIcon icon={CloudUploadIcon} />
-								{t("Import")}
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuItem
-								onClick={openFilePicker}
-								className="gap-2"
-							>
-								<HugeiconsIcon icon={ComputerIcon} className="size-4" />
-								{t("From Device")}
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={() => setIsUrlDialogOpen(true)}
-								className="gap-2"
-							>
-								<HugeiconsIcon icon={Link04Icon} className="size-4" />
-								{t("From URL")}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="outline"
+									disabled={isProcessing}
+									size="sm"
+									className="items-center justify-center gap-1.5 ml-1.5 hover:bg-accent px-3"
+								>
+									<HugeiconsIcon icon={CloudUploadIcon} />
+									{t("Import")}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem onClick={openFilePicker} className="gap-2">
+									<HugeiconsIcon icon={ComputerIcon} className="size-4" />
+									{t("From Device")}
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => setIsUrlDialogOpen(true)}
+									className="gap-2"
+								>
+									<HugeiconsIcon icon={Link04Icon} className="size-4" />
+									{t("From URL")}
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				</div>
 
-			{/* biome-ignore lint: deselect on empty space click */}
-			<div
-				className="scrollbar-thin size-full overflow-y-auto"
-				onClick={(event) => {
-					if (event.target === event.currentTarget) handleClearSelection();
-				}}
-			>
 				{/* biome-ignore lint: deselect on empty space click */}
 				<div
-					className="w-full flex-1 p-2 pt-1"
+					className="scrollbar-thin size-full overflow-y-auto"
 					onClick={(event) => {
 						if (event.target === event.currentTarget) handleClearSelection();
 					}}
 				>
+					{/* biome-ignore lint: deselect on empty space click */}
+					<div
+						className="w-full flex-1 p-2 pt-1"
+						onClick={(event) => {
+							if (event.target === event.currentTarget) handleClearSelection();
+						}}
+					>
 						{isDragOver || filteredMediaItems.length === 0 ? (
 							<MediaDragOverlay
 								isVisible={true}

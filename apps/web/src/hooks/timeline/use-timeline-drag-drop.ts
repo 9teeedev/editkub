@@ -14,6 +14,7 @@ import {
 	buildAdjustmentElement,
 } from "@/lib/timeline/element-utils";
 import { computeDropTarget } from "@/lib/timeline/drop-utils";
+import { useTimelineSnapping } from "@/hooks/timeline/use-timeline-snapping";
 import { getDragData, hasDragData } from "@/lib/drag-data";
 import { useTimelineStore } from "@/stores/timeline-store";
 import type { TrackType, DropTarget, ElementType } from "@/types/timeline";
@@ -39,11 +40,15 @@ export function useTimelineDragDrop({
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
 	const [dragElementType, setElementType] = useState<ElementType | null>(null);
+	const [dropDuration, setDropDuration] = useState(0);
+	const [isDropSnapped, setIsDropSnapped] = useState(false);
 
 	const tracks = editor.timeline.getTracks();
 	const currentTime = editor.playback.getCurrentTime();
 	const mediaAssets = editor.media.getAssets();
 	const activeProject = editor.project.getActive();
+
+	const { snapElementEdge } = useTimelineSnapping();
 
 	const getSnappedTime = useCallback(
 		({ time }: { time: number }) => {
@@ -51,6 +56,53 @@ export function useTimelineDragDrop({
 			return snapTimeToFrame({ time, fps: projectFps });
 		},
 		[activeProject.settings.fps],
+	);
+
+	/**
+	 * Snap a drop position to nearby element edges and the playhead, the
+	 * same way in-timeline element drags snap, so dropped clips butt against
+	 * neighbours instead of leaving sub-pixel gaps. Honours the Auto
+	 * snapping toolbar toggle.
+	 */
+	const snapDropPosition = useCallback(
+		({
+			time,
+			duration,
+			tracks: snapTracks,
+		}: {
+			time: number;
+			duration: number;
+			tracks: ReturnType<typeof editor.timeline.getTracks>;
+		}): { time: number; snapped: boolean } => {
+			if (!useTimelineStore.getState().snappingEnabled) {
+				return { time, snapped: false };
+			}
+
+			const startSnap = snapElementEdge({
+				targetTime: time,
+				elementDuration: duration,
+				tracks: snapTracks,
+				playheadTime: currentTime,
+				zoomLevel,
+			});
+			const endSnap = snapElementEdge({
+				targetTime: time,
+				elementDuration: duration,
+				tracks: snapTracks,
+				playheadTime: currentTime,
+				zoomLevel,
+				snapToStart: false,
+			});
+
+			const best =
+				startSnap.snapDistance <= endSnap.snapDistance ? startSnap : endSnap;
+			if (!best.snapPoint) {
+				return { time, snapped: false };
+			}
+
+			return { time: Math.max(0, best.snappedTime), snapped: true };
+		},
+		[snapElementEdge, currentTime, zoomLevel],
 	);
 
 	const getElementType = useCallback(
@@ -150,7 +202,14 @@ export function useTimelineDragDrop({
 				snappingEnabled: useTimelineStore.getState().snappingEnabled,
 			});
 
-			target.xPosition = getSnappedTime({ time: target.xPosition });
+			const snapResult = snapDropPosition({
+				time: target.xPosition,
+				duration,
+				tracks,
+			});
+			target.xPosition = getSnappedTime({ time: snapResult.time });
+			setDropDuration(duration);
+			setIsDropSnapped(snapResult.snapped);
 
 			setDropTarget(target);
 			e.dataTransfer.dropEffect = "copy";
@@ -164,6 +223,7 @@ export function useTimelineDragDrop({
 			getElementType,
 			getElementDuration,
 			getSnappedTime,
+			snapDropPosition,
 		],
 	);
 
@@ -182,6 +242,8 @@ export function useTimelineDragDrop({
 					setIsDragOver(false);
 					setDropTarget(null);
 					setElementType(null);
+					setDropDuration(0);
+					setIsDropSnapped(false);
 				}
 			}
 		},
@@ -299,12 +361,7 @@ export function useTimelineDragDrop({
 	);
 
 	const executeAdjustmentDrop = useCallback(
-		({
-			target,
-		}: {
-			target: DropTarget;
-			dragData: AdjustmentDragData;
-		}) => {
+		({ target }: { target: DropTarget; dragData: AdjustmentDragData }) => {
 			let trackId: string;
 
 			if (target.isNewTrack) {
@@ -428,6 +485,13 @@ export function useTimelineDragDrop({
 						zoomLevel,
 						snappingEnabled: useTimelineStore.getState().snappingEnabled,
 					});
+					dropTarget.xPosition = getSnappedTime({
+						time: snapDropPosition({
+							time: dropTarget.xPosition,
+							duration,
+							tracks: currentTracks,
+						}).time,
+					});
 
 					const trackType: TrackType =
 						added.type === "audio" ? "audio" : "video";
@@ -475,7 +539,15 @@ export function useTimelineDragDrop({
 				}
 			}
 		},
-		[activeProject, editor.media, editor.timeline, currentTime, zoomLevel],
+		[
+			activeProject,
+			editor.media,
+			editor.timeline,
+			currentTime,
+			zoomLevel,
+			getSnappedTime,
+			snapDropPosition,
+		],
 	);
 
 	const handleDrop = useCallback(
@@ -491,6 +563,8 @@ export function useTimelineDragDrop({
 			setIsDragOver(false);
 			setDropTarget(null);
 			setElementType(null);
+			setDropDuration(0);
+			setIsDropSnapped(false);
 
 			try {
 				if (hasAsset) {
@@ -544,6 +618,8 @@ export function useTimelineDragDrop({
 		isDragOver,
 		dropTarget,
 		dragElementType,
+		dropDuration,
+		isDropSnapped,
 		dragProps: {
 			onDragEnter: handleDragEnter,
 			onDragOver: handleDragOver,
