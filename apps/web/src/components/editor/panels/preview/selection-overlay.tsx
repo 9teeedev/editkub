@@ -206,8 +206,7 @@ function computeTextBounds({
 	const scaledFontSize = element.fontSize * scaleFactor;
 
 	const elementBoxWidth = element.boxWidth;
-	const hasBoxWidth =
-		elementBoxWidth !== undefined && elementBoxWidth > 0;
+	const hasBoxWidth = elementBoxWidth !== undefined && elementBoxWidth > 0;
 	const scaledBoxWidth = hasBoxWidth ? elementBoxWidth * scaleFactor : 0;
 
 	let estimatedWidth: number;
@@ -231,11 +230,45 @@ function computeTextBounds({
 			1,
 			Math.floor(scaledBoxWidth / (scaledFontSize * 0.6)),
 		);
-		const lineCount = Math.max(
+		const wrappedLines = Math.max(
 			1,
 			Math.ceil(element.content.length / charsPerLine),
 		);
+		// Explicit newlines always start a new line even inside a wrap box.
+		const lineCount = Math.max(
+			1,
+			wrappedLines,
+			element.content.split("\n").length,
+		);
 		estimatedHeight = lineCount * lineHeight;
+	} else if (element.content.includes("\n")) {
+		// Explicit newlines without a wrap box: measure each source line with
+		// the element's font so the box matches the stacked lines the
+		// renderer draws (no re-wrapping).
+		const context = getMeasureContext();
+		if (context) {
+			const fontStyle = element.fontStyle === "italic" ? "italic" : "normal";
+			const fontWeight = element.fontWeight === "bold" ? "bold" : "normal";
+			context.font = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${canvasFontFamily(element.fontFamily)}`;
+			const lines = element.content.split("\n");
+			estimatedWidth = Math.max(
+				1,
+				...lines.map((line) => context.measureText(line).width),
+			);
+		} else {
+			// Thai combining marks take no horizontal space.
+			const widestLength = Math.max(
+				1,
+				...element.content
+					.split("\n")
+					.map(
+						(line) =>
+							line.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "").length,
+					),
+			);
+			estimatedWidth = widestLength * scaledFontSize * 0.6;
+		}
+		estimatedHeight = element.content.split("\n").length * scaledFontSize * 1.3;
 	} else {
 		estimatedWidth = element.content.length * scaledFontSize * 0.6;
 		estimatedHeight = scaledFontSize * 1.4;
@@ -347,10 +380,10 @@ function computeElementBounds({
 	const isVisual = (
 		e: TimelineElement,
 	): e is VisualElement & {
-			transform: VisualElement["transform"];
-			opacity: number;
-			keyframes?: VisualElement["keyframes"];
-		} =>
+		transform: VisualElement["transform"];
+		opacity: number;
+		keyframes?: VisualElement["keyframes"];
+	} =>
 		e.type === "video" ||
 		e.type === "image" ||
 		e.type === "text" ||
@@ -423,11 +456,17 @@ function ElementOverlay({
 	onScaleStart: ({
 		event,
 		handle,
-	}: { event: React.PointerEvent; handle: ScaleHandle }) => void;
+	}: {
+		event: React.PointerEvent;
+		handle: ScaleHandle;
+	}) => void;
 	onResizeStart?: ({
 		event,
 		handle,
-	}: { event: React.PointerEvent; handle: ResizeHandle }) => void;
+	}: {
+		event: React.PointerEvent;
+		handle: ResizeHandle;
+	}) => void;
 }) {
 	const showResizeHandles =
 		(elementType === "text" || elementType === "blur-effect") && onResizeStart;
@@ -440,7 +479,8 @@ function ElementOverlay({
 				top: bounds.top,
 				width: bounds.width,
 				height: bounds.height,
-				transform: bounds.rotate !== 0 ? `rotate(${bounds.rotate}deg)` : undefined,
+				transform:
+					bounds.rotate !== 0 ? `rotate(${bounds.rotate}deg)` : undefined,
 				transformOrigin: "center center",
 				zIndex: 1000,
 			}}
@@ -663,9 +703,7 @@ export function SelectionOverlay({
 		<>
 			{visibleElements.map(({ track, element }) => {
 				const media =
-					"mediaId" in element
-						? mediaMap.get(element.mediaId)
-						: undefined;
+					"mediaId" in element ? mediaMap.get(element.mediaId) : undefined;
 
 				const bounds = computeElementBounds({
 					element,
