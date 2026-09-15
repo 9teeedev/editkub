@@ -31,7 +31,13 @@ import { uppercase } from "@/utils/string";
 import { clamp } from "@/utils/math";
 import { useEditor } from "@/hooks/use-editor";
 import { DEFAULT_COLOR } from "@/constants/project-constants";
-import { MIN_FONT_SIZE, MAX_FONT_SIZE } from "@/constants/text-constants";
+import {
+	MIN_FONT_SIZE,
+	MAX_FONT_SIZE,
+	MIN_LINE_HEIGHT,
+	MAX_LINE_HEIGHT,
+	DEFAULT_LINE_HEIGHT,
+} from "@/constants/text-constants";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TextSpeechPanel } from "./text-speech-panel";
 import {
@@ -138,6 +144,7 @@ export function TextProperties({
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [, forceRender] = useReducer((x: number) => x + 1, 0);
 	const isEditingFontSize = useRef(false);
+	const isEditingLineHeight = useRef(false);
 	const isEditingOpacity = useRef(false);
 	const isEditingContent = useRef(false);
 	const isEditingPosX = useRef(false);
@@ -145,6 +152,7 @@ export function TextProperties({
 	const isEditingScale = useRef(false);
 	const isEditingRotation = useRef(false);
 	const fontSizeDraft = useRef("");
+	const lineHeightDraft = useRef("");
 	const opacityDraft = useRef("");
 	const contentDraft = useRef("");
 	const posXDraft = useRef("");
@@ -162,6 +170,10 @@ export function TextProperties({
 	const fontSizeDisplay = isEditingFontSize.current
 		? fontSizeDraft.current
 		: element.fontSize.toString();
+	const lineHeightValue = element.lineHeight ?? DEFAULT_LINE_HEIGHT;
+	const lineHeightDisplay = isEditingLineHeight.current
+		? lineHeightDraft.current
+		: lineHeightValue.toString();
 	const opacityDisplay = isEditingOpacity.current
 		? opacityDraft.current
 		: Math.round(opacityProp.resolvedValue * 100).toString();
@@ -171,6 +183,7 @@ export function TextProperties({
 
 	const lastSelectedColor = useRef(DEFAULT_COLOR);
 	const initialFontSizeRef = useRef<number | null>(null);
+	const initialLineHeightRef = useRef<number | null>(null);
 	const initialOpacityRef = useRef<number | null>(null);
 	const initialContentRef = useRef<string | null>(null);
 	const initialColorRef = useRef<string | null>(null);
@@ -302,6 +315,56 @@ export function TextProperties({
 		forceRender();
 	};
 
+	const handleLineHeightChange = ({ value }: { value: string }) => {
+		lineHeightDraft.current = value;
+		forceRender();
+
+		if (value.trim() !== "") {
+			if (initialLineHeightRef.current === null) {
+				initialLineHeightRef.current = lineHeightValue;
+			}
+			const parsed = Number.parseFloat(value);
+			const lineHeight = Number.isNaN(parsed)
+				? lineHeightValue
+				: clamp({
+						value: parsed,
+						min: MIN_LINE_HEIGHT,
+						max: MAX_LINE_HEIGHT,
+					});
+			editor.timeline.updateElements({
+				updates: buildBatchUpdates({ lineHeight }),
+				pushHistory: false,
+			});
+		}
+	};
+
+	const handleLineHeightBlur = () => {
+		if (initialLineHeightRef.current !== null) {
+			const parsed = Number.parseFloat(lineHeightDraft.current);
+			const lineHeight = Number.isNaN(parsed)
+				? lineHeightValue
+				: clamp({
+						value: parsed,
+						min: MIN_LINE_HEIGHT,
+						max: MAX_LINE_HEIGHT,
+					});
+			editor.timeline.updateElements({
+				updates: buildBatchUpdates({
+					lineHeight: initialLineHeightRef.current,
+				}),
+				pushHistory: false,
+			});
+			editor.timeline.updateElements({
+				updates: buildBatchUpdates({ lineHeight }),
+				pushHistory: true,
+			});
+			initialLineHeightRef.current = null;
+		}
+		isEditingLineHeight.current = false;
+		lineHeightDraft.current = "";
+		forceRender();
+	};
+
 	const handleOpacityChange = ({ value }: { value: string }) => {
 		opacityDraft.current = value;
 		forceRender();
@@ -399,84 +462,84 @@ export function TextProperties({
 							hasBorderTop={false}
 							collapsible={false}
 						>
-								<Textarea
-									placeholder="Name"
-									value={contentDisplay}
-									className="bg-accent min-h-20"
-									onFocus={() => {
-										isEditingContent.current = true;
-										contentDraft.current = element.content;
+							<Textarea
+								placeholder="Name"
+								value={contentDisplay}
+								className="bg-accent min-h-20"
+								onFocus={() => {
+									isEditingContent.current = true;
+									contentDraft.current = element.content;
+									initialContentRef.current = element.content;
+									forceRender();
+								}}
+								onChange={(event) => {
+									contentDraft.current = event.target.value;
+									forceRender();
+									// Derived caption elements are never hand-edited —
+									// the transcript is the source of truth, so caption
+									// content commits through it on blur instead.
+									if (
+										element.captionGroupId !== undefined &&
+										element.wordTimings !== undefined
+									) {
+										return;
+									}
+									if (initialContentRef.current === null) {
 										initialContentRef.current = element.content;
-										forceRender();
-									}}
-									onChange={(event) => {
-										contentDraft.current = event.target.value;
-										forceRender();
-										// Derived caption elements are never hand-edited —
-										// the transcript is the source of truth, so caption
-										// content commits through it on blur instead.
-										if (
-											element.captionGroupId !== undefined &&
-											element.wordTimings !== undefined
-										) {
+									}
+									editor.timeline.updateElements({
+										updates: buildBatchUpdates({
+											content: event.target.value,
+										}),
+										pushHistory: false,
+									});
+								}}
+								onBlur={() => {
+									const finalText = contentDraft.current.trim();
+									const initialText = initialContentRef.current;
+									const changed =
+										initialText === null || finalText !== initialText.trim();
+									if (
+										element.captionGroupId !== undefined &&
+										element.wordTimings !== undefined
+									) {
+										// Skip the transcript rebuild entirely on no-op blurs —
+										// a rebuild would push an empty undo entry.
+										const handled = changed
+											? editCaptionGroupText({
+													editor,
+													groupId: element.captionGroupId,
+													text: finalText,
+												})
+											: true;
+										if (handled) {
+											isEditingContent.current = false;
+											contentDraft.current = "";
+											initialContentRef.current = null;
+											forceRender();
 											return;
 										}
-										if (initialContentRef.current === null) {
-											initialContentRef.current = element.content;
-										}
+									}
+									if (initialContentRef.current !== null) {
 										editor.timeline.updateElements({
 											updates: buildBatchUpdates({
-												content: event.target.value,
+												content: initialContentRef.current,
 											}),
 											pushHistory: false,
 										});
-									}}
-									onBlur={() => {
-										const finalText = contentDraft.current.trim();
-										const initialText = initialContentRef.current;
-										const changed =
-											initialText === null || finalText !== initialText.trim();
-										if (
-											element.captionGroupId !== undefined &&
-											element.wordTimings !== undefined
-										) {
-											// Skip the transcript rebuild entirely on no-op blurs —
-											// a rebuild would push an empty undo entry.
-											const handled = changed
-												? editCaptionGroupText({
-														editor,
-														groupId: element.captionGroupId,
-														text: finalText,
-													})
-												: true;
-											if (handled) {
-												isEditingContent.current = false;
-												contentDraft.current = "";
-												initialContentRef.current = null;
-												forceRender();
-												return;
-											}
-										}
-										if (initialContentRef.current !== null) {
-											editor.timeline.updateElements({
-												updates: buildBatchUpdates({
-													content: initialContentRef.current,
-												}),
-												pushHistory: false,
-											});
-											editor.timeline.updateElements({
-												updates: buildBatchUpdates({
-													content: finalText,
-												}),
-												pushHistory: true,
-											});
-											initialContentRef.current = null;
-										}
-										isEditingContent.current = false;
-										contentDraft.current = "";
-										forceRender();
-									}}
-								/>
+										editor.timeline.updateElements({
+											updates: buildBatchUpdates({
+												content: finalText,
+											}),
+											pushHistory: true,
+										});
+										initialContentRef.current = null;
+									}
+									isEditingContent.current = false;
+									contentDraft.current = "";
+									forceRender();
+								}}
+							/>
 						</PropertyGroup>
 						<PropertyGroup title={t("Typography")} collapsible={false}>
 							<div className="space-y-6">
@@ -636,6 +699,61 @@ export function TextProperties({
 										</div>
 									</PropertyItemValue>
 								</PropertyItem>
+								<PropertyItem direction="column">
+									<PropertyItemLabel>{t("Line height")}</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<Slider
+												value={[lineHeightValue]}
+												min={MIN_LINE_HEIGHT}
+												max={MAX_LINE_HEIGHT}
+												step={0.05}
+												onValueChange={([value]) => {
+													if (initialLineHeightRef.current === null) {
+														initialLineHeightRef.current = lineHeightValue;
+													}
+													editor.timeline.updateElements({
+														updates: buildBatchUpdates({ lineHeight: value }),
+														pushHistory: false,
+													});
+												}}
+												onValueCommit={([value]) => {
+													if (initialLineHeightRef.current !== null) {
+														editor.timeline.updateElements({
+															updates: buildBatchUpdates({
+																lineHeight: initialLineHeightRef.current,
+															}),
+															pushHistory: false,
+														});
+														editor.timeline.updateElements({
+															updates: buildBatchUpdates({ lineHeight: value }),
+															pushHistory: true,
+														});
+														initialLineHeightRef.current = null;
+													}
+												}}
+												className="w-full"
+											/>
+											<Input
+												type="number"
+												value={lineHeightDisplay}
+												min={MIN_LINE_HEIGHT}
+												max={MAX_LINE_HEIGHT}
+												step={0.05}
+												onFocus={() => {
+													isEditingLineHeight.current = true;
+													lineHeightDraft.current = lineHeightValue.toString();
+													forceRender();
+												}}
+												onChange={(e) =>
+													handleLineHeightChange({ value: e.target.value })
+												}
+												onBlur={handleLineHeightBlur}
+												className="bg-accent h-7 w-12 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+											/>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
 							</div>
 						</PropertyGroup>
 						<PropertyGroup title={t("Presets")} collapsible={false}>
@@ -725,7 +843,8 @@ export function TextProperties({
 												step={1}
 												onValueChange={([value]) => {
 													if (initialOpacityRef.current === null) {
-														initialOpacityRef.current = opacityProp.resolvedValue;
+														initialOpacityRef.current =
+															opacityProp.resolvedValue;
 													}
 													opacityWriter.commitValue(value / 100, false, () =>
 														editor.timeline.updateElements({
@@ -1394,318 +1513,320 @@ export function TextProperties({
 										/>
 									</PropertyItemValue>
 								</PropertyItem>
-									<PropertyItem>
-										<PropertyItemLabel className="flex items-center gap-1.5">
-											{t("Position Y")}
-											<KeyframeRow
-												property="position.y"
-												trackId={elementRefs[0].trackId}
-												elementId={element.id}
-												keyframes={element.keyframes}
-												baseTransform={element.transform}
-												baseOpacity={element.opacity}
-												elementStartTime={element.startTime}
-												elementDuration={element.duration}
+								<PropertyItem>
+									<PropertyItemLabel className="flex items-center gap-1.5">
+										{t("Position Y")}
+										<KeyframeRow
+											property="position.y"
+											trackId={elementRefs[0].trackId}
+											elementId={element.id}
+											keyframes={element.keyframes}
+											baseTransform={element.transform}
+											baseOpacity={element.opacity}
+											elementStartTime={element.startTime}
+											elementDuration={element.duration}
+										/>
+									</PropertyItemLabel>
+									<PropertyItemValue>
+										<Input
+											type="number"
+											value={posYDisplay}
+											onFocus={() => {
+												isEditingPosY.current = true;
+												posYDraft.current = Math.round(
+													posY.resolvedValue,
+												).toString();
+												forceRender();
+											}}
+											onChange={(e) => {
+												posYDraft.current = e.target.value;
+												forceRender();
+												if (initialPosYRef.current === null) {
+													initialPosYRef.current = posY.resolvedValue;
+												}
+												const parsed = Number.parseFloat(e.target.value);
+												if (!Number.isNaN(parsed)) {
+													posYWriter.commitValue(parsed, false, () =>
+														updateTransform({
+															updates: {
+																position: {
+																	...element.transform.position,
+																	y: parsed,
+																},
+															},
+															pushHistory: false,
+														}),
+													);
+												}
+											}}
+											onBlur={() => {
+												if (initialPosYRef.current !== null) {
+													const initial = initialPosYRef.current;
+													const parsed = Number.parseFloat(posYDraft.current);
+													const value = Number.isNaN(parsed)
+														? posY.resolvedValue
+														: parsed;
+													posYWriter.commitValue(initial, false, () =>
+														updateTransform({
+															updates: {
+																position: {
+																	...element.transform.position,
+																	y: initial,
+																},
+															},
+															pushHistory: false,
+														}),
+													);
+													posYWriter.commitValue(value, true, () =>
+														updateTransform({
+															updates: {
+																position: {
+																	...element.transform.position,
+																	y: value,
+																},
+															},
+															pushHistory: true,
+														}),
+													);
+													initialPosYRef.current = null;
+												}
+												isEditingPosY.current = false;
+												posYDraft.current = "";
+												forceRender();
+											}}
+											className="bg-accent h-7 w-full [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+										/>
+									</PropertyItemValue>
+								</PropertyItem>
+								<PropertyItem direction="column">
+									<PropertyItemLabel className="flex items-center gap-1.5">
+										{t("Scale")}
+										<KeyframeRow
+											property="scale"
+											trackId={elementRefs[0].trackId}
+											elementId={element.id}
+											keyframes={element.keyframes}
+											baseTransform={element.transform}
+											baseOpacity={element.opacity}
+											elementStartTime={element.startTime}
+											elementDuration={element.duration}
+										/>
+									</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<Slider
+												value={[scalePercent]}
+												min={10}
+												max={500}
+												step={1}
+												onValueChange={([value]) => {
+													if (initialScaleRef.current === null) {
+														initialScaleRef.current = scaleProp.resolvedValue;
+													}
+													scaleWriter.commitValue(value / 100, false, () =>
+														updateTransform({
+															updates: { scale: value / 100 },
+															pushHistory: false,
+														}),
+													);
+												}}
+												onValueCommit={([value]) => {
+													if (initialScaleRef.current !== null) {
+														const initial = initialScaleRef.current;
+														scaleWriter.commitValue(initial, false, () =>
+															updateTransform({
+																updates: { scale: initial },
+																pushHistory: false,
+															}),
+														);
+														scaleWriter.commitValue(value / 100, true, () =>
+															updateTransform({
+																updates: { scale: value / 100 },
+																pushHistory: true,
+															}),
+														);
+														initialScaleRef.current = null;
+													}
+												}}
+												className="w-full"
 											/>
-										</PropertyItemLabel>
-										<PropertyItemValue>
 											<Input
 												type="number"
-												value={posYDisplay}
+												value={scaleDisplay}
+												min={10}
+												max={500}
 												onFocus={() => {
-													isEditingPosY.current = true;
-													posYDraft.current = Math.round(
-														posY.resolvedValue,
-													).toString();
+													isEditingScale.current = true;
+													scaleDraft.current = scalePercent.toString();
 													forceRender();
 												}}
 												onChange={(e) => {
-													posYDraft.current = e.target.value;
+													scaleDraft.current = e.target.value;
 													forceRender();
-													if (initialPosYRef.current === null) {
-														initialPosYRef.current = posY.resolvedValue;
+													if (initialScaleRef.current === null) {
+														initialScaleRef.current = scaleProp.resolvedValue;
 													}
-													const parsed = Number.parseFloat(e.target.value);
+													const parsed = parseInt(e.target.value, 10);
 													if (!Number.isNaN(parsed)) {
-														posYWriter.commitValue(parsed, false, () =>
+														const clamped = clamp({
+															value: parsed,
+															min: 10,
+															max: 500,
+														});
+														scaleWriter.commitValue(clamped / 100, false, () =>
 															updateTransform({
-																updates: {
-																	position: {
-																		...element.transform.position,
-																		y: parsed,
-																	},
-																},
+																updates: { scale: clamped / 100 },
 																pushHistory: false,
 															}),
 														);
 													}
 												}}
 												onBlur={() => {
-													if (initialPosYRef.current !== null) {
-														const initial = initialPosYRef.current;
-														const parsed = Number.parseFloat(posYDraft.current);
-														const value = Number.isNaN(parsed)
-															? posY.resolvedValue
-															: parsed;
-														posYWriter.commitValue(initial, false, () =>
+													if (initialScaleRef.current !== null) {
+														const initial = initialScaleRef.current;
+														const parsed = parseInt(scaleDraft.current, 10);
+														const clamped = Number.isNaN(parsed)
+															? scalePercent
+															: clamp({ value: parsed, min: 10, max: 500 });
+														scaleWriter.commitValue(initial, false, () =>
 															updateTransform({
-																updates: {
-																	position: {
-																		...element.transform.position,
-																		y: initial,
-																	},
-																},
+																updates: { scale: initial },
 																pushHistory: false,
 															}),
 														);
-														posYWriter.commitValue(value, true, () =>
+														scaleWriter.commitValue(clamped / 100, true, () =>
 															updateTransform({
-																updates: {
-																	position: {
-																		...element.transform.position,
-																		y: value,
-																	},
-																},
+																updates: { scale: clamped / 100 },
 																pushHistory: true,
 															}),
 														);
-														initialPosYRef.current = null;
+														initialScaleRef.current = null;
 													}
-													isEditingPosY.current = false;
-													posYDraft.current = "";
+													isEditingScale.current = false;
+													scaleDraft.current = "";
 													forceRender();
 												}}
-												className="bg-accent h-7 w-full [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+												className="bg-accent h-7 w-14 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 											/>
-										</PropertyItemValue>
-									</PropertyItem>
-									<PropertyItem direction="column">
-											<PropertyItemLabel className="flex items-center gap-1.5">
-												{t("Scale")}
-												<KeyframeRow
-													property="scale"
-													trackId={elementRefs[0].trackId}
-													elementId={element.id}
-													keyframes={element.keyframes}
-													baseTransform={element.transform}
-													baseOpacity={element.opacity}
-													elementStartTime={element.startTime}
-													elementDuration={element.duration}
-												/>
-											</PropertyItemLabel>
-										<PropertyItemValue>
-											<div className="flex items-center gap-2">
-												<Slider
-													value={[scalePercent]}
-													min={10}
-													max={500}
-													step={1}
-													onValueChange={([value]) => {
-														if (initialScaleRef.current === null) {
-															initialScaleRef.current = scaleProp.resolvedValue;
-														}
-														scaleWriter.commitValue(value / 100, false, () =>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+								<PropertyItem direction="column">
+									<PropertyItemLabel className="flex items-center gap-1.5">
+										{t("Rotation")}
+										<KeyframeRow
+											property="rotate"
+											trackId={elementRefs[0].trackId}
+											elementId={element.id}
+											keyframes={element.keyframes}
+											baseTransform={element.transform}
+											baseOpacity={element.opacity}
+											elementStartTime={element.startTime}
+											elementDuration={element.duration}
+										/>
+									</PropertyItemLabel>
+									<PropertyItemValue>
+										<div className="flex items-center gap-2">
+											<Slider
+												value={[rotateProp.resolvedValue]}
+												min={-180}
+												max={180}
+												step={1}
+												onValueChange={([value]) => {
+													if (initialRotationRef.current === null) {
+														initialRotationRef.current =
+															rotateProp.resolvedValue;
+													}
+													rotateWriter.commitValue(value, false, () =>
+														updateTransform({
+															updates: { rotate: value },
+															pushHistory: false,
+														}),
+													);
+												}}
+												onValueCommit={([value]) => {
+													if (initialRotationRef.current !== null) {
+														const initial = initialRotationRef.current;
+														rotateWriter.commitValue(initial, false, () =>
 															updateTransform({
-																updates: { scale: value / 100 },
+																updates: { rotate: initial },
 																pushHistory: false,
 															}),
 														);
-													}}
-													onValueCommit={([value]) => {
-														if (initialScaleRef.current !== null) {
-															const initial = initialScaleRef.current;
-															scaleWriter.commitValue(initial, false, () =>
-																updateTransform({
-																	updates: { scale: initial },
-																	pushHistory: false,
-																}),
-															);
-															scaleWriter.commitValue(value / 100, true, () =>
-																updateTransform({
-																	updates: { scale: value / 100 },
-																	pushHistory: true,
-																}),
-															);
-															initialScaleRef.current = null;
-														}
-													}}
-													className="w-full"
-												/>
-												<Input
-													type="number"
-													value={scaleDisplay}
-													min={10}
-													max={500}
-													onFocus={() => {
-														isEditingScale.current = true;
-														scaleDraft.current = scalePercent.toString();
-														forceRender();
-													}}
-													onChange={(e) => {
-														scaleDraft.current = e.target.value;
-														forceRender();
-														if (initialScaleRef.current === null) {
-															initialScaleRef.current = scaleProp.resolvedValue;
-														}
-														const parsed = parseInt(e.target.value, 10);
-														if (!Number.isNaN(parsed)) {
-															const clamped = clamp({
-																value: parsed,
-																min: 10,
-																max: 500,
-															});
-															scaleWriter.commitValue(clamped / 100, false, () =>
-																updateTransform({
-																	updates: { scale: clamped / 100 },
-																	pushHistory: false,
-																}),
-															);
-														}
-													}}
-													onBlur={() => {
-														if (initialScaleRef.current !== null) {
-															const initial = initialScaleRef.current;
-															const parsed = parseInt(scaleDraft.current, 10);
-															const clamped = Number.isNaN(parsed)
-																? scalePercent
-																: clamp({ value: parsed, min: 10, max: 500 });
-															scaleWriter.commitValue(initial, false, () =>
-																updateTransform({
-																	updates: { scale: initial },
-																	pushHistory: false,
-																}),
-															);
-															scaleWriter.commitValue(clamped / 100, true, () =>
-																updateTransform({
-																	updates: { scale: clamped / 100 },
-																	pushHistory: true,
-																}),
-															);
-															initialScaleRef.current = null;
-														}
-														isEditingScale.current = false;
-														scaleDraft.current = "";
-														forceRender();
-													}}
-													className="bg-accent h-7 w-14 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-												/>
-											</div>
-										</PropertyItemValue>
-									</PropertyItem>
-									<PropertyItem direction="column">
-											<PropertyItemLabel className="flex items-center gap-1.5">
-												{t("Rotation")}
-												<KeyframeRow
-													property="rotate"
-													trackId={elementRefs[0].trackId}
-													elementId={element.id}
-													keyframes={element.keyframes}
-													baseTransform={element.transform}
-													baseOpacity={element.opacity}
-													elementStartTime={element.startTime}
-													elementDuration={element.duration}
-												/>
-											</PropertyItemLabel>
-										<PropertyItemValue>
-											<div className="flex items-center gap-2">
-												<Slider
-													value={[rotateProp.resolvedValue]}
-													min={-180}
-													max={180}
-													step={1}
-													onValueChange={([value]) => {
-														if (initialRotationRef.current === null) {
-															initialRotationRef.current = rotateProp.resolvedValue;
-														}
-														rotateWriter.commitValue(value, false, () =>
+														rotateWriter.commitValue(value, true, () =>
 															updateTransform({
 																updates: { rotate: value },
+																pushHistory: true,
+															}),
+														);
+														initialRotationRef.current = null;
+													}
+												}}
+												className="w-full"
+											/>
+											<Input
+												type="number"
+												value={rotationDisplay}
+												min={-360}
+												max={360}
+												onFocus={() => {
+													isEditingRotation.current = true;
+													rotationDraft.current = Math.round(
+														rotateProp.resolvedValue,
+													).toString();
+													forceRender();
+												}}
+												onChange={(e) => {
+													rotationDraft.current = e.target.value;
+													forceRender();
+													if (initialRotationRef.current === null) {
+														initialRotationRef.current =
+															rotateProp.resolvedValue;
+													}
+													const parsed = Number.parseFloat(e.target.value);
+													if (!Number.isNaN(parsed)) {
+														rotateWriter.commitValue(parsed, false, () =>
+															updateTransform({
+																updates: { rotate: parsed },
 																pushHistory: false,
 															}),
 														);
-													}}
-													onValueCommit={([value]) => {
-														if (initialRotationRef.current !== null) {
-															const initial = initialRotationRef.current;
-															rotateWriter.commitValue(initial, false, () =>
-																updateTransform({
-																	updates: { rotate: initial },
-																	pushHistory: false,
-																}),
-															);
-															rotateWriter.commitValue(value, true, () =>
-																updateTransform({
-																	updates: { rotate: value },
-																	pushHistory: true,
-																}),
-															);
-															initialRotationRef.current = null;
-														}
-													}}
-													className="w-full"
-												/>
-												<Input
-													type="number"
-													value={rotationDisplay}
-													min={-360}
-													max={360}
-													onFocus={() => {
-														isEditingRotation.current = true;
-														rotationDraft.current = Math.round(
-															rotateProp.resolvedValue,
-														).toString();
-														forceRender();
-													}}
-													onChange={(e) => {
-														rotationDraft.current = e.target.value;
-														forceRender();
-														if (initialRotationRef.current === null) {
-															initialRotationRef.current = rotateProp.resolvedValue;
-														}
-														const parsed = Number.parseFloat(e.target.value);
-														if (!Number.isNaN(parsed)) {
-															rotateWriter.commitValue(parsed, false, () =>
-																updateTransform({
-																	updates: { rotate: parsed },
-																	pushHistory: false,
-																}),
-															);
-														}
-													}}
-													onBlur={() => {
-														if (initialRotationRef.current !== null) {
-															const initial = initialRotationRef.current;
-															const parsed = Number.parseFloat(
-																rotationDraft.current,
-															);
-															const value = Number.isNaN(parsed)
-																? rotateProp.resolvedValue
-																: parsed;
-															rotateWriter.commitValue(initial, false, () =>
-																updateTransform({
-																	updates: { rotate: initial },
-																	pushHistory: false,
-																}),
-															);
-															rotateWriter.commitValue(value, true, () =>
-																updateTransform({
-																	updates: { rotate: value },
-																	pushHistory: true,
-																}),
-															);
-															initialRotationRef.current = null;
-														}
-														isEditingRotation.current = false;
-														rotationDraft.current = "";
-														forceRender();
-													}}
-													className="bg-accent h-7 w-14 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-												/>
-											</div>
-										</PropertyItemValue>
-									</PropertyItem>
-								</div>
-							</PropertyGroup>
+													}
+												}}
+												onBlur={() => {
+													if (initialRotationRef.current !== null) {
+														const initial = initialRotationRef.current;
+														const parsed = Number.parseFloat(
+															rotationDraft.current,
+														);
+														const value = Number.isNaN(parsed)
+															? rotateProp.resolvedValue
+															: parsed;
+														rotateWriter.commitValue(initial, false, () =>
+															updateTransform({
+																updates: { rotate: initial },
+																pushHistory: false,
+															}),
+														);
+														rotateWriter.commitValue(value, true, () =>
+															updateTransform({
+																updates: { rotate: value },
+																pushHistory: true,
+															}),
+														);
+														initialRotationRef.current = null;
+													}
+													isEditingRotation.current = false;
+													rotationDraft.current = "";
+													forceRender();
+												}}
+												className="bg-accent h-7 w-14 [appearance:textfield] rounded-sm px-2 text-center !text-xs [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+											/>
+										</div>
+									</PropertyItemValue>
+								</PropertyItem>
+							</div>
+						</PropertyGroup>
 					</PanelBaseView>
 				</TabsContent>
 				<TabsContent value="animation" className="mt-0 flex-1 overflow-auto">

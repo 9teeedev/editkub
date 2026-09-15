@@ -12,6 +12,11 @@ import {
 	validateElementTrackCompatibility,
 	enforceMainTrackStart,
 } from "@/lib/timeline/track-utils";
+import {
+	applyRippleShift,
+	type RippleShift,
+	resolveRippleMove,
+} from "@/lib/timeline/ripple-utils";
 import { cleanupTransitionsForTrack } from "@/lib/timeline/transition-utils";
 import { useTimelineStore } from "@/stores/timeline-store";
 
@@ -78,19 +83,46 @@ export class MoveElementCommand extends Command {
 			enabled: useTimelineStore.getState().snappingEnabled,
 		});
 
+		// Ripple editing: moving a main-track clip closes the hole it leaves
+		// behind, and a destination past the end of the remaining sequence
+		// lands flush at that end instead of leaving a gap.
+		const rippleEnabled = useTimelineStore.getState().rippleEditingEnabled;
+		const isMediaClip = element.type === "video" || element.type === "image";
+		let sourceShift: RippleShift | null = null;
+		let finalStartTime = adjustedStartTime;
+		if (rippleEnabled && isMediaClip && isMainTrack(sourceTrack)) {
+			const rippleMove = resolveRippleMove({
+				elements: sourceTrack.elements,
+				movedElementId: this.elementId,
+				duration: element.duration,
+				requestedStartTime: adjustedStartTime,
+			});
+			sourceShift = rippleMove.shift;
+			if (isMainTrack(targetTrack)) {
+				finalStartTime = rippleMove.startTime;
+			}
+		}
+
 		const movedElement: TimelineElement = {
 			...element,
-			startTime: adjustedStartTime,
+			startTime: finalStartTime,
 		};
 
 		const isSameTrack = this.sourceTrackId === this.targetTrackId;
+
+		const shiftSourceElements = (elements: TimelineElement[]) =>
+			sourceShift
+				? applyRippleShift({ elements, shift: sourceShift })
+				: elements;
 
 		let updatedTracks = tracksToUpdate.map((track) => {
 			if (isSameTrack && track.id === this.sourceTrackId) {
 				return {
 					...track,
-					elements: track.elements.map((el) =>
-						el.id === this.elementId ? movedElement : el,
+					elements: shiftSourceElements(
+						track.elements.map((el) =>
+							el.id === this.elementId ? movedElement : el,
+						),
 					),
 				};
 			}
@@ -98,7 +130,9 @@ export class MoveElementCommand extends Command {
 			if (track.id === this.sourceTrackId) {
 				return {
 					...track,
-					elements: track.elements.filter((el) => el.id !== this.elementId),
+					elements: shiftSourceElements(
+						track.elements.filter((el) => el.id !== this.elementId),
+					),
 				};
 			}
 

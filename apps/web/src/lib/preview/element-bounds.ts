@@ -1,7 +1,10 @@
 import type { TimelineElement, Transform } from "@/types/timeline";
 import type { MediaAsset } from "@/types/assets";
 import { getTextScaleFactor } from "@/constants/text-constants";
-import { isBottomAlignedSubtitleText } from "@/lib/timeline/text-utils";
+import {
+	isBottomAlignedSubtitleText,
+	resolveLineHeight,
+} from "@/lib/timeline/text-utils";
 
 export interface ElementHalfSize {
 	halfWidth: number;
@@ -48,30 +51,48 @@ export function getElementHalfSize({
 		// Thai combining marks (upper/lower vowels, tone marks) stack on
 		// the base character and take no horizontal space — counting them
 		// as full characters makes the box wider than the drawn text.
-		const layoutLength = element.content
-			.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "")
-			.length;
+		const stripCombiningMarks = (text: string) =>
+			text.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "");
 
 		if (hasBoxWidth) {
 			const scaledBoxWidth = elementBoxWidth * scaleFactor;
-			const lineHeight = scaledFontSize * 1.3;
+			const lineHeight = scaledFontSize * resolveLineHeight({ element });
 			const charsPerLine = Math.max(
 				1,
 				Math.floor(scaledBoxWidth / (scaledFontSize * 0.6)),
 			);
-			const lineCount = Math.max(
+			// Without a measuring context, wrapped line count is estimated;
+			// explicit newlines always start a new line.
+			const wrappedLines = Math.max(
 				1,
-				Math.ceil(layoutLength / charsPerLine),
+				Math.ceil(stripCombiningMarks(element.content).length / charsPerLine),
 			);
+			const explicitLines = element.content.split("\n").length;
+			const lineCount = Math.max(1, wrappedLines, explicitLines);
 			return {
 				halfWidth: (scaledBoxWidth * elementScale) / 2,
 				halfHeight: (lineCount * lineHeight * elementScale) / 2,
 			};
 		}
 
+		const sourceLines = element.content.split("\n");
+		if (sourceLines.length > 1) {
+			// Explicit newlines without a wrap box: no re-wrapping, so the
+			// box is the widest source line times the line count.
+			const lineHeight = scaledFontSize * resolveLineHeight({ element });
+			const widestLength = Math.max(
+				1,
+				...sourceLines.map((line) => stripCombiningMarks(line).length),
+			);
+			return {
+				halfWidth: (widestLength * scaledFontSize * 0.6 * elementScale) / 2,
+				halfHeight: (sourceLines.length * lineHeight * elementScale) / 2,
+			};
+		}
+
+		const layoutLength = stripCombiningMarks(element.content).length;
 		return {
-			halfWidth:
-				(layoutLength * scaledFontSize * 0.6 * elementScale) / 2,
+			halfWidth: (layoutLength * scaledFontSize * 0.6 * elementScale) / 2,
 			halfHeight: (scaledFontSize * 1.4 * elementScale) / 2,
 		};
 	}

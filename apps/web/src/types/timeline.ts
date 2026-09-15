@@ -8,7 +8,13 @@ export interface TScene {
 	updatedAt: Date;
 }
 
-export type TrackType = "video" | "text" | "audio" | "sticker" | "effect" | "adjustment";
+export type TrackType =
+	| "video"
+	| "text"
+	| "audio"
+	| "sticker"
+	| "effect"
+	| "adjustment";
 
 interface BaseTrack {
 	id: string;
@@ -423,6 +429,8 @@ export interface TextElement extends BaseTimelineElement {
 	stroke?: TextStroke;
 	shadow?: TextShadow;
 	boxWidth?: number;
+	/** Line spacing multiplier (1 = single); default when unset is 1.3. */
+	lineHeight?: number;
 	backgroundBorderRadius?: number;
 	backgroundOpacity?: number;
 	backgroundPaddingX?: number;
@@ -475,7 +483,6 @@ export interface AdjustmentElement extends BaseTimelineElement {
 	adjustments: AdjustmentControls;
 	hidden?: boolean;
 }
-
 
 export type TimelineElement =
 	| AudioElement

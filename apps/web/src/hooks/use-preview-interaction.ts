@@ -254,10 +254,7 @@ export function usePreviewInteraction({
 					pointerA: dragPointerId as number,
 					pointerB: event.pointerId,
 					initialDistance,
-					initialAngle: Math.atan2(
-						event.clientY - p1.y,
-						event.clientX - p1.x,
-					),
+					initialAngle: Math.atan2(event.clientY - p1.y, event.clientX - p1.x),
 					tracksSnapshot: dragStateRef.current.tracksSnapshot,
 					trackId,
 					elementId,
@@ -458,10 +455,22 @@ export function usePreviewInteraction({
 				const textElement = element as TextElement;
 				const scaleFactor = getTextScaleFactor({ canvasWidth, canvasHeight });
 
+				// Multi-line content sizes from its widest line (Thai combining
+				// marks take no horizontal space), not the glued string.
+				const widestLineLength = Math.max(
+					1,
+					...textElement.content
+						.split("\n")
+						.map(
+							(line) =>
+								line.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "").length,
+						),
+				);
+
 				const initialBoxWidth =
 					textElement.boxWidth && textElement.boxWidth > 0
 						? textElement.boxWidth
-						: textElement.content.length * textElement.fontSize * 0.6;
+						: widestLineLength * textElement.fontSize * 0.6;
 
 				resizeStateRef.current = {
 					startX: startPos.x,
@@ -627,9 +636,7 @@ export function usePreviewInteraction({
 						(newBoxWidth - state.initialBoxWidth) * scaleFactor;
 					nextTransform.position.x =
 						state.initialTransform.position.x +
-						(state.handle === "right"
-							? widthChangePx / 2
-							: -widthChangePx / 2);
+						(state.handle === "right" ? widthChangePx / 2 : -widthChangePx / 2);
 					updates = { boxWidth: newBoxWidth };
 				}
 
@@ -696,7 +703,9 @@ export function usePreviewInteraction({
 				const localTime = element
 					? getElementLocalTime({
 							tracks: state.tracksSnapshot,
-							elements: [{ trackId: state.trackId, elementId: state.elementId }],
+							elements: [
+								{ trackId: state.trackId, elementId: state.elementId },
+							],
 							playbackTime: editor.playback.getCurrentTime(),
 						})
 					: undefined;
@@ -1210,8 +1219,7 @@ function sampleCanvasColor({
 				Math.max(0, Math.min(canvas.height - 1, Math.floor(y))),
 				1,
 				1,
-			)
-			.data;
+			).data;
 		return pixel ? [pixel[0], pixel[1], pixel[2]] : null;
 	} catch {
 		return null;

@@ -54,3 +54,54 @@ export function applyRippleShift({
 			: element,
 	);
 }
+
+export interface RippleMoveResult {
+	/** Resolved start time for the moved element. */
+	startTime: number;
+	/** Shift that closes the hole the element leaves behind. Set only when
+	 * the move was clamped to the sequence end; interior moves stay untouched. */
+	shift: RippleShift | null;
+}
+
+/**
+ * Ripple editing helper for moving a clip. A destination beyond the end of
+ * the remaining sequence lands flush at that end, and the elements after the
+ * clip's old position slide left to close the hole it leaves behind (same
+ * rule as delete-ripple). A destination that fits inside the sequence is
+ * left untouched — no shift — so interior moves never create new overlaps.
+ */
+export function resolveRippleMove({
+	elements,
+	movedElementId,
+	duration,
+	requestedStartTime,
+}: {
+	/** Main-track elements including the moved one. */
+	elements: TimelineElement[];
+	movedElementId: string;
+	duration: number;
+	requestedStartTime: number;
+}): RippleMoveResult {
+	const moved = elements.find((element) => element.id === movedElementId);
+	if (!moved) {
+		return { startTime: requestedStartTime, shift: null };
+	}
+
+	const others = elements.filter((element) => element.id !== movedElementId);
+	const lastEnd = others.reduce(
+		(end, element) => Math.max(end, element.startTime + element.duration),
+		0,
+	);
+	if (requestedStartTime + duration <= lastEnd) {
+		return { startTime: requestedStartTime, shift: null };
+	}
+
+	return {
+		startTime: lastEnd,
+		shift: getRippleShift({
+			elements: others,
+			anchorStartTime: moved.startTime,
+			targetTime: moved.startTime,
+		}),
+	};
+}
