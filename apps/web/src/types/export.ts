@@ -32,7 +32,11 @@ export type ExportErrorCode = "unsupported_codec" | "unknown";
 
 export interface ExportResult {
 	success: boolean;
-	buffer?: ArrayBuffer;
+	/**
+	 * Finished export. Disk-backed (File from OPFS) when the browser
+	 * supports streaming output; a plain Blob from the in-memory fallback.
+	 */
+	blob?: Blob;
 	error?: string;
 	code?: ExportErrorCode;
 	cancelled?: boolean;

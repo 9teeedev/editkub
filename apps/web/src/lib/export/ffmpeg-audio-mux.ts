@@ -1,4 +1,7 @@
-import type { FFmpeg } from "@ffmpeg/ffmpeg";
+// Type-only: the package is browser-only (bun resolves it to an empty
+// stub), so it must not be imported for values at module load — the real
+// module is pulled in lazily by getFfmpeg() when the fallback runs.
+import type { FFmpeg, FFFSType } from "@ffmpeg/ffmpeg";
 
 /**
  * Software AAC fallback for MP4 export.
@@ -99,20 +102,26 @@ export class MuxAbortedError extends Error {
 /**
  * Mux WAV audio into a video-only MP4, encoding audio to AAC in wasm.
  * Video stream is stream-copied — no re-encode, fast.
+ *
+ * Inputs are mounted read-only via WORKERFS when they are `File`s (OPFS
+ * temp files): ffmpeg then streams them from disk instead of copying
+ * hundreds of MB into the wasm heap. `Blob` inputs keep the legacy
+ * in-memory writeFile path (small buffers, browsers without OPFS).
+ * Returns a Blob (disk-spoolable) rather than an ArrayBuffer.
  */
 export async function muxAacAudioIntoMp4({
-	videoBuffer,
+	videoSource,
 	audioWav,
 	audioBitrate = 192_000,
 	onProgress,
 	shouldAbort,
 }: {
-	videoBuffer: ArrayBuffer;
-	audioWav: Uint8Array;
+	videoSource: File | Blob;
+	audioWav: Uint8Array | File | Blob;
 	audioBitrate?: number;
 	onProgress?: ({ progress }: { progress: number }) => void;
 	shouldAbort?: () => boolean;
-}): Promise<ArrayBuffer> {
+}): Promise<Blob> {
 	const ffmpeg = await getFfmpeg();
 
 	const progressHandler = ({ progress }: { progress: number }) => {
@@ -131,15 +140,40 @@ export async function muxAacAudioIntoMp4({
 			}, 100)
 		: null;
 
+	let mountPoint: string | null = null;
 	try {
-		await ffmpeg.writeFile("input.mp4", new Uint8Array(videoBuffer));
-		await ffmpeg.writeFile("audio.wav", audioWav);
+		let videoPath: string;
+		let audioPath: string;
+
+		if (videoSource instanceof File && audioWav instanceof File) {
+			// WORKERFS mount: ffmpeg reads inputs straight from the OPFS-backed
+			// Files — no wasm-heap copies of the (potentially huge) inputs.
+			mountPoint = "/mnt-input";
+			await ffmpeg.createDir(mountPoint);
+			await ffmpeg.mount(
+				"WORKERFS" as FFFSType,
+				{ files: [videoSource, audioWav] },
+				mountPoint,
+			);
+			videoPath = `${mountPoint}/${videoSource.name}`;
+			audioPath = `${mountPoint}/${audioWav.name}`;
+		} else {
+			await ffmpeg.writeFile("input.mp4", new Uint8Array(await videoSource.arrayBuffer()));
+			await ffmpeg.writeFile(
+				"audio.wav",
+				audioWav instanceof Uint8Array
+					? audioWav
+					: new Uint8Array(await audioWav.arrayBuffer()),
+			);
+			videoPath = "input.mp4";
+			audioPath = "audio.wav";
+		}
 
 		const returnCode = await ffmpeg.exec([
 			"-i",
-			"input.mp4",
+			videoPath,
 			"-i",
-			"audio.wav",
+			audioPath,
 			"-c:v",
 			"copy",
 			"-c:a",
@@ -164,12 +198,10 @@ export async function muxAacAudioIntoMp4({
 		if (!(output instanceof Uint8Array)) {
 			throw new Error("ffmpeg.wasm produced no output file.");
 		}
+		// Wrap as a Blob so the browser can spill it to disk instead of
+		// keeping a second full copy as a growable ArrayBuffer.
+		const result = new Blob([output], { type: "video/mp4" });
 
-		// Copy out of wasm-owned memory before freeing the virtual files.
-		const result = output.slice().buffer;
-
-		await ffmpeg.deleteFile("input.mp4");
-		await ffmpeg.deleteFile("audio.wav");
 		await ffmpeg.deleteFile("output.mp4");
 
 		return result;
@@ -181,6 +213,13 @@ export async function muxAacAudioIntoMp4({
 		}
 		throw error;
 	} finally {
+		if (mountPoint) {
+			try {
+				await ffmpeg.unmount(mountPoint);
+			} catch {
+				// worker may already be terminated
+			}
+		}
 		if (abortInterval) clearInterval(abortInterval);
 		ffmpeg.off("progress", progressHandler);
 	}

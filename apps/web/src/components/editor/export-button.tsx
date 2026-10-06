@@ -138,7 +138,8 @@ function ExportPopover({
 
 		const processingTimeSec = (performance.now() - startTime) / 1000;
 
-		if (result.success && result.buffer) {
+		if (result.success && result.blob) {
+;
 			trackEvent("export_completed", {
 				format: effectiveFormat,
 				quality,
@@ -149,7 +150,10 @@ function ExportPopover({
 
 			const mimeType = getExportMimeType({ format: effectiveFormat });
 			const extension = getExportFileExtension({ format: effectiveFormat });
-			const blob = new Blob([result.buffer], { type: mimeType });
+			const blob =
+				result.blob.type === mimeType
+					? result.blob
+					: new Blob([result.blob], { type: mimeType });
 			downloadBlob({
 				blob,
 				filename: `${activeProject.metadata.name}${extension}`,
