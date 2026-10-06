@@ -222,8 +222,13 @@ async function resolveVideoAudioBuffer({
 	audioContext: AudioContext;
 }): Promise<AudioBuffer | null> {
 	try {
+		// decodeAudioData detaches the buffer it receives; these buffers are
+		// local, single-use, and never read again, so they are passed through
+		// directly. A defensive .slice(0) copy used to run here instead — for a
+		// multi-GB source video that copy is one giant main-thread memcpy that
+		// froze the page at the 5% "preparing audio" stage of export.
 		const arrayBuffer = await file.arrayBuffer();
-		return await audioContext.decodeAudioData(arrayBuffer.slice(0));
+		return await audioContext.decodeAudioData(arrayBuffer);
 	} catch (error) {
 		console.warn("Failed to decode video audio:", error);
 		return null;
@@ -245,7 +250,7 @@ async function resolveAudioBufferForElement({
 			if (!asset || !mediaSupportsAudio({ media: asset })) return null;
 
 			const arrayBuffer = await asset.file.arrayBuffer();
-			return await audioContext.decodeAudioData(arrayBuffer.slice(0));
+			return await audioContext.decodeAudioData(arrayBuffer);
 		}
 
 		if (element.buffer) return element.buffer;
@@ -256,7 +261,7 @@ async function resolveAudioBufferForElement({
 		}
 
 		const arrayBuffer = await response.arrayBuffer();
-		return await audioContext.decodeAudioData(arrayBuffer.slice(0));
+		return await audioContext.decodeAudioData(arrayBuffer);
 	} catch (error) {
 		console.warn("Failed to decode audio:", error);
 		return null;
