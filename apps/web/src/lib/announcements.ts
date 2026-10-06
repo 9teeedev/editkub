@@ -30,6 +30,14 @@ export interface Announcement {
  */
 export const ANNOUNCEMENTS: Announcement[] = [
 	{
+		id: "2026-10-06-long-export-responsive",
+		tag: "fixed",
+		date: "2026-10-06",
+		title: "Long exports no longer freeze the editor",
+		description:
+			"Exporting a long timeline used to lock the page until the browser offered to close it. The export now yields to the browser as it renders — progress keeps updating and cancel responds — and caption and color-adjustment rendering is faster on top.",
+	},
+	{
 		id: "2026-09-15-timeline-text-fixes",
 		tag: "fixed",
 		date: "2026-09-15",
