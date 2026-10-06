@@ -12,7 +12,11 @@ export function downloadBlob({ blob, filename }: { blob: Blob; filename: string 
 	document.body.appendChild(a);
 	a.click();
 	document.body.removeChild(a);
-	URL.revokeObjectURL(url);
+	// Revoke late, not synchronously: for disk-backed blobs (e.g. the OPFS
+	// export sink's File) the browser resolves the blob URL asynchronously,
+	// and revoking in the same tick silently cancels the download before it
+	// starts. A long delay also covers slow streaming of large files.
+	window.setTimeout(() => URL.revokeObjectURL(url), 10 * 60 * 1000);
 }
 
 export interface ShareOrDownloadResult {

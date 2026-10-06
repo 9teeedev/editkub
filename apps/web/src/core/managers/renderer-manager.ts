@@ -4,7 +4,12 @@ import type { ExportOptions, ExportResult } from "@/types/export";
 import { SceneExporter } from "@/services/renderer/scene-exporter";
 import { buildScene } from "@/services/renderer/scene-builder";
 import { createTimelineAudioBuffer } from "@/lib/media/audio";
-import { checkExportCodecSupport } from "@/lib/export";
+import { checkExportCodecSupport, getExportMimeType } from "@/lib/export";
+import {
+	cleanupExportTempDir,
+	createExportSink,
+	writeExportTempFile,
+} from "@/lib/export/output-sink";
 import {
 	MuxAbortedError,
 	audioBufferToWav,
@@ -55,6 +60,14 @@ export class RendererManager {
 			// cache and main-thread time; pause it for the export's duration.
 			this.editor.playback.pause();
 
+			// Sweep temp files finished by PREVIOUS exports (kept on disk so
+			// their downloads could complete), then set up this run's
+			// disk-backed output sink. Without OPFS the sink is null and the
+			// export falls back to buffering in RAM (old behavior).
+			await cleanupExportTempDir();
+			const sink = (await createExportSink({ format })) ?? undefined;
+;
+
 			// Pre-flight: fail fast if this browser can't encode the chosen codec.
 			// AAC (mp4) encoding is unsupported on some browsers and would otherwise
 			// throw deep inside the muxer mid-export.
@@ -72,6 +85,8 @@ export class RendererManager {
 				codecCheck.failed === "audio" &&
 				format === "mp4" &&
 				!!includeAudio;
+
+;
 
 			if (!codecCheck.ok && !useFfmpegAudioFallback) {
 				if (codecCheck.failed === "audio") {
@@ -114,6 +129,7 @@ export class RendererManager {
 				quality,
 				shouldIncludeAudio: !!includeAudio && !useFfmpegAudioFallback,
 				audioBuffer: audioBuffer || undefined,
+				sink,
 			});
 
 			exporter.on("progress", (progress) => {
@@ -134,19 +150,30 @@ export class RendererManager {
 			const cancelInterval = setInterval(checkCancel, 100);
 
 			try {
-				const buffer = await exporter.export({ rootNode: scene });
-				clearInterval(cancelInterval);
+				let buffer: ArrayBuffer | null = null;
+				try {
+					buffer = await exporter.export({ rootNode: scene });
+				} catch (error) {
+					await sink?.cleanup();
+					throw error;
+				} finally {
+					clearInterval(cancelInterval);
+				}
 
 				if (cancelled) {
+					await sink?.cleanup();
 					return { success: false, cancelled: true };
 				}
 
-				if (!buffer) {
+				if (!buffer && !sink) {
 					return { success: false, error: "Export failed to produce buffer" };
 				}
 
+				const mimeType = getExportMimeType({ format });
+
 				if (useFfmpegAudioFallback && audioBuffer) {
 					if (cancelled) {
+						await sink?.cleanup();
 						return { success: false, cancelled: true };
 					}
 
@@ -158,17 +185,32 @@ export class RendererManager {
 					};
 
 					try {
+						// Feed ffmpeg.wasm from disk on both sides: the rendered
+						// video comes from the OPFS sink, the WAV is written to a
+						// temp file first — mounting via WORKERFS avoids copying
+						// hundreds of MB into the wasm heap.
+						const videoFile = sink
+							? await sink.getFile()
+							: new Blob([buffer as ArrayBuffer], { type: mimeType });
+						const wavData = audioBufferToWav(audioBuffer);
+						const wavFile =
+							(await writeExportTempFile({
+								name: "audio-input.wav",
+								data: wavData,
+							})) ?? wavData;
+
 						const muxed = await muxAacAudioIntoMp4({
-							videoBuffer: buffer,
-							audioWav: audioBufferToWav(audioBuffer),
+							videoSource: videoFile,
+							audioWav: wavFile,
 							audioBitrate: audioBitrateByQuality[quality] ?? 192_000,
 							onProgress: ({ progress }) =>
 								onProgress?.({ progress: 0.95 + progress * 0.05 }),
 							shouldAbort: () => !!onCancel?.(),
 						});
-						return { success: true, buffer: muxed };
+						return { success: true, blob: muxed };
 					} catch (error) {
 						if (error instanceof MuxAbortedError || onCancel?.()) {
+							await sink?.cleanup();
 							return { success: false, cancelled: true };
 						}
 						console.error("ffmpeg.wasm audio mux failed:", error);
@@ -183,9 +225,15 @@ export class RendererManager {
 					}
 				}
 
+				// Non-fallback path: with a sink the finished file lives on
+				// disk (File is disk-backed); without one, wrap the buffer.
+				const blob = sink
+					? await sink.getFile()
+					: new Blob([buffer as ArrayBuffer], { type: mimeType });
+;
 				return {
 					success: true,
-					buffer,
+					blob,
 				};
 			} finally {
 				clearInterval(cancelInterval);

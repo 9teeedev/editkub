@@ -15,6 +15,7 @@ import {
 import type { RootNode } from "./nodes/root-node";
 import { CanvasRenderer } from "./canvas-renderer";
 import { yieldToMainThread } from "@/utils/scheduler";
+import type { ExportOutputSink } from "@/lib/export/output-sink";
 
 export type ExportFormat = "mp4" | "webm";
 export type ExportQuality = "low" | "medium" | "high" | "very_high";
@@ -27,6 +28,14 @@ type ExportParams = {
 	quality: ExportQuality;
 	shouldIncludeAudio?: boolean;
 	audioBuffer?: AudioBuffer;
+	/**
+	 * Disk-backed output. When provided, encoded chunks stream to OPFS
+	 * instead of accumulating in RAM (long timelines otherwise hold the
+	 * whole file — gigabytes — in memory); the finished file is read back
+	 * via `sink.getFile()` after `finalize()`. `export()` returns null in
+	 * that case — the caller owns the sink.
+	 */
+	sink?: ExportOutputSink;
 };
 
 const qualityMap = {
@@ -57,6 +66,7 @@ export class SceneExporter extends EventEmitter<SceneExporterEvents> {
 	private quality: ExportQuality;
 	private shouldIncludeAudio: boolean;
 	private audioBuffer?: AudioBuffer;
+	private sink?: ExportOutputSink;
 
 	private isCancelled = false;
 
@@ -68,6 +78,7 @@ export class SceneExporter extends EventEmitter<SceneExporterEvents> {
 		quality,
 		shouldIncludeAudio,
 		audioBuffer,
+		sink,
 	}: ExportParams) {
 		super();
 		this.renderer = new CanvasRenderer({
@@ -81,6 +92,7 @@ export class SceneExporter extends EventEmitter<SceneExporterEvents> {
 		this.quality = quality;
 		this.shouldIncludeAudio = shouldIncludeAudio ?? false;
 		this.audioBuffer = audioBuffer;
+		this.sink = sink;
 	}
 
 	cancel(): void {
@@ -100,7 +112,7 @@ export class SceneExporter extends EventEmitter<SceneExporterEvents> {
 
 		const output = new Output({
 			format: outputFormat,
-			target: new BufferTarget(),
+			target: this.sink?.target ?? new BufferTarget(),
 		});
 
 		const videoSource = new CanvasSource(this.renderer.canvas, {
@@ -157,6 +169,11 @@ export class SceneExporter extends EventEmitter<SceneExporterEvents> {
 
 			videoSource.close();
 			await output.finalize();
+			if (this.sink) {
+				// The muxer is done — close the disk stream so the temp file
+				// becomes readable. The caller reads it via sink.getFile().
+				await this.sink.finish();
+			}
 		} catch (error) {
 			try {
 				await output.cancel();
@@ -167,7 +184,12 @@ export class SceneExporter extends EventEmitter<SceneExporterEvents> {
 		}
 		this.emit("progress", 1);
 
-		const buffer = output.target.buffer;
+		if (this.sink) {
+			this.emit("complete", new ArrayBuffer(0));
+			return null;
+		}
+
+		const buffer = (output.target as BufferTarget).buffer;
 		if (!buffer) {
 			this.emit("error", new Error("Failed to export video"));
 			return null;

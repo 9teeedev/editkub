@@ -98,11 +98,14 @@ export function MobileExportDrawer() {
 
 			const processingTimeSec = (performance.now() - startTime) / 1000;
 
-			if (result.success && result.buffer) {
+			if (result.success && result.blob) {
 				const mimeType = getExportMimeType({ format: effectiveFormat });
 				const extension = getExportFileExtension({ format: effectiveFormat });
 				const outcome = await shareOrDownloadFile({
-					blob: new Blob([result.buffer], { type: mimeType }),
+					blob:
+						result.blob.type === mimeType
+							? result.blob
+							: new Blob([result.blob], { type: mimeType }),
 					filename: `${activeProject.metadata.name}${extension}`,
 				});
 
