@@ -8,6 +8,7 @@ import type { MediaAsset } from "@/types/assets";
 import { canElementHaveAudio } from "@/lib/timeline/element-utils";
 import { canTracktHaveAudio } from "@/lib/timeline";
 import { mediaSupportsAudio } from "@/lib/media/media-utils";
+import { yieldToMainThread } from "@/utils/scheduler";
 
 export type CollectedAudioElement = Omit<
 	AudioElement,
@@ -592,7 +593,7 @@ export async function createTimelineAudioBuffer({
 	for (const element of audioElements) {
 		if (element.muted) continue;
 
-		mixAudioChannels({
+		await mixAudioChannels({
 			element,
 			outputBuffer,
 			outputLength,
@@ -604,7 +605,14 @@ export async function createTimelineAudioBuffer({
 	return outputBuffer;
 }
 
-function mixAudioChannels({
+/**
+ * Samples mixed between event-loop yields. A 12-minute timeline mixes ~63M
+ * samples per channel in one synchronous loop — several seconds with the
+ * page frozen hard enough for the browser's "page isn't responding" dialog.
+ */
+const MIX_YIELD_SAMPLE_CHUNK = 44100;
+
+async function mixAudioChannels({
 	element,
 	outputBuffer,
 	outputLength,
@@ -616,7 +624,7 @@ function mixAudioChannels({
 	outputLength: number;
 	sampleRate: number;
 	voiceoverIntervals: Array<{ id?: string; start: number; end: number }>;
-}): void {
+}): Promise<void> {
 	const {
 		buffer,
 		startTime,
@@ -646,6 +654,10 @@ function mixAudioChannels({
 		const sourceData = buffer.getChannelData(sourceChannel);
 
 		for (let i = 0; i < resampledLength; i++) {
+			if (i > 0 && i % MIX_YIELD_SAMPLE_CHUNK === 0) {
+				await yieldToMainThread();
+			}
+
 			const outputIndex = outputStartSample + i;
 			if (outputIndex >= outputLength) break;
 

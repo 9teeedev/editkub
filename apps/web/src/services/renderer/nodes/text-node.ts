@@ -247,6 +247,46 @@ function activeWordIndex({
 }
 
 export class TextNode extends BaseNode<TextNodeParams> {
+	/**
+	 * Layout caches. Layout is a pure function of (text, font, maxWidth), all
+	 * constant per element for a whole export/preview session — but it was
+	 * recomputed with measureText per word/char on every frame, which
+	 * dominates render time for karaoke captions on long timelines. Each
+	 * cache holds only the latest entry: typewriter animation changes
+	 * visibleText every frame, so a stale single entry must be replaced, not
+	 * accumulated. Font strings embed the scaled font size, so a canvas-size
+	 * change misses the cache and recomputes.
+	 */
+	private captionLayout?: {
+		words: CaptionWordTiming[];
+		font: string;
+		maxWidth: number;
+		lines: LaidOutLine[];
+	};
+	private captionMetrics?: {
+		font: string;
+		ascent: number;
+		descent: number;
+	};
+	private wrappedLines?: {
+		content: string;
+		font: string;
+		maxWidth: number;
+		lines: string[];
+	};
+	private explicitLineWidths?: {
+		content: string;
+		font: string;
+		widths: number[];
+	};
+	private singleLineMetrics?: {
+		content: string;
+		font: string;
+		width: number;
+		ascent: number;
+		descent: number;
+	};
+
 	isInRange({ time }: { time: number }) {
 		return (
 			time >= this.params.startTime &&
@@ -375,7 +415,7 @@ export class TextNode extends BaseNode<TextNodeParams> {
 	}) {
 		const words = this.params.wordTimings ?? [];
 		const captionStyle = this.params.captionStyle;
-		const spaceWidth = context.measureText(" ").width;
+		const font = context.font;
 		// Wrap at the element's box width when set (derived captions set it
 		// to match their selection bounds); otherwise 80% of the canvas.
 		const hasBoxWidth =
@@ -388,12 +428,25 @@ export class TextNode extends BaseNode<TextNodeParams> {
 				})
 			: this.params.canvasWidth * 0.8;
 
-		const lines = wrapCaptionWords({
-			context,
-			words,
-			spaceWidth,
-			maxWidth,
-		});
+		const cached = this.captionLayout;
+		let lines: LaidOutLine[];
+		if (
+			cached &&
+			cached.words === words &&
+			cached.font === font &&
+			cached.maxWidth === maxWidth
+		) {
+			lines = cached.lines;
+		} else {
+			const spaceWidth = context.measureText(" ").width;
+			lines = wrapCaptionWords({
+				context,
+				words,
+				spaceWidth,
+				maxWidth,
+			});
+			this.captionLayout = { words, font, maxWidth, lines };
+		}
 
 		const lineHeight =
 			scaledFontSize * resolveLineHeight({ element: this.params });
@@ -507,9 +560,19 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		const accent = captionStyle?.accentColor ?? "#f97316";
 		const flow = captionStyle?.flow ?? "color";
 		const stroke = this.params.stroke;
-		const metrics = context.measureText("Mg");
-		const ascent = metrics.actualBoundingBoxAscent ?? scaledFontSize * 0.8;
-		const descent = metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2;
+		const font = context.font;
+		let ascent: number;
+		let descent: number;
+		const cachedMetrics = this.captionMetrics;
+		if (cachedMetrics && cachedMetrics.font === font) {
+			ascent = cachedMetrics.ascent;
+			descent = cachedMetrics.descent;
+		} else {
+			const metrics = context.measureText("Mg");
+			ascent = metrics.actualBoundingBoxAscent ?? scaledFontSize * 0.8;
+			descent = metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2;
+			this.captionMetrics = { font, ascent, descent };
+		}
 
 		const prevAlign = context.textAlign;
 		context.textAlign = "left";
@@ -653,10 +716,28 @@ export class TextNode extends BaseNode<TextNodeParams> {
 			this.params.backgroundColor &&
 			this.params.backgroundColor !== "transparent"
 		) {
-			const metrics = context.measureText(content);
-			const ascent = metrics.actualBoundingBoxAscent ?? scaledFontSize * 0.8;
-			const descent = metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2;
-			const textW = metrics.width;
+			const font = context.font;
+			let textW: number;
+			let ascent: number;
+			let descent: number;
+			const cached = this.singleLineMetrics;
+			if (cached && cached.content === content && cached.font === font) {
+				textW = cached.width;
+				ascent = cached.ascent;
+				descent = cached.descent;
+			} else {
+				const metrics = context.measureText(content);
+				ascent = metrics.actualBoundingBoxAscent ?? scaledFontSize * 0.8;
+				descent = metrics.actualBoundingBoxDescent ?? scaledFontSize * 0.2;
+				textW = metrics.width;
+				this.singleLineMetrics = {
+					content,
+					font,
+					width: textW,
+					ascent,
+					descent,
+				};
+			}
 			const textH = ascent + descent;
 			const padX = this.params.backgroundPaddingX ?? 8;
 			const padY = this.params.backgroundPaddingY ?? 4;
@@ -731,7 +812,15 @@ export class TextNode extends BaseNode<TextNodeParams> {
 	}) {
 		const content = contentOverride ?? this.params.content;
 		const lines = content.split("\n");
-		const lineWidths = lines.map((line) => context.measureText(line).width);
+		const font = context.font;
+		const cached = this.explicitLineWidths;
+		let lineWidths: number[];
+		if (cached && cached.content === content && cached.font === font) {
+			lineWidths = cached.widths;
+		} else {
+			lineWidths = lines.map((line) => context.measureText(line).width);
+			this.explicitLineWidths = { content, font, widths: lineWidths };
+		}
 		const maxLineWidth = Math.max(...lineWidths, 1);
 
 		const lineHeight =
@@ -831,11 +920,29 @@ export class TextNode extends BaseNode<TextNodeParams> {
 		contentOverride?: string;
 	}) {
 		const content = contentOverride ?? this.params.content;
-		const lines = wrapText({
-			context,
-			text: content,
-			maxWidth: scaledBoxWidth,
-		});
+		const font = context.font;
+		const cached = this.wrappedLines;
+		let lines: string[];
+		if (
+			cached &&
+			cached.content === content &&
+			cached.font === font &&
+			cached.maxWidth === scaledBoxWidth
+		) {
+			lines = cached.lines;
+		} else {
+			lines = wrapText({
+				context,
+				text: content,
+				maxWidth: scaledBoxWidth,
+			});
+			this.wrappedLines = {
+				content,
+				font,
+				maxWidth: scaledBoxWidth,
+				lines,
+			};
+		}
 
 		const lineHeight =
 			scaledFontSize * resolveLineHeight({ element: this.params });

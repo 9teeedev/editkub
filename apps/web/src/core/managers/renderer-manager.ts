@@ -51,6 +51,10 @@ export class RendererManager {
 			const exportFps = fps || activeProject.settings.fps;
 			const canvasSize = activeProject.settings.canvasSize;
 
+			// Preview playback competes with the export loop for the decode
+			// cache and main-thread time; pause it for the export's duration.
+			this.editor.playback.pause();
+
 			// Pre-flight: fail fast if this browser can't encode the chosen codec.
 			// AAC (mp4) encoding is unsupported on some browsers and would otherwise
 			// throw deep inside the muxer mid-export.

@@ -14,6 +14,7 @@ import {
 } from "mediabunny";
 import type { RootNode } from "./nodes/root-node";
 import { CanvasRenderer } from "./canvas-renderer";
+import { yieldToMainThread } from "@/utils/scheduler";
 
 export type ExportFormat = "mp4" | "webm";
 export type ExportQuality = "low" | "medium" | "high" | "very_high";
@@ -34,6 +35,14 @@ const qualityMap = {
 	high: QUALITY_HIGH,
 	very_high: QUALITY_VERY_HIGH,
 };
+
+/**
+ * Frames rendered between event-loop yields. The render/encode loop otherwise
+ * monopolizes the main thread, and a multi-minute timeline blocks input long
+ * enough for the browser to show a "page isn't responding" dialog. Yielding
+ * also lets the 100 ms cancellation poll run.
+ */
+const YIELD_EVERY_N_FRAMES = 10;
 
 export type SceneExporterEvents = {
 	progress: [progress: number];
@@ -112,33 +121,50 @@ export class SceneExporter extends EventEmitter<SceneExporterEvents> {
 
 		await output.start();
 
-		if (audioSource && this.audioBuffer) {
-			await audioSource.add(this.audioBuffer);
-			audioSource.close();
-		}
+		// Everything that can fail between start and finalize runs inside this
+		// try block: on a throw, cancel the output so mediabunny force-closes the
+		// encoders and muxer (output.cancel is a no-op after a finalize). The
+		// original error is rethrown even if cleanup itself fails.
+		try {
+			if (audioSource && this.audioBuffer) {
+				await audioSource.add(this.audioBuffer);
+				audioSource.close();
+			}
 
-		for (let i = 0; i < frameCount; i++) {
+			for (let i = 0; i < frameCount; i++) {
+				if (this.isCancelled) {
+					await output.cancel();
+					this.emit("cancelled");
+					return null;
+				}
+
+				const time = i / fps;
+				await this.renderer.render({ node: rootNode, time });
+				await videoSource.add(time, 1 / fps);
+
+				this.emit("progress", i / frameCount);
+
+				if ((i + 1) % YIELD_EVERY_N_FRAMES === 0) {
+					await yieldToMainThread();
+				}
+			}
+
 			if (this.isCancelled) {
 				await output.cancel();
 				this.emit("cancelled");
 				return null;
 			}
 
-			const time = i / fps;
-			await this.renderer.render({ node: rootNode, time });
-			await videoSource.add(time, 1 / fps);
-
-			this.emit("progress", i / frameCount);
+			videoSource.close();
+			await output.finalize();
+		} catch (error) {
+			try {
+				await output.cancel();
+			} catch {
+				// keep the original export error
+			}
+			throw error;
 		}
-
-		if (this.isCancelled) {
-			await output.cancel();
-			this.emit("cancelled");
-			return null;
-		}
-
-		videoSource.close();
-		await output.finalize();
 		this.emit("progress", 1);
 
 		const buffer = output.target.buffer;
